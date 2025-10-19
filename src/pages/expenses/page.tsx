@@ -28,7 +28,7 @@ import {
   FileDownIcon,
   PrinterIcon,
 } from "lucide-react";
-import { generatePDF, printPDF } from "@/lib/pdf-export.ts";
+import { generateExpensesPDF } from "@/lib/pdf-export.ts";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -249,8 +249,8 @@ function ExpensesContent() {
                         const pdfData = expenses.map((exp) => ({
                           title: exp.title,
                           category: exp.category,
-                          amount: exp.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                          date: format(new Date(exp.date), "dd/MM/yyyy"),
+                          amount: exp.amount,
+                          date: new Date(exp.date),
                           description: exp.description || "-",
                         }));
 
@@ -262,27 +262,10 @@ function ExpensesContent() {
                           return { category: cat, total: catTotal };
                         }).filter(item => item.total > 0);
 
-                        await generatePDF({
-                          title: "Expenses Report",
-                          subtitle: "Financial Management System",
-                          branchName: branchName || "",
-                          columns: [
-                            { header: "Title", dataKey: "title", align: "left", width: 40 },
-                            { header: "Category", dataKey: "category", align: "center", width: 30 },
-                            { header: "Amount (SAR)", dataKey: "amount", align: "right", width: 30 },
-                            { header: "Date", dataKey: "date", align: "center", width: 25 },
-                            { header: "Description", dataKey: "description", align: "left", width: 60 },
-                          ],
-                          data: pdfData,
-                          summaries: [
-                            { label: "Total Expenses:", value: `${totalExpenses.toFixed(2)} SAR` },
-                            { label: "Total Transactions:", value: String(expenses.length) },
-                            ...categoryBreakdown.map(item => ({
-                              label: `${item.category}:`,
-                              value: `${item.total.toFixed(2)} SAR`
-                            })),
-                          ],
-                        });
+                        await generateExpensesPDF(
+                          pdfData,
+                          branchName || ""
+                        );
                         
                         toast.success("تم تصدير PDF بنجاح");
                       }}
@@ -298,8 +281,8 @@ function ExpensesContent() {
                         const pdfData = expenses.map((exp) => ({
                           title: exp.title,
                           category: exp.category,
-                          amount: exp.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                          date: format(new Date(exp.date), "dd/MM/yyyy"),
+                          amount: exp.amount,
+                          date: new Date(exp.date),
                           description: exp.description || "-",
                         }));
 
@@ -311,27 +294,10 @@ function ExpensesContent() {
                           return { category: cat, total: catTotal };
                         }).filter(item => item.total > 0);
 
-                        await printPDF({
-                          title: "Expenses Report",
-                          subtitle: "Financial Management System",
-                          branchName: branchName || "",
-                          columns: [
-                            { header: "Title", dataKey: "title", align: "left", width: 40 },
-                            { header: "Category", dataKey: "category", align: "center", width: 30 },
-                            { header: "Amount (SAR)", dataKey: "amount", align: "right", width: 30 },
-                            { header: "Date", dataKey: "date", align: "center", width: 25 },
-                            { header: "Description", dataKey: "description", align: "left", width: 60 },
-                          ],
-                          data: pdfData,
-                          summaries: [
-                            { label: "Total Expenses:", value: `${totalExpenses.toFixed(2)} SAR` },
-                            { label: "Total Transactions:", value: String(expenses.length) },
-                            ...categoryBreakdown.map(item => ({
-                              label: `${item.category}:`,
-                              value: `${item.total.toFixed(2)} SAR`
-                            })),
-                          ],
-                        });
+                        await generateExpensesPDF(
+                          pdfData,
+                          branchName || ""
+                        );
                       }}
                     >
                       <PrinterIcon className="ml-2 size-4" />

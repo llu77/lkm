@@ -31,7 +31,7 @@ import { toast } from "sonner";
 import { useBranch } from "@/hooks/use-branch.ts";
 import { BranchSelector } from "@/components/branch-selector.tsx";
 import Navbar from "@/components/navbar.tsx";
-import { generatePDF, printPDF } from "@/lib/pdf-export.ts";
+import { generateRevenuesPDF } from "@/lib/pdf-export.ts";
 import {
   Select,
   SelectContent,
@@ -517,12 +517,13 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                   size="sm"
                   onClick={async () => {
                     const pdfData = revenues.map((rev) => ({
-                      date: new Date(rev.date).toLocaleDateString("en-GB"),
-                      cash: (rev.cash || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                      network: (rev.network || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                      budget: (rev.budget || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                      total: (rev.total || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                      status: rev.isMatched ? "✓ Matched" : "✗ Mismatch",
+                      date: new Date(rev.date),
+                      cash: rev.cash,
+                      network: rev.network,
+                      budget: rev.budget,
+                      total: rev.total,
+                      calculatedTotal: rev.calculatedTotal,
+                      isMatched: rev.isMatched,
                     }));
 
                     const totalCash = revenues.reduce((sum, r) => sum + (r.cash || 0), 0);
@@ -530,30 +531,12 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                     const totalBudget = revenues.reduce((sum, r) => sum + (r.budget || 0), 0);
                     const grandTotal = revenues.reduce((sum, r) => sum + (r.total || 0), 0);
 
-                    await generatePDF({
-                      title: "Revenue Report",
-                      subtitle: "Financial Management System",
-                      branchName: branchName,
-                      dateRange: {
-                        from: new Date(currentYear, currentMonth, 1).toLocaleDateString("en-GB"),
-                        to: new Date(currentYear, currentMonth + 1, 0).toLocaleDateString("en-GB"),
-                      },
-                      columns: [
-                        { header: "Date", dataKey: "date", align: "center", width: 30 },
-                        { header: "Cash (SAR)", dataKey: "cash", align: "right", width: 35 },
-                        { header: "Network (SAR)", dataKey: "network", align: "right", width: 35 },
-                        { header: "Budget (SAR)", dataKey: "budget", align: "right", width: 35 },
-                        { header: "Total (SAR)", dataKey: "total", align: "right", width: 35 },
-                        { header: "Status", dataKey: "status", align: "center", width: 25 },
-                      ],
-                      data: pdfData,
-                      summaries: [
-                        { label: "Total Cash:", value: `${totalCash.toLocaleString()} SAR` },
-                        { label: "Total Network:", value: `${totalNetwork.toLocaleString()} SAR` },
-                        { label: "Total Budget:", value: `${totalBudget.toLocaleString()} SAR` },
-                        { label: "Grand Total:", value: `${grandTotal.toLocaleString()} SAR` },
-                      ],
-                    });
+                    await generateRevenuesPDF(
+                      pdfData,
+                      branchName,
+                      new Date(currentYear, currentMonth, 1),
+                      new Date(currentYear, currentMonth + 1, 0)
+                    );
                     
                     toast.success("تم تصدير PDF بنجاح");
                   }}
@@ -567,43 +550,21 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                   size="sm"
                   onClick={async () => {
                     const pdfData = revenues.map((rev) => ({
-                      date: new Date(rev.date).toLocaleDateString("en-GB"),
-                      cash: (rev.cash || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                      network: (rev.network || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                      budget: (rev.budget || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                      total: (rev.total || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                      status: rev.isMatched ? "✓ Matched" : "✗ Mismatch",
+                      date: new Date(rev.date),
+                      cash: rev.cash,
+                      network: rev.network,
+                      budget: rev.budget,
+                      total: rev.total,
+                      calculatedTotal: rev.calculatedTotal,
+                      isMatched: rev.isMatched,
                     }));
 
-                    const totalCash = revenues.reduce((sum, r) => sum + (r.cash || 0), 0);
-                    const totalNetwork = revenues.reduce((sum, r) => sum + (r.network || 0), 0);
-                    const totalBudget = revenues.reduce((sum, r) => sum + (r.budget || 0), 0);
-                    const grandTotal = revenues.reduce((sum, r) => sum + (r.total || 0), 0);
-
-                    await printPDF({
-                      title: "Revenue Report",
-                      subtitle: "Financial Management System",
-                      branchName: branchName,
-                      dateRange: {
-                        from: new Date(currentYear, currentMonth, 1).toLocaleDateString("en-GB"),
-                        to: new Date(currentYear, currentMonth + 1, 0).toLocaleDateString("en-GB"),
-                      },
-                      columns: [
-                        { header: "Date", dataKey: "date", align: "center", width: 30 },
-                        { header: "Cash (SAR)", dataKey: "cash", align: "right", width: 35 },
-                        { header: "Network (SAR)", dataKey: "network", align: "right", width: 35 },
-                        { header: "Budget (SAR)", dataKey: "budget", align: "right", width: 35 },
-                        { header: "Total (SAR)", dataKey: "total", align: "right", width: 35 },
-                        { header: "Status", dataKey: "status", align: "center", width: 25 },
-                      ],
-                      data: pdfData,
-                      summaries: [
-                        { label: "Total Cash:", value: `${totalCash.toLocaleString()} SAR` },
-                        { label: "Total Network:", value: `${totalNetwork.toLocaleString()} SAR` },
-                        { label: "Total Budget:", value: `${totalBudget.toLocaleString()} SAR` },
-                        { label: "Grand Total:", value: `${grandTotal.toLocaleString()} SAR` },
-                      ],
-                    });
+                    await generateRevenuesPDF(
+                      pdfData,
+                      branchName,
+                      new Date(currentYear, currentMonth, 1),
+                      new Date(currentYear, currentMonth + 1, 0)
+                    );
                   }}
                 >
                   <PrinterIcon className="ml-2 size-4" />

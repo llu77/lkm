@@ -193,8 +193,13 @@ function addBranchInfoBox(
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(100, 100, 100);
-  const dateStr = `Report Period: ${format(startDate, "dd/MM/yyyy")} to ${format(endDate, "dd/MM/yyyy")}`;
-  doc.text(dateStr, pageWidth - boxPadding - 15, yPosition + boxHeight - 5, { align: "right" });
+  try {
+    const dateStr = `Report Period: ${format(new Date(startDate), "dd/MM/yyyy")} to ${format(new Date(endDate), "dd/MM/yyyy")}`;
+    doc.text(dateStr, pageWidth - boxPadding - 15, yPosition + boxHeight - 5, { align: "right" });
+  } catch (error) {
+    console.error("Error formatting dates in branch box:", error);
+    doc.text("Financial Report", pageWidth - boxPadding - 15, yPosition + boxHeight - 5, { align: "right" });
+  }
   
   return yPosition + boxHeight + 10;
 }
@@ -214,14 +219,23 @@ interface RevenueData {
 }
 
 function createRevenuesTable(doc: jsPDF, data: RevenueData[], startY: number) {
-  const tableData = data.map((row) => [
-    format(row.date, "dd/MM/yyyy"),
-    row.cash?.toFixed(2) || "0.00",
-    row.network?.toFixed(2) || "0.00",
-    row.budget?.toFixed(2) || "0.00",
-    row.total?.toFixed(2) || "0.00",
-    row.isMatched ? "Matched" : "Not Matched",
-  ]);
+  const tableData = data.map((row) => {
+    let dateStr = "";
+    try {
+      dateStr = format(new Date(row.date), "dd/MM/yyyy");
+    } catch (error) {
+      console.error("Error formatting date in table:", error, row.date);
+      dateStr = "Invalid Date";
+    }
+    return [
+      dateStr,
+      row.cash?.toFixed(2) || "0.00",
+      row.network?.toFixed(2) || "0.00",
+      row.budget?.toFixed(2) || "0.00",
+      row.total?.toFixed(2) || "0.00",
+      row.isMatched ? "Matched" : "Not Matched",
+    ];
+  });
   
   autoTable(doc, {
     startY,
@@ -296,13 +310,22 @@ interface ExpenseData {
 }
 
 function createExpensesTable(doc: jsPDF, data: ExpenseData[], startY: number) {
-  const tableData = data.map((row) => [
-    row.title,
-    row.category,
-    row.amount.toFixed(2),
-    format(row.date, "dd/MM/yyyy"),
-    row.description || "-",
-  ]);
+  const tableData = data.map((row) => {
+    let dateStr = "";
+    try {
+      dateStr = format(new Date(row.date), "dd/MM/yyyy");
+    } catch (error) {
+      console.error("Error formatting date in expenses table:", error, row.date);
+      dateStr = "Invalid Date";
+    }
+    return [
+      row.title,
+      row.category,
+      row.amount.toFixed(2),
+      dateStr,
+      row.description || "-",
+    ];
+  });
   
   autoTable(doc, {
     startY,
