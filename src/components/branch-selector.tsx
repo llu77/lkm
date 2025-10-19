@@ -21,19 +21,20 @@ export function BranchSelector({ onBranchSelected }: BranchSelectorProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const branchName = BRANCHES[branchId as keyof typeof BRANCHES];
+    const trimmedId = branchId.trim();
+    const branchName = BRANCHES[trimmedId as keyof typeof BRANCHES];
     
     if (!branchName) {
-      toast.error("معرف الفرع غير صحيح");
+      toast.error("معرف الفرع غير صحيح. الرجاء إدخال 1010 أو 2020");
       return;
     }
 
     // حفظ معرف الفرع في localStorage
-    localStorage.setItem("selectedBranchId", branchId);
+    localStorage.setItem("selectedBranchId", trimmedId);
     localStorage.setItem("selectedBranchName", branchName);
     
     toast.success(`تم الدخول إلى ${branchName}`);
-    onBranchSelected(branchId, branchName);
+    onBranchSelected(trimmedId, branchName);
   };
 
   return (
@@ -80,8 +81,8 @@ export function BranchSelector({ onBranchSelected }: BranchSelectorProps) {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" size="lg">
-              دخول
+            <Button type="submit" className="w-full text-lg font-bold" size="lg">
+              تأكيد والدخول
             </Button>
           </form>
         </CardContent>
