@@ -10,6 +10,9 @@ export default defineSchema({
     bio: v.optional(v.string()),
     avatar: v.optional(v.string()),
     role: v.optional(v.string()), // "admin", "employee", "manager"
+    // Temporary fields for migration
+    followerCount: v.optional(v.number()),
+    followingCount: v.optional(v.number()),
   })
     .index("by_token", ["tokenIdentifier"])
     .index("by_username", ["username"]),
