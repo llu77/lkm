@@ -14,6 +14,8 @@ interface PDFHeader {
 interface PDFColumn {
   header: string;
   dataKey: string;
+  align?: "left" | "center" | "right";
+  width?: number;
 }
 
 interface PDFData {
@@ -25,41 +27,152 @@ const STAMP_URL = "https://cdn.hercules.app/file_KxtpKU0KZ8CJ5zEVgJRzSTOG";
 
 // معلومات المشرفين حسب الفرع
 const BRANCH_SUPERVISORS: Record<string, string> = {
-  "1010": "عبدالحي جلال",
-  "لبن": "عبدالحي جلال",
-  "2020": "محمد إسماعيل",
-  "طويق": "محمد إسماعيل",
+  "1010": "Abdulhai Jalal",
+  "لبن": "Abdulhai Jalal",
+  "labn": "Abdulhai Jalal",
+  "2020": "Mohammed Ismail",
+  "طويق": "Mohammed Ismail",
+  "tuwaiq": "Mohammed Ismail",
 };
 
 function getSupervisorName(branchName: string): string {
-  // البحث عن اسم المشرف بناءً على اسم الفرع أو رقمه
+  const normalizedBranch = branchName.toLowerCase();
   for (const [key, supervisor] of Object.entries(BRANCH_SUPERVISORS)) {
-    if (branchName.includes(key) || key.includes(branchName)) {
+    if (normalizedBranch.includes(key.toLowerCase()) || key.toLowerCase().includes(normalizedBranch)) {
       return supervisor;
     }
   }
-  return ""; // إذا لم يتم العثور على مشرف
+  return "";
 }
 
 async function loadImage(url: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL("image/png"));
-      } else {
-        reject(new Error("Failed to get canvas context"));
-      }
-    };
-    img.onerror = reject;
-    img.src = url;
-  });
+  try {
+    // استخدام fetch لتحميل الصورة (أفضل لتجاوز CORS)
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const blob = await response.blob();
+    
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result);
+        } else {
+          reject(new Error("Failed to convert image to base64"));
+        }
+      };
+      reader.onerror = () => reject(new Error("FileReader error"));
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Image loading error:", error);
+    throw error;
+  }
+}
+
+async function addHeaderToDoc(doc: jsPDF, header: PDFHeader): Promise<number> {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let currentY = 10;
+
+  try {
+    // تحميل وإضافة الشعار
+    const logoData = await loadImage(LOGO_URL);
+    const logoSize = 35;
+    doc.addImage(logoData, "PNG", (pageWidth - logoSize) / 2, currentY, logoSize, logoSize);
+    currentY += logoSize + 10;
+  } catch (error) {
+    console.error("Failed to load logo:", error);
+    currentY += 5;
+  }
+
+  // العنوان الرئيسي
+  doc.setFontSize(26);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(25, 77, 51); // أخضر داكن احترافي
+  doc.text(header.title, pageWidth / 2, currentY, { align: "center" });
+  currentY += 8;
+
+  // العنوان الفرعي
+  if (header.subtitle) {
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text(header.subtitle, pageWidth / 2, currentY, { align: "center" });
+    currentY += 7;
+  }
+
+  // صندوق معلومات الفرع والمشرف
+  const boxY = currentY;
+  const boxHeight = 20;
+  
+  // رسم مستطيل بخلفية فاتحة
+  doc.setFillColor(245, 250, 247);
+  doc.setDrawColor(25, 77, 51);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(20, boxY, pageWidth - 40, boxHeight, 2, 2, "FD");
+  
+  currentY = boxY + 7;
+
+  // اسم الفرع
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(25, 77, 51);
+  doc.text(`Branch: ${header.branchName}`, pageWidth / 2, currentY, { align: "center" });
+  currentY += 6;
+
+  // اسم المشرف
+  const supervisorName = getSupervisorName(header.branchName);
+  if (supervisorName) {
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Supervisor: ${supervisorName}`, pageWidth / 2, currentY, { align: "center" });
+  }
+
+  currentY = boxY + boxHeight + 6;
+
+  // الفترة الزمنية
+  if (header.dateRange) {
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(100, 100, 100);
+    doc.text(
+      `Report Period: ${header.dateRange.from} to ${header.dateRange.to}`,
+      pageWidth / 2,
+      currentY,
+      { align: "center" }
+    );
+    currentY += 8;
+  }
+
+  // خط فاصل احترافي
+  doc.setDrawColor(25, 77, 51);
+  doc.setLineWidth(1);
+  doc.line(20, currentY, pageWidth - 20, currentY);
+  currentY += 8;
+
+  return currentY;
+}
+
+async function addStampToDoc(doc: jsPDF) {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  
+  try {
+    const stampData = await loadImage(STAMP_URL);
+    const stampSize = 40;
+    const stampX = pageWidth - stampSize - 15;
+    const stampY = pageHeight - stampSize - 20;
+    
+    // إضافة الختم
+    doc.addImage(stampData, "PNG", stampX, stampY, stampSize, stampSize);
+    
+    console.log("Stamp added successfully at:", { stampX, stampY, stampSize });
+  } catch (error) {
+    console.error("Failed to load stamp:", error);
+  }
 }
 
 export async function generatePDF({
@@ -83,117 +196,73 @@ export async function generatePDF({
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
+
+  // إضافة الهيدر
+  const startY = await addHeaderToDoc(doc, header);
+
+  // إعداد أنماط الجدول الاحترافية
+  const columnStyles: Record<number, { halign?: "left" | "center" | "right"; cellWidth?: number | "auto" | "wrap" }> = {};
   
-  let currentY = 15;
+  columns.forEach((col, index) => {
+    columnStyles[index] = {
+      halign: col.align || "center",
+      cellWidth: col.width || "auto",
+    };
+  });
 
-  try {
-    // إضافة الشعار
-    const logoData = await loadImage(LOGO_URL);
-    const logoSize = 30;
-    doc.addImage(logoData, "PNG", (pageWidth - logoSize) / 2, currentY, logoSize, logoSize);
-    currentY += logoSize + 8;
-  } catch (error) {
-    console.error("Failed to load logo:", error);
-    currentY += 5;
-  }
-
-  // العنوان الرئيسي
-  doc.setFontSize(24);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(56, 115, 76);
-  doc.text(header.title, pageWidth / 2, currentY, { align: "center" });
-  currentY += 10;
-
-  // العنوان الفرعي
-  if (header.subtitle) {
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    doc.text(header.subtitle, pageWidth / 2, currentY, { align: "center" });
-    currentY += 8;
-  }
-
-  // معلومات الفرع والمشرف
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(0, 0, 0);
-  doc.text(`Branch: ${header.branchName}`, pageWidth / 2, currentY, { align: "center" });
-  currentY += 6;
-
-  // اسم المشرف
-  const supervisorName = getSupervisorName(header.branchName);
-  if (supervisorName) {
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(80, 80, 80);
-    doc.text(`Supervisor: ${supervisorName}`, pageWidth / 2, currentY, { align: "center" });
-    currentY += 6;
-  } else {
-    currentY += 2;
-  }
-
-  if (header.dateRange) {
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    doc.text(
-      `Period: ${header.dateRange.from} - ${header.dateRange.to}`,
-      pageWidth / 2,
-      currentY,
-      { align: "center" }
-    );
-    currentY += 8;
-  }
-
-  // خط فاصل زخرفي
-  doc.setDrawColor(56, 115, 76);
-  doc.setLineWidth(0.8);
-  doc.line(20, currentY, pageWidth - 20, currentY);
-  currentY += 8;
-
-  // الجدول مع تنسيق محسّن
+  // الجدول مع تنسيق مالي احترافي
   autoTable(doc, {
-    startY: currentY,
+    startY: startY,
     head: [columns.map((col) => col.header)],
     body: data.map((row) => columns.map((col) => String(row[col.dataKey] || "-"))),
-    theme: "striped",
+    
+    theme: "grid",
+    
     headStyles: {
-      fillColor: [56, 115, 76],
+      fillColor: [25, 77, 51], // أخضر داكن
       textColor: [255, 255, 255],
       fontSize: 11,
       fontStyle: "bold",
       halign: "center",
       valign: "middle",
-      cellPadding: 5,
+      cellPadding: { top: 5, bottom: 5, left: 3, right: 3 },
+      lineWidth: 0.1,
+      lineColor: [200, 200, 200],
     },
+    
     bodyStyles: {
       fontSize: 10,
-      halign: "center",
-      valign: "middle",
-      cellPadding: 4,
       textColor: [40, 40, 40],
+      cellPadding: { top: 4, bottom: 4, left: 3, right: 3 },
+      lineWidth: 0.1,
+      lineColor: [220, 220, 220],
     },
+    
     alternateRowStyles: {
-      fillColor: [248, 250, 252],
+      fillColor: [248, 252, 249], // أخضر فاتح جداً
     },
-    columnStyles: {
-      0: { cellWidth: "auto" },
-    },
-    margin: { top: 10, left: 15, right: 15, bottom: 30 },
+    
+    columnStyles: columnStyles,
+    
+    margin: { top: 10, left: 12, right: 12, bottom: 35 },
+    
+    tableLineColor: [200, 200, 200],
+    tableLineWidth: 0.1,
+    
     didDrawPage: (data) => {
       // تذييل الصفحة
-      const footerY = pageHeight - 15;
+      const footerY = pageHeight - 12;
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(150);
+      doc.setTextColor(120, 120, 120);
       
       const now = new Date();
-      const dateStr = now.toLocaleDateString("en-US", {
+      const dateStr = now.toLocaleDateString("en-GB", {
         year: "numeric",
-        month: "short",
-        day: "numeric",
+        month: "2-digit",
+        day: "2-digit",
       });
-      const timeStr = now.toLocaleTimeString("en-US", {
+      const timeStr = now.toLocaleTimeString("en-GB", {
         hour: "2-digit",
         minute: "2-digit",
       });
@@ -205,48 +274,41 @@ export async function generatePDF({
       const pageNum = pageInfo.pageNumber;
       const totalPages = (doc.internal as typeof doc.internal & { getNumberOfPages(): number }).getNumberOfPages();
       
-      doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - 15, footerY, { align: "right" });
+      doc.text(`Page ${pageNum} / ${totalPages}`, pageWidth - 15, footerY, { align: "right" });
     },
   });
 
-  // الإجماليات في صندوق مميز
+  // الإجماليات في صندوق احترافي
   if (totals && totals.length > 0) {
     const docWithTable = doc as typeof doc & { lastAutoTable?: { finalY: number } };
-    const finalY = docWithTable.lastAutoTable?.finalY || currentY;
-    currentY = finalY + 10;
+    const finalY = docWithTable.lastAutoTable?.finalY || startY;
+    let currentY = finalY + 12;
 
-    // التأكد من أن الإجماليات لا تتجاوز الصفحة
-    const totalsHeight = totals.length * 7 + 12;
-    if (currentY + totalsHeight > pageHeight - 30) {
+    const totalsHeight = totals.length * 8 + 14;
+    if (currentY + totalsHeight > pageHeight - 40) {
       doc.addPage();
-      currentY = 20;
+      currentY = 25;
     }
 
     // صندوق الإجماليات
-    doc.setFillColor(56, 115, 76);
-    doc.roundedRect(15, currentY, pageWidth - 30, totalsHeight, 3, 3, "F");
+    doc.setFillColor(25, 77, 51);
+    doc.setDrawColor(25, 77, 51);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(12, currentY, pageWidth - 24, totalsHeight, 3, 3, "FD");
     
-    doc.setFontSize(11);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
     
     totals.forEach((total, index) => {
-      const y = currentY + 8 + index * 7;
-      doc.text(total.label, 20, y);
-      doc.text(String(total.value), pageWidth - 20, y, { align: "right" });
+      const y = currentY + 10 + index * 8;
+      doc.text(total.label, 18, y);
+      doc.text(String(total.value), pageWidth - 18, y, { align: "right" });
     });
   }
 
-  // إضافة الختم في الصفحة الأخيرة
-  try {
-    const stampData = await loadImage(STAMP_URL);
-    const stampSize = 35; // حجم الختم
-    const stampX = pageWidth - stampSize - 20; // يمين الصفحة
-    const stampY = pageHeight - stampSize - 25; // أسفل الصفحة
-    doc.addImage(stampData, "PNG", stampX, stampY, stampSize, stampSize);
-  } catch (error) {
-    console.error("Failed to load stamp:", error);
-  }
+  // إضافة الختم
+  await addStampToDoc(doc);
 
   // حفظ الملف
   doc.save(`${fileName}.pdf`);
@@ -261,119 +323,74 @@ export async function printPDF(pdfOptions: Parameters<typeof generatePDF>[0]) {
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
+
+  // إضافة الهيدر
+  const startY = await addHeaderToDoc(doc, pdfOptions.header);
+
+  // إعداد أنماط الأعمدة
+  const columnStyles: Record<number, { halign?: "left" | "center" | "right"; cellWidth?: number | "auto" | "wrap" }> = {};
   
-  let currentY = 15;
-
-  try {
-    // إضافة الشعار
-    const logoData = await loadImage(LOGO_URL);
-    const logoSize = 30;
-    doc.addImage(logoData, "PNG", (pageWidth - logoSize) / 2, currentY, logoSize, logoSize);
-    currentY += logoSize + 8;
-  } catch (error) {
-    console.error("Failed to load logo:", error);
-    currentY += 5;
-  }
-
-  // العنوان الرئيسي
-  doc.setFontSize(24);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(56, 115, 76);
-  doc.text(pdfOptions.header.title, pageWidth / 2, currentY, { align: "center" });
-  currentY += 10;
-
-  // العنوان الفرعي
-  if (pdfOptions.header.subtitle) {
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    doc.text(pdfOptions.header.subtitle, pageWidth / 2, currentY, { align: "center" });
-    currentY += 8;
-  }
-
-  // معلومات الفرع والمشرف
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(0, 0, 0);
-  doc.text(`Branch: ${pdfOptions.header.branchName}`, pageWidth / 2, currentY, { align: "center" });
-  currentY += 6;
-
-  // اسم المشرف
-  const supervisorName = getSupervisorName(pdfOptions.header.branchName);
-  if (supervisorName) {
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(80, 80, 80);
-    doc.text(`Supervisor: ${supervisorName}`, pageWidth / 2, currentY, { align: "center" });
-    currentY += 6;
-  } else {
-    currentY += 2;
-  }
-
-  if (pdfOptions.header.dateRange) {
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    doc.text(
-      `Period: ${pdfOptions.header.dateRange.from} - ${pdfOptions.header.dateRange.to}`,
-      pageWidth / 2,
-      currentY,
-      { align: "center" }
-    );
-    currentY += 8;
-  }
-
-  // خط فاصل زخرفي
-  doc.setDrawColor(56, 115, 76);
-  doc.setLineWidth(0.8);
-  doc.line(20, currentY, pageWidth - 20, currentY);
-  currentY += 8;
+  pdfOptions.columns.forEach((col, index) => {
+    columnStyles[index] = {
+      halign: col.align || "center",
+      cellWidth: col.width || "auto",
+    };
+  });
 
   // الجدول
   autoTable(doc, {
-    startY: currentY,
+    startY: startY,
     head: [pdfOptions.columns.map((col) => col.header)],
     body: pdfOptions.data.map((row) =>
       pdfOptions.columns.map((col) => String(row[col.dataKey] || "-"))
     ),
-    theme: "striped",
+    
+    theme: "grid",
+    
     headStyles: {
-      fillColor: [56, 115, 76],
+      fillColor: [25, 77, 51],
       textColor: [255, 255, 255],
       fontSize: 11,
       fontStyle: "bold",
       halign: "center",
       valign: "middle",
-      cellPadding: 5,
+      cellPadding: { top: 5, bottom: 5, left: 3, right: 3 },
+      lineWidth: 0.1,
+      lineColor: [200, 200, 200],
     },
+    
     bodyStyles: {
       fontSize: 10,
-      halign: "center",
-      valign: "middle",
-      cellPadding: 4,
       textColor: [40, 40, 40],
+      cellPadding: { top: 4, bottom: 4, left: 3, right: 3 },
+      lineWidth: 0.1,
+      lineColor: [220, 220, 220],
     },
+    
     alternateRowStyles: {
-      fillColor: [248, 250, 252],
+      fillColor: [248, 252, 249],
     },
-    columnStyles: {
-      0: { cellWidth: "auto" },
-    },
-    margin: { top: 10, left: 15, right: 15, bottom: 30 },
+    
+    columnStyles: columnStyles,
+    
+    margin: { top: 10, left: 12, right: 12, bottom: 35 },
+    
+    tableLineColor: [200, 200, 200],
+    tableLineWidth: 0.1,
+    
     didDrawPage: (data) => {
-      // تذييل الصفحة
-      const footerY = pageHeight - 15;
+      const footerY = pageHeight - 12;
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(150);
+      doc.setTextColor(120, 120, 120);
       
       const now = new Date();
-      const dateStr = now.toLocaleDateString("en-US", {
+      const dateStr = now.toLocaleDateString("en-GB", {
         year: "numeric",
-        month: "short",
-        day: "numeric",
+        month: "2-digit",
+        day: "2-digit",
       });
-      const timeStr = now.toLocaleTimeString("en-US", {
+      const timeStr = now.toLocaleTimeString("en-GB", {
         hour: "2-digit",
         minute: "2-digit",
       });
@@ -385,48 +402,40 @@ export async function printPDF(pdfOptions: Parameters<typeof generatePDF>[0]) {
       const pageNum = pageInfo.pageNumber;
       const totalPages = (doc.internal as typeof doc.internal & { getNumberOfPages(): number }).getNumberOfPages();
       
-      doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - 15, footerY, { align: "right" });
+      doc.text(`Page ${pageNum} / ${totalPages}`, pageWidth - 15, footerY, { align: "right" });
     },
   });
 
   // الإجماليات
   if (pdfOptions.totals && pdfOptions.totals.length > 0) {
     const docWithTable = doc as typeof doc & { lastAutoTable?: { finalY: number } };
-    const finalY = docWithTable.lastAutoTable?.finalY || currentY;
-    currentY = finalY + 10;
+    const finalY = docWithTable.lastAutoTable?.finalY || startY;
+    let currentY = finalY + 12;
 
-    // التأكد من أن الإجماليات لا تتجاوز الصفحة
-    const totalsHeight = pdfOptions.totals.length * 7 + 12;
-    if (currentY + totalsHeight > pageHeight - 30) {
+    const totalsHeight = pdfOptions.totals.length * 8 + 14;
+    if (currentY + totalsHeight > pageHeight - 40) {
       doc.addPage();
-      currentY = 20;
+      currentY = 25;
     }
 
-    // صندوق الإجماليات
-    doc.setFillColor(56, 115, 76);
-    doc.roundedRect(15, currentY, pageWidth - 30, totalsHeight, 3, 3, "F");
+    doc.setFillColor(25, 77, 51);
+    doc.setDrawColor(25, 77, 51);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(12, currentY, pageWidth - 24, totalsHeight, 3, 3, "FD");
     
-    doc.setFontSize(11);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
     
     pdfOptions.totals.forEach((total, index) => {
-      const y = currentY + 8 + index * 7;
-      doc.text(total.label, 20, y);
-      doc.text(String(total.value), pageWidth - 20, y, { align: "right" });
+      const y = currentY + 10 + index * 8;
+      doc.text(total.label, 18, y);
+      doc.text(String(total.value), pageWidth - 18, y, { align: "right" });
     });
   }
 
-  // إضافة الختم في الصفحة الأخيرة
-  try {
-    const stampData = await loadImage(STAMP_URL);
-    const stampSize = 35; // حجم الختم
-    const stampX = pageWidth - stampSize - 20; // يمين الصفحة
-    const stampY = pageHeight - stampSize - 25; // أسفل الصفحة
-    doc.addImage(stampData, "PNG", stampX, stampY, stampSize, stampSize);
-  } catch (error) {
-    console.error("Failed to load stamp:", error);
-  }
+  // إضافة الختم
+  await addStampToDoc(doc);
 
   // فتح نافذة الطباعة
   doc.autoPrint();

@@ -517,12 +517,12 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                   size="sm"
                   onClick={async () => {
                     const pdfData = revenues.map((rev) => ({
-                      date: new Date(rev.date).toLocaleDateString("ar-SA"),
-                      cash: `${rev.cash?.toLocaleString() || 0} SAR`,
-                      network: `${rev.network?.toLocaleString() || 0} SAR`,
-                      budget: `${rev.budget?.toLocaleString() || 0} SAR`,
-                      total: `${rev.total?.toLocaleString() || 0} SAR`,
-                      status: rev.isMatched ? "Matched" : "Mismatched",
+                      date: new Date(rev.date).toLocaleDateString("en-GB"),
+                      cash: (rev.cash || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                      network: (rev.network || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                      budget: (rev.budget || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                      total: (rev.total || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                      status: rev.isMatched ? "✓ Matched" : "✗ Mismatch",
                     }));
 
                     const totalCash = revenues.reduce((sum, r) => sum + (r.cash || 0), 0);
@@ -536,17 +536,17 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                         subtitle: "Financial Management System",
                         branchName: branchName,
                         dateRange: {
-                          from: new Date(currentYear, currentMonth, 1).toLocaleDateString("ar-SA"),
-                          to: new Date(currentYear, currentMonth + 1, 0).toLocaleDateString("ar-SA"),
+                          from: new Date(currentYear, currentMonth, 1).toLocaleDateString("en-GB"),
+                          to: new Date(currentYear, currentMonth + 1, 0).toLocaleDateString("en-GB"),
                         },
                       },
                       columns: [
-                        { header: "Date", dataKey: "date" },
-                        { header: "Cash", dataKey: "cash" },
-                        { header: "Network", dataKey: "network" },
-                        { header: "Budget", dataKey: "budget" },
-                        { header: "Total", dataKey: "total" },
-                        { header: "Status", dataKey: "status" },
+                        { header: "Date", dataKey: "date", align: "center", width: 30 },
+                        { header: "Cash (SAR)", dataKey: "cash", align: "right", width: 35 },
+                        { header: "Network (SAR)", dataKey: "network", align: "right", width: 35 },
+                        { header: "Budget (SAR)", dataKey: "budget", align: "right", width: 35 },
+                        { header: "Total (SAR)", dataKey: "total", align: "right", width: 35 },
+                        { header: "Status", dataKey: "status", align: "center", width: 25 },
                       ],
                       data: pdfData,
                       totals: [
@@ -570,12 +570,12 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                   size="sm"
                   onClick={async () => {
                     const pdfData = revenues.map((rev) => ({
-                      date: new Date(rev.date).toLocaleDateString("ar-SA"),
-                      cash: `${rev.cash?.toLocaleString() || 0} SAR`,
-                      network: `${rev.network?.toLocaleString() || 0} SAR`,
-                      budget: `${rev.budget?.toLocaleString() || 0} SAR`,
-                      total: `${rev.total?.toLocaleString() || 0} SAR`,
-                      status: rev.isMatched ? "Matched" : "Mismatched",
+                      date: new Date(rev.date).toLocaleDateString("en-GB"),
+                      cash: (rev.cash || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                      network: (rev.network || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                      budget: (rev.budget || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                      total: (rev.total || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                      status: rev.isMatched ? "✓ Matched" : "✗ Mismatch",
                     }));
 
                     const totalCash = revenues.reduce((sum, r) => sum + (r.cash || 0), 0);
@@ -589,17 +589,17 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                         subtitle: "Financial Management System",
                         branchName: branchName,
                         dateRange: {
-                          from: new Date(currentYear, currentMonth, 1).toLocaleDateString("ar-SA"),
-                          to: new Date(currentYear, currentMonth + 1, 0).toLocaleDateString("ar-SA"),
+                          from: new Date(currentYear, currentMonth, 1).toLocaleDateString("en-GB"),
+                          to: new Date(currentYear, currentMonth + 1, 0).toLocaleDateString("en-GB"),
                         },
                       },
                       columns: [
-                        { header: "Date", dataKey: "date" },
-                        { header: "Cash", dataKey: "cash" },
-                        { header: "Network", dataKey: "network" },
-                        { header: "Budget", dataKey: "budget" },
-                        { header: "Total", dataKey: "total" },
-                        { header: "Status", dataKey: "status" },
+                        { header: "Date", dataKey: "date", align: "center", width: 30 },
+                        { header: "Cash (SAR)", dataKey: "cash", align: "right", width: 35 },
+                        { header: "Network (SAR)", dataKey: "network", align: "right", width: 35 },
+                        { header: "Budget (SAR)", dataKey: "budget", align: "right", width: 35 },
+                        { header: "Total (SAR)", dataKey: "total", align: "right", width: 35 },
+                        { header: "Status", dataKey: "status", align: "center", width: 25 },
                       ],
                       data: pdfData,
                       totals: [

@@ -249,8 +249,8 @@ function ExpensesContent() {
                         const pdfData = expenses.map((exp) => ({
                           title: exp.title,
                           category: exp.category,
-                          amount: `${exp.amount.toFixed(2)} SAR`,
-                          date: format(new Date(exp.date), "PPP", { locale: ar }),
+                          amount: exp.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                          date: format(new Date(exp.date), "dd/MM/yyyy"),
                           description: exp.description || "-",
                         }));
 
@@ -269,11 +269,11 @@ function ExpensesContent() {
                             branchName: branchName || "",
                           },
                           columns: [
-                            { header: "Title", dataKey: "title" },
-                            { header: "Category", dataKey: "category" },
-                            { header: "Amount", dataKey: "amount" },
-                            { header: "Date", dataKey: "date" },
-                            { header: "Description", dataKey: "description" },
+                            { header: "Title", dataKey: "title", align: "left", width: 40 },
+                            { header: "Category", dataKey: "category", align: "center", width: 30 },
+                            { header: "Amount (SAR)", dataKey: "amount", align: "right", width: 30 },
+                            { header: "Date", dataKey: "date", align: "center", width: 25 },
+                            { header: "Description", dataKey: "description", align: "left", width: 60 },
                           ],
                           data: pdfData,
                           totals: [
@@ -301,8 +301,8 @@ function ExpensesContent() {
                         const pdfData = expenses.map((exp) => ({
                           title: exp.title,
                           category: exp.category,
-                          amount: `${exp.amount.toFixed(2)} SAR`,
-                          date: format(new Date(exp.date), "PPP", { locale: ar }),
+                          amount: exp.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                          date: format(new Date(exp.date), "dd/MM/yyyy"),
                           description: exp.description || "-",
                         }));
 
@@ -321,11 +321,11 @@ function ExpensesContent() {
                             branchName: branchName || "",
                           },
                           columns: [
-                            { header: "Title", dataKey: "title" },
-                            { header: "Category", dataKey: "category" },
-                            { header: "Amount", dataKey: "amount" },
-                            { header: "Date", dataKey: "date" },
-                            { header: "Description", dataKey: "description" },
+                            { header: "Title", dataKey: "title", align: "left", width: 40 },
+                            { header: "Category", dataKey: "category", align: "center", width: 30 },
+                            { header: "Amount (SAR)", dataKey: "amount", align: "right", width: 30 },
+                            { header: "Date", dataKey: "date", align: "center", width: 25 },
+                            { header: "Description", dataKey: "description", align: "left", width: 60 },
                           ],
                           data: pdfData,
                           totals: [
