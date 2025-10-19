@@ -13,6 +13,8 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as backup_index from "../backup/index.js";
+import type * as backup_public from "../backup/public.js";
 import type * as bonus from "../bonus.js";
 import type * as clearRevenues from "../clearRevenues.js";
 import type * as dashboard from "../dashboard.js";
@@ -32,6 +34,8 @@ import type * as users from "../users.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  "backup/index": typeof backup_index;
+  "backup/public": typeof backup_public;
   bonus: typeof bonus;
   clearRevenues: typeof clearRevenues;
   dashboard: typeof dashboard;

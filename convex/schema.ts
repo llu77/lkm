@@ -2,6 +2,78 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  backups: defineTable({
+    date: v.number(),
+    backupDate: v.string(),
+    type: v.string(), // "daily-automatic", "manual"
+    reason: v.optional(v.string()),
+    dataSnapshot: v.object({
+      revenues: v.number(),
+      expenses: v.number(),
+      productOrders: v.number(),
+      employeeRequests: v.number(),
+      bonusRecords: v.number(),
+    }),
+    revenuesData: v.array(v.object({
+      _id: v.string(),
+      _creationTime: v.number(),
+      date: v.number(),
+      cash: v.optional(v.number()),
+      network: v.optional(v.number()),
+      budget: v.optional(v.number()),
+      total: v.optional(v.number()),
+      calculatedTotal: v.optional(v.number()),
+      isMatched: v.optional(v.boolean()),
+      branchId: v.optional(v.string()),
+      branchName: v.optional(v.string()),
+      userId: v.string(),
+    })),
+    expensesData: v.array(v.object({
+      _id: v.string(),
+      _creationTime: v.number(),
+      title: v.string(),
+      amount: v.number(),
+      category: v.string(),
+      date: v.number(),
+      branchId: v.optional(v.string()),
+      branchName: v.optional(v.string()),
+      userId: v.string(),
+    })),
+    productOrdersData: v.array(v.object({
+      _id: v.string(),
+      _creationTime: v.number(),
+      branchId: v.string(),
+      branchName: v.string(),
+      employeeName: v.string(),
+      grandTotal: v.number(),
+      isDraft: v.boolean(),
+      status: v.string(),
+      requestedBy: v.string(),
+    })),
+    employeeRequestsData: v.array(v.object({
+      _id: v.string(),
+      _creationTime: v.number(),
+      branchId: v.string(),
+      branchName: v.string(),
+      employeeName: v.string(),
+      requestType: v.string(),
+      status: v.string(),
+      userId: v.string(),
+    })),
+    bonusRecordsData: v.array(v.object({
+      _id: v.string(),
+      _creationTime: v.number(),
+      branchId: v.string(),
+      branchName: v.string(),
+      month: v.number(),
+      year: v.number(),
+      totalBonusPaid: v.number(),
+      approvedBy: v.string(),
+    })),
+    status: v.string(), // "completed", "failed"
+  }).index("by_date", ["date"])
+    .index("by_type", ["type"]),
+
   users: defineTable({
     tokenIdentifier: v.string(),
     name: v.optional(v.string()),
