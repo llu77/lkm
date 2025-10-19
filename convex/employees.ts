@@ -93,6 +93,7 @@ export const createEmployee = mutation({
     nationalId: v.optional(v.string()),
     idExpiryDate: v.optional(v.number()),
     baseSalary: v.number(),
+    supervisorAllowance: v.number(),
     incentives: v.number(),
   },
   handler: async (ctx, args) => {
@@ -125,6 +126,7 @@ export const createEmployee = mutation({
       nationalId: args.nationalId,
       idExpiryDate: args.idExpiryDate,
       baseSalary: args.baseSalary,
+      supervisorAllowance: args.supervisorAllowance,
       incentives: args.incentives,
       isActive: true,
       createdBy: user._id,
@@ -141,6 +143,7 @@ export const updateEmployee = mutation({
     nationalId: v.optional(v.string()),
     idExpiryDate: v.optional(v.number()),
     baseSalary: v.optional(v.number()),
+    supervisorAllowance: v.optional(v.number()),
     incentives: v.optional(v.number()),
     isActive: v.optional(v.boolean()),
   },
@@ -166,6 +169,7 @@ export const updateEmployee = mutation({
     if (args.nationalId !== undefined) updates.nationalId = args.nationalId;
     if (args.idExpiryDate !== undefined) updates.idExpiryDate = args.idExpiryDate;
     if (args.baseSalary !== undefined) updates.baseSalary = args.baseSalary;
+    if (args.supervisorAllowance !== undefined) updates.supervisorAllowance = args.supervisorAllowance;
     if (args.incentives !== undefined) updates.incentives = args.incentives;
     if (args.isActive !== undefined) updates.isActive = args.isActive;
 

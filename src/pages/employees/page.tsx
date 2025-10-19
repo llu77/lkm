@@ -194,7 +194,8 @@ function EmployeesPageContent() {
                     <TableHead>رقم الهوية</TableHead>
                     <TableHead>تاريخ الانتهاء</TableHead>
                     <TableHead>الراتب الأساسي</TableHead>
-                    <TableHead>الحوافز</TableHead>
+                    <TableHead>بدل الإشراف</TableHead>
+                    <TableHead>حوافز أخرى</TableHead>
                     <TableHead>الحالة</TableHead>
                     <TableHead>إجراءات</TableHead>
                   </TableRow>
@@ -219,6 +220,9 @@ function EmployeesPageContent() {
                       </TableCell>
                       <TableCell>
                         {employee.baseSalary.toLocaleString()} ر.س
+                      </TableCell>
+                      <TableCell>
+                        {employee.supervisorAllowance.toLocaleString()} ر.س
                       </TableCell>
                       <TableCell>
                         {employee.incentives.toLocaleString()} ر.س
@@ -291,6 +295,7 @@ function AddEmployeeForm({
     nationalId: "",
     idExpiryDate: "",
     baseSalary: 2000,
+    supervisorAllowance: 0,
     incentives: 0,
   });
 
@@ -312,6 +317,7 @@ function AddEmployeeForm({
         nationalId: formData.nationalId || undefined,
         idExpiryDate: formData.idExpiryDate ? new Date(formData.idExpiryDate).getTime() : undefined,
         baseSalary: formData.baseSalary,
+        supervisorAllowance: formData.supervisorAllowance,
         incentives: formData.incentives,
       });
       onSuccess();
@@ -352,7 +358,7 @@ function AddEmployeeForm({
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-2">
           <Label>الراتب الأساسي *</Label>
           <Input
@@ -364,7 +370,16 @@ function AddEmployeeForm({
           />
         </div>
         <div className="space-y-2">
-          <Label>الحوافز</Label>
+          <Label>بدل الإشراف</Label>
+          <Input
+            type="number"
+            value={formData.supervisorAllowance}
+            onChange={(e) => setFormData({ ...formData, supervisorAllowance: Number(e.target.value) })}
+            placeholder="0"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>حوافز أخرى</Label>
           <Input
             type="number"
             value={formData.incentives}
@@ -391,6 +406,7 @@ function EditEmployeeForm({
     nationalId?: string;
     idExpiryDate?: number;
     baseSalary: number;
+    supervisorAllowance: number;
     incentives: number;
     isActive: boolean;
   };
@@ -401,6 +417,7 @@ function EditEmployeeForm({
     nationalId: employee.nationalId || "",
     idExpiryDate: employee.idExpiryDate ? format(employee.idExpiryDate, "yyyy-MM-dd") : "",
     baseSalary: employee.baseSalary,
+    supervisorAllowance: employee.supervisorAllowance,
     incentives: employee.incentives,
     isActive: employee.isActive,
   });
@@ -417,6 +434,7 @@ function EditEmployeeForm({
         nationalId: formData.nationalId || undefined,
         idExpiryDate: formData.idExpiryDate ? new Date(formData.idExpiryDate).getTime() : undefined,
         baseSalary: formData.baseSalary,
+        supervisorAllowance: formData.supervisorAllowance,
         incentives: formData.incentives,
         isActive: formData.isActive,
       });
@@ -456,7 +474,7 @@ function EditEmployeeForm({
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-2">
           <Label>الراتب الأساسي *</Label>
           <Input
@@ -467,7 +485,15 @@ function EditEmployeeForm({
           />
         </div>
         <div className="space-y-2">
-          <Label>الحوافز</Label>
+          <Label>بدل الإشراف</Label>
+          <Input
+            type="number"
+            value={formData.supervisorAllowance}
+            onChange={(e) => setFormData({ ...formData, supervisorAllowance: Number(e.target.value) })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>حوافز أخرى</Label>
           <Input
             type="number"
             value={formData.incentives}

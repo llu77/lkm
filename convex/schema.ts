@@ -310,7 +310,8 @@ export default defineSchema({
     nationalId: v.optional(v.string()), // رقم الهوية
     idExpiryDate: v.optional(v.number()), // تاريخ انتهاء الهوية
     baseSalary: v.number(), // الراتب الأساسي
-    incentives: v.number(), // الحوافز الثابتة
+    supervisorAllowance: v.number(), // بدل الإشراف (400 للمشرفين)
+    incentives: v.number(), // حوافز أخرى (حسب الأداء)
     isActive: v.boolean(), // هل الموظف نشط
     createdBy: v.id("users"),
   })
@@ -360,7 +361,8 @@ export default defineSchema({
       employeeName: v.string(),
       nationalId: v.optional(v.string()),
       baseSalary: v.number(),
-      incentives: v.number(),
+      supervisorAllowance: v.number(), // بدل الإشراف
+      incentives: v.number(), // حوافز أخرى
       totalAdvances: v.number(),
       totalDeductions: v.number(),
       netSalary: v.number(), // الصافي
