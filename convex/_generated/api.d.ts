@@ -19,6 +19,8 @@ import type * as backup_public from "../backup/public.js";
 import type * as bonus from "../bonus.js";
 import type * as clearRevenues from "../clearRevenues.js";
 import type * as dashboard from "../dashboard.js";
+import type * as emailLogs from "../emailLogs.js";
+import type * as emailSystem from "../emailSystem.js";
 import type * as employeeRequests from "../employeeRequests.js";
 import type * as expenses from "../expenses.js";
 import type * as migration from "../migration.js";
@@ -42,6 +44,8 @@ declare const fullApi: ApiFromModules<{
   bonus: typeof bonus;
   clearRevenues: typeof clearRevenues;
   dashboard: typeof dashboard;
+  emailLogs: typeof emailLogs;
+  emailSystem: typeof emailSystem;
   employeeRequests: typeof employeeRequests;
   expenses: typeof expenses;
   migration: typeof migration;

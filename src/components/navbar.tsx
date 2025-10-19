@@ -15,7 +15,8 @@ import {
   ShieldCheckIcon,
   MenuIcon,
   LogOutIcon,
-  BrainIcon
+  BrainIcon,
+  SettingsIcon
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth.ts";
 import { useBranch } from "@/hooks/use-branch.ts";
@@ -36,6 +37,7 @@ export default function Navbar() {
     { path: "/my-requests", label: "طلباتي", icon: ClipboardListIcon },
     { path: "/manage-requests", label: "إدارة الطلبات", icon: ShieldCheckIcon },
     { path: "/ai-assistant", label: "مساعد AI", icon: BrainIcon },
+    { path: "/system-support", label: "دعم النظام", icon: SettingsIcon },
   ];
 
   return (

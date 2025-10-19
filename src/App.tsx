@@ -13,6 +13,7 @@ import ProductOrders from "./pages/product-orders/page.tsx";
 import Migration from "./pages/migration.tsx";
 import BackupsPage from "./pages/backups/page.tsx";
 import AIAssistant from "./pages/ai-assistant/page.tsx";
+import SystemSupport from "./pages/system-support/page.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/migration" element={<Migration />} />
           <Route path="/backups" element={<BackupsPage />} />
           <Route path="/ai-assistant" element={<AIAssistant />} />
+          <Route path="/system-support" element={<SystemSupport />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

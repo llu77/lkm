@@ -253,4 +253,15 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_employee", ["employeeName"])
     .index("by_user", ["userId"]),
+
+  emailLogs: defineTable({
+    to: v.array(v.string()),
+    subject: v.string(),
+    status: v.string(), // "sent", "failed", "pending"
+    emailId: v.optional(v.string()), // Resend email ID
+    error: v.optional(v.string()),
+    sentAt: v.optional(v.number()),
+  })
+    .index("by_status", ["status"])
+    .index("by_sent_at", ["sentAt"]),
 });
