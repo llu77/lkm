@@ -24,11 +24,14 @@ import {
   ChevronRightIcon,
   Trash2Icon,
   AlertTriangleIcon,
+  FileDownIcon,
+  PrinterIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useBranch } from "@/hooks/use-branch.ts";
 import { BranchSelector } from "@/components/branch-selector.tsx";
 import Navbar from "@/components/navbar.tsx";
+import { generatePDF, printPDF } from "@/lib/pdf-export.ts";
 import {
   Select,
   SelectContent,
@@ -492,17 +495,128 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
       {/* Month Navigation and Records Table */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>سجل الإيرادات</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
-                <ChevronRightIcon className="size-4" />
-              </Button>
-              <span className="min-w-[150px] text-center font-semibold">{monthName}</span>
-              <Button variant="outline" size="icon" onClick={goToNextMonth}>
-                <ChevronLeftIcon className="size-4" />
-              </Button>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <CardTitle>سجل الإيرادات</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
+                  <ChevronRightIcon className="size-4" />
+                </Button>
+                <span className="min-w-[150px] text-center font-semibold">{monthName}</span>
+                <Button variant="outline" size="icon" onClick={goToNextMonth}>
+                  <ChevronLeftIcon className="size-4" />
+                </Button>
+              </div>
             </div>
+            
+            {/* Export and Print Buttons */}
+            {revenues && revenues.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const pdfData = revenues.map((rev) => ({
+                      date: new Date(rev.date).toLocaleDateString("ar-SA"),
+                      cash: `${rev.cash?.toLocaleString() || 0} SAR`,
+                      network: `${rev.network?.toLocaleString() || 0} SAR`,
+                      budget: `${rev.budget?.toLocaleString() || 0} SAR`,
+                      total: `${rev.total?.toLocaleString() || 0} SAR`,
+                      status: rev.isMatched ? "Matched" : "Mismatched",
+                    }));
+
+                    const totalCash = revenues.reduce((sum, r) => sum + (r.cash || 0), 0);
+                    const totalNetwork = revenues.reduce((sum, r) => sum + (r.network || 0), 0);
+                    const totalBudget = revenues.reduce((sum, r) => sum + (r.budget || 0), 0);
+                    const grandTotal = revenues.reduce((sum, r) => sum + (r.total || 0), 0);
+
+                    generatePDF({
+                      header: {
+                        title: "Revenue Report",
+                        subtitle: "Financial Management System",
+                        branchName: branchName,
+                        dateRange: {
+                          from: new Date(currentYear, currentMonth, 1).toLocaleDateString("ar-SA"),
+                          to: new Date(currentYear, currentMonth + 1, 0).toLocaleDateString("ar-SA"),
+                        },
+                      },
+                      columns: [
+                        { header: "Date", dataKey: "date" },
+                        { header: "Cash", dataKey: "cash" },
+                        { header: "Network", dataKey: "network" },
+                        { header: "Budget", dataKey: "budget" },
+                        { header: "Total", dataKey: "total" },
+                        { header: "Status", dataKey: "status" },
+                      ],
+                      data: pdfData,
+                      totals: [
+                        { label: "Total Cash:", value: `${totalCash.toLocaleString()} SAR` },
+                        { label: "Total Network:", value: `${totalNetwork.toLocaleString()} SAR` },
+                        { label: "Total Budget:", value: `${totalBudget.toLocaleString()} SAR` },
+                        { label: "Grand Total:", value: `${grandTotal.toLocaleString()} SAR` },
+                      ],
+                      fileName: `Revenues_${branchName}_${monthName.replace(/\s+/g, "_")}`,
+                    });
+                    
+                    toast.success("تم تصدير PDF بنجاح");
+                  }}
+                >
+                  <FileDownIcon className="ml-2 size-4" />
+                  تصدير PDF
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const pdfData = revenues.map((rev) => ({
+                      date: new Date(rev.date).toLocaleDateString("ar-SA"),
+                      cash: `${rev.cash?.toLocaleString() || 0} SAR`,
+                      network: `${rev.network?.toLocaleString() || 0} SAR`,
+                      budget: `${rev.budget?.toLocaleString() || 0} SAR`,
+                      total: `${rev.total?.toLocaleString() || 0} SAR`,
+                      status: rev.isMatched ? "Matched" : "Mismatched",
+                    }));
+
+                    const totalCash = revenues.reduce((sum, r) => sum + (r.cash || 0), 0);
+                    const totalNetwork = revenues.reduce((sum, r) => sum + (r.network || 0), 0);
+                    const totalBudget = revenues.reduce((sum, r) => sum + (r.budget || 0), 0);
+                    const grandTotal = revenues.reduce((sum, r) => sum + (r.total || 0), 0);
+
+                    printPDF({
+                      header: {
+                        title: "Revenue Report",
+                        subtitle: "Financial Management System",
+                        branchName: branchName,
+                        dateRange: {
+                          from: new Date(currentYear, currentMonth, 1).toLocaleDateString("ar-SA"),
+                          to: new Date(currentYear, currentMonth + 1, 0).toLocaleDateString("ar-SA"),
+                        },
+                      },
+                      columns: [
+                        { header: "Date", dataKey: "date" },
+                        { header: "Cash", dataKey: "cash" },
+                        { header: "Network", dataKey: "network" },
+                        { header: "Budget", dataKey: "budget" },
+                        { header: "Total", dataKey: "total" },
+                        { header: "Status", dataKey: "status" },
+                      ],
+                      data: pdfData,
+                      totals: [
+                        { label: "Total Cash:", value: `${totalCash.toLocaleString()} SAR` },
+                        { label: "Total Network:", value: `${totalNetwork.toLocaleString()} SAR` },
+                        { label: "Total Budget:", value: `${totalBudget.toLocaleString()} SAR` },
+                        { label: "Grand Total:", value: `${grandTotal.toLocaleString()} SAR` },
+                      ],
+                      fileName: `Revenues_${branchName}_${monthName.replace(/\s+/g, "_")}`,
+                    });
+                  }}
+                >
+                  <PrinterIcon className="ml-2 size-4" />
+                  طباعة
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent>

@@ -78,9 +78,9 @@ export default function MyRequestsPage() {
 function MyRequestsContent({ branchId, branchName }: { branchId: string; branchName: string }) {
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const requests = useQuery(
-    selectedEmployee ? api.employeeRequests.getMyRequests : "skip",
+    api.employeeRequests.getMyRequests,
     selectedEmployee ? { branchId, employeeName: selectedEmployee } : "skip"
-  ) as any;
+  );
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const navigate = useNavigate();
 
@@ -93,9 +93,9 @@ function MyRequestsContent({ branchId, branchName }: { branchId: string; branchN
     );
   }
 
-  const pending = requests.filter((r) => r.status === "تحت الإجراء");
-  const approved = requests.filter((r) => r.status === "مقبول");
-  const rejected = requests.filter((r) => r.status === "مرفوض");
+  const pending = requests.filter((r: Request) => r.status === "تحت الإجراء");
+  const approved = requests.filter((r: Request) => r.status === "مقبول");
+  const rejected = requests.filter((r: Request) => r.status === "مرفوض");
 
   return (
     <div className="container mx-auto max-w-7xl space-y-6 p-4">
@@ -163,7 +163,7 @@ function MyRequestsContent({ branchId, branchName }: { branchId: string; branchN
             </div>
           ) : (
             <div className="space-y-4">
-              {requests.map((request) => (
+              {requests.map((request: Request) => (
                 <div
                   key={request._id}
                   className="flex items-center justify-between rounded-lg border p-4"

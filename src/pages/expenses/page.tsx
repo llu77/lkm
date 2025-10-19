@@ -25,7 +25,10 @@ import {
   FilterIcon,
   TrashIcon,
   BarChart3Icon,
+  FileDownIcon,
+  PrinterIcon,
 } from "lucide-react";
+import { generatePDF, printPDF } from "@/lib/pdf-export.ts";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -217,22 +220,131 @@ function ExpensesContent() {
           {/* Filter */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>قائمة المصروفات</CardTitle>
-                <div className="flex items-center gap-2">
-                  <FilterIcon className="size-4 text-muted-foreground" />
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="التصنيف" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">جميع التصنيفات</SelectItem>
-                      {EXPENSE_CATEGORIES.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle>قائمة المصروفات</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <FilterIcon className="size-4 text-muted-foreground" />
+                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="التصنيف" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">جميع التصنيفات</SelectItem>
+                        {EXPENSE_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+
+                {/* Export and Print Buttons */}
+                {expenses && expenses.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const pdfData = expenses.map((exp) => ({
+                          title: exp.title,
+                          category: exp.category,
+                          amount: `${exp.amount.toFixed(2)} SAR`,
+                          date: format(new Date(exp.date), "PPP", { locale: ar }),
+                          description: exp.description || "-",
+                        }));
+
+                        const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+                        const categoryBreakdown = EXPENSE_CATEGORIES.map(cat => {
+                          const catTotal = expenses
+                            .filter(e => e.category === cat)
+                            .reduce((sum, e) => sum + e.amount, 0);
+                          return { category: cat, total: catTotal };
+                        }).filter(item => item.total > 0);
+
+                        generatePDF({
+                          header: {
+                            title: "Expenses Report",
+                            subtitle: "Financial Management System",
+                            branchName: branchName || "",
+                          },
+                          columns: [
+                            { header: "Title", dataKey: "title" },
+                            { header: "Category", dataKey: "category" },
+                            { header: "Amount", dataKey: "amount" },
+                            { header: "Date", dataKey: "date" },
+                            { header: "Description", dataKey: "description" },
+                          ],
+                          data: pdfData,
+                          totals: [
+                            { label: "Total Expenses:", value: `${totalExpenses.toFixed(2)} SAR` },
+                            { label: "Total Transactions:", value: expenses.length },
+                            ...categoryBreakdown.map(item => ({
+                              label: `${item.category}:`,
+                              value: `${item.total.toFixed(2)} SAR`
+                            })),
+                          ],
+                          fileName: `Expenses_${branchName}_${format(new Date(), "yyyy-MM-dd")}`,
+                        });
+                        
+                        toast.success("تم تصدير PDF بنجاح");
+                      }}
+                    >
+                      <FileDownIcon className="ml-2 size-4" />
+                      تصدير PDF
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const pdfData = expenses.map((exp) => ({
+                          title: exp.title,
+                          category: exp.category,
+                          amount: `${exp.amount.toFixed(2)} SAR`,
+                          date: format(new Date(exp.date), "PPP", { locale: ar }),
+                          description: exp.description || "-",
+                        }));
+
+                        const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+                        const categoryBreakdown = EXPENSE_CATEGORIES.map(cat => {
+                          const catTotal = expenses
+                            .filter(e => e.category === cat)
+                            .reduce((sum, e) => sum + e.amount, 0);
+                          return { category: cat, total: catTotal };
+                        }).filter(item => item.total > 0);
+
+                        printPDF({
+                          header: {
+                            title: "Expenses Report",
+                            subtitle: "Financial Management System",
+                            branchName: branchName || "",
+                          },
+                          columns: [
+                            { header: "Title", dataKey: "title" },
+                            { header: "Category", dataKey: "category" },
+                            { header: "Amount", dataKey: "amount" },
+                            { header: "Date", dataKey: "date" },
+                            { header: "Description", dataKey: "description" },
+                          ],
+                          data: pdfData,
+                          totals: [
+                            { label: "Total Expenses:", value: `${totalExpenses.toFixed(2)} SAR` },
+                            { label: "Total Transactions:", value: expenses.length },
+                            ...categoryBreakdown.map(item => ({
+                              label: `${item.category}:`,
+                              value: `${item.total.toFixed(2)} SAR`
+                            })),
+                          ],
+                          fileName: `Expenses_${branchName}_${format(new Date(), "yyyy-MM-dd")}`,
+                        });
+                      }}
+                    >
+                      <PrinterIcon className="ml-2 size-4" />
+                      طباعة
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent>
