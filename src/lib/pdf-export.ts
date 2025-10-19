@@ -2,640 +2,654 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 
-// ============================================================
-// CRITICAL FIX 1: UTF-8 Encoding - Clear English Text
-// ============================================================
+// ==========================================
+// CMYK COLORS - Professional Blue Theme
+// ==========================================
+const COLORS = {
+  // Primary Blues
+  lightBluePrimary: [100, 181, 246], // #64B5F6
+  lightBlueSecondary: [144, 202, 249], // #90CAF9
+  skyBlue: [187, 222, 251], // #BBDEFB
+  deepBlue: [33, 150, 243], // #2196F3
+  darkBlueAccent: [13, 71, 161], // #0D47A1
 
-const SUPERVISOR_MAP: Record<string, string> = {
-  "1010": "Abdulhai Jalal",
-  "2020": "Mohammed Ismail",
-  "لبن": "Abdulhai Jalal",
-  "طويق": "Mohammed Ismail",
+  // Neutrals
+  white: [255, 255, 255],
+  textBlack: [33, 33, 33],
+  lightGrayBg: [250, 250, 250],
+  tableStripe: [227, 242, 253], // #E3F2FD
 };
 
-function getSupervisorName(branchName: string): string {
-  const branchLower = branchName.toLowerCase();
-  
-  if (branchLower.includes("1010") || branchLower.includes("لبن")) {
-    return "Abdulhai Jalal";
+// Helper function to set RGB color
+function setColor(
+  doc: jsPDF,
+  color: number[],
+  type: "fill" | "text" | "draw" = "fill",
+) {
+  const [r, g, b] = color;
+  if (type === "fill") {
+    doc.setFillColor(r, g, b);
+  } else if (type === "text") {
+    doc.setTextColor(r, g, b);
+  } else {
+    doc.setDrawColor(r, g, b);
   }
-  if (branchLower.includes("2020") || branchLower.includes("طويق")) {
-    return "Mohammed Ismail";
-  }
-  
-  return "Branch Supervisor";
 }
 
-// ============================================================
-// CRITICAL FIX 2: CMYK Color Palette (converted from RGB)
-// ============================================================
+// Helper to create gradient effect with multiple layers
+function drawGradient(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  colorStart: number[],
+  colorEnd: number[],
+  steps: number = 30,
+) {
+  const stepHeight = height / steps;
+  for (let i = 0; i < steps; i++) {
+    const ratio = i / steps;
+    const r = Math.round(colorStart[0] + (colorEnd[0] - colorStart[0]) * ratio);
+    const g = Math.round(colorStart[1] + (colorEnd[1] - colorStart[1]) * ratio);
+    const b = Math.round(colorStart[2] + (colorEnd[2] - colorStart[2]) * ratio);
+    doc.setFillColor(r, g, b);
+    doc.rect(x, y + i * stepHeight, width, stepHeight, "F");
+  }
+}
 
-const COLORS = {
-  // Primary Blues (CMYK converted)
-  lightBluePrimary: [100, 181, 246] as [number, number, number],    // C59 M26 Y0 K4
-  lightBlueSecondary: [144, 202, 249] as [number, number, number],  // C42 M19 Y0 K2
-  skyBlue: [187, 222, 251] as [number, number, number],             // C25 M12 Y0 K2
-  deepBlue: [33, 150, 243] as [number, number, number],             // C86 M38 Y0 K5
-  darkBlueAccent: [13, 71, 161] as [number, number, number],        // C92 M56 Y0 K37
-  
-  // Neutrals
-  white: [255, 255, 255] as [number, number, number],               // C0 M0 Y0 K0
-  textBlack: [33, 33, 33] as [number, number, number],              // C0 M0 Y0 K87
-  lightGrayBg: [250, 250, 250] as [number, number, number],         // C0 M0 Y0 K2
-  tableStripe: [227, 242, 253] as [number, number, number],         // C10 M4 Y0 K1
-  
-  // Success
-  successGreen: [46, 125, 50] as [number, number, number],
-};
-
-async function loadImageAsBase64(url: string): Promise<string> {
+// Load image safely
+async function loadImageSafely(url: string): Promise<string | null> {
   try {
-    const response = await fetch(url, {
-      mode: 'cors',
-      credentials: 'omit'
-    });
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.warn(`Failed to load image from ${url}`);
+      return null;
+    }
     const blob = await response.blob();
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
+      reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.error("Failed to load image:", error);
-    return "";
+    console.error("Error loading image:", error);
+    return null;
   }
 }
 
-// ============================================================
-// CRITICAL FIX 3 & 4: Professional Header with Gradient
-// ============================================================
-
-function drawGradientHeader(doc: jsPDF) {
-  const pageWidth = doc.internal.pageSize.width;
-  const headerHeight = 50;
-  const layers = 30;
-  
-  // Gradient: Deep Blue → Light Blue Primary → Sky Blue
-  for (let i = 0; i < layers; i++) {
-    const progress = i / layers;
-    let r, g, b;
-    
-    if (progress < 0.5) {
-      // Deep Blue → Light Blue Primary
-      const localProgress = progress * 2;
-      r = COLORS.deepBlue[0] + (COLORS.lightBluePrimary[0] - COLORS.deepBlue[0]) * localProgress;
-      g = COLORS.deepBlue[1] + (COLORS.lightBluePrimary[1] - COLORS.deepBlue[1]) * localProgress;
-      b = COLORS.deepBlue[2] + (COLORS.lightBluePrimary[2] - COLORS.deepBlue[2]) * localProgress;
-    } else {
-      // Light Blue Primary → Sky Blue
-      const localProgress = (progress - 0.5) * 2;
-      r = COLORS.lightBluePrimary[0] + (COLORS.skyBlue[0] - COLORS.lightBluePrimary[0]) * localProgress;
-      g = COLORS.lightBluePrimary[1] + (COLORS.skyBlue[1] - COLORS.lightBluePrimary[1]) * localProgress;
-      b = COLORS.lightBluePrimary[2] + (COLORS.skyBlue[2] - COLORS.lightBluePrimary[2]) * localProgress;
-    }
-    
-    doc.setFillColor(r, g, b);
-    doc.rect(0, i * (headerHeight / layers), pageWidth, headerHeight / layers + 0.1, "F");
+// Get supervisor name based on branch
+function getSupervisorName(branchName: string): string {
+  const lowerBranch = branchName.toLowerCase();
+  if (lowerBranch.includes("لبن") || lowerBranch.includes("1010")) {
+    return "عبدالهاي جلال";
+  } else if (lowerBranch.includes("طويق") || lowerBranch.includes("2020")) {
+    return "محمد إسماعيل";
   }
-  
-  // Border at bottom
-  doc.setDrawColor(...COLORS.deepBlue);
-  doc.setLineWidth(1);
-  doc.line(0, headerHeight, pageWidth, headerHeight);
+  return "غير محدد";
 }
 
-async function addHeaderWithLogo(doc: jsPDF, title: string, subtitle: string) {
-  const pageWidth = doc.internal.pageSize.width;
-  
-  // Draw gradient background
-  drawGradientHeader(doc);
-  
-  // Add logo
+// Format currency
+function formatCurrency(amount: number | undefined): string {
+  if (amount === undefined || amount === null) return "0.00";
+  return amount.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+// Format date safely
+function formatDateSafely(date: Date | number | string): string {
   try {
-    const logoBase64 = await loadImageAsBase64("https://cdn.hercules.app/file_2EDW4ulZlmwarzzXHgYjO1Hv");
-    if (logoBase64) {
-      doc.addImage(logoBase64, "PNG", pageWidth / 2 - 15, 5, 30, 30);
+    const dateObj = new Date(date);
+    if (isNaN(dateObj.getTime())) {
+      return "تاريخ غير صحيح";
     }
+    return format(dateObj, "dd/MM/yyyy");
   } catch (error) {
-    console.error("Logo loading failed:", error);
+    console.error("Error formatting date:", error);
+    return "تاريخ غير صحيح";
   }
-  
-  // Title with shadow effect (simulated)
-  doc.setFontSize(26);
-  doc.setFont("helvetica", "bold");
-  
-  // Shadow
-  doc.setTextColor(13, 71, 161);
-  doc.text(title, pageWidth / 2 + 0.5, 20.5, { align: "center" });
-  
-  // Main text
-  doc.setTextColor(...COLORS.white);
-  doc.text(title, pageWidth / 2, 20, { align: "center" });
-  
-  // Subtitle
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...COLORS.white);
-  doc.text(subtitle, pageWidth / 2, 30, { align: "center" });
-  
-  // Decorative line
-  doc.setDrawColor(...COLORS.white);
-  doc.setLineWidth(0.5);
-  const lineWidth = 60;
-  doc.line(pageWidth / 2 - lineWidth / 2, 35, pageWidth / 2 + lineWidth / 2, 35);
 }
 
-// ============================================================
-// CRITICAL FIX 3: White Branch Info Box (NOT BLACK!)
-// ============================================================
+// ==========================================
+// REVENUE PDF GENERATION
+// ==========================================
 
-function addBranchInfoBox(
-  doc: jsPDF,
-  branchName: string,
-  startDate: Date,
-  endDate: Date,
-  yPosition: number
-) {
-  const pageWidth = doc.internal.pageSize.width;
-  const boxHeight = 22;
-  const boxPadding = 5;
-  const boxX = 15;
-  const boxWidth = pageWidth - 30;
-  
-  // WHITE background with blue border (CRITICAL FIX!)
-  doc.setFillColor(...COLORS.white);
-  doc.setDrawColor(...COLORS.lightBluePrimary);
-  doc.setLineWidth(1.5);
-  doc.roundedRect(boxX, yPosition, boxWidth, boxHeight, 4, 4, "FD");
-  
-  // Shadow effect (simulated)
-  doc.setDrawColor(100, 181, 246);
-  doc.setLineWidth(0.3);
-  doc.setDrawColor(100, 181, 246, 0.2);
-  doc.roundedRect(boxX + 0.5, yPosition + 0.5, boxWidth, boxHeight, 4, 4, "S");
-  
-  const supervisor = getSupervisorName(branchName);
-  
-  // Branch name (DARK BLUE, BOLD)
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...COLORS.darkBlueAccent);
-  doc.text(`Branch: ${branchName}`, boxX + boxPadding, yPosition + 8);
-  
-  // Supervisor name (BLACK, NORMAL)
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...COLORS.textBlack);
-  doc.text(`Supervisor: ${supervisor}`, boxX + boxPadding, yPosition + 15);
-  
-  // Date range (GRAY, BOLD)
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(100, 100, 100);
-  try {
-    const dateStr = `Report Period: ${format(new Date(startDate), "dd/MM/yyyy")} to ${format(new Date(endDate), "dd/MM/yyyy")}`;
-    doc.text(dateStr, pageWidth - boxPadding - 15, yPosition + boxHeight - 5, { align: "right" });
-  } catch (error) {
-    console.error("Error formatting dates in branch box:", error);
-    doc.text("Financial Report", pageWidth - boxPadding - 15, yPosition + boxHeight - 5, { align: "right" });
-  }
-  
-  return yPosition + boxHeight + 10;
-}
-
-// ============================================================
-// CRITICAL FIX 4: Professional Table with Perfect Alignment
-// ============================================================
-
-interface RevenueData {
-  date: Date;
+type RevenueData = {
+  date: Date | number | string;
   cash?: number;
   network?: number;
   budget?: number;
   total?: number;
   calculatedTotal?: number;
   isMatched?: boolean;
-}
+};
 
-function createRevenuesTable(doc: jsPDF, data: RevenueData[], startY: number) {
-  const tableData = data.map((row) => {
-    let dateStr = "";
-    try {
-      dateStr = format(new Date(row.date), "dd/MM/yyyy");
-    } catch (error) {
-      console.error("Error formatting date in table:", error, row.date);
-      dateStr = "Invalid Date";
-    }
-    return [
-      dateStr,
-      row.cash?.toFixed(2) || "0.00",
-      row.network?.toFixed(2) || "0.00",
-      row.budget?.toFixed(2) || "0.00",
-      row.total?.toFixed(2) || "0.00",
-      row.isMatched ? "Matched" : "Not Matched",
-    ];
+export async function generateRevenuesPDF(
+  data: RevenueData[],
+  branchName: string,
+  startDate: Date,
+  endDate: Date,
+): Promise<void> {
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
   });
-  
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  let yPos = 15;
+
+  // ==========================================
+  // HEADER WITH GRADIENT
+  // ==========================================
+  drawGradient(
+    doc,
+    0,
+    0,
+    pageWidth,
+    50,
+    COLORS.deepBlue,
+    COLORS.lightBluePrimary,
+    30,
+  );
+
+  // Add border to header
+  setColor(doc, COLORS.deepBlue, "draw");
+  doc.setLineWidth(3);
+  doc.line(0, 50, pageWidth, 50);
+
+  // Load and add logo
+  const logoUrl = "https://cdn.hercules.app/file_2EDW4ulZlmwarzzXHgYjO1Hv";
+  const logoData = await loadImageSafely(logoUrl);
+  if (logoData) {
+    try {
+      doc.addImage(logoData, "PNG", pageWidth / 2 - 15, 5, 30, 30);
+    } catch (error) {
+      console.error("Error adding logo:", error);
+    }
+  }
+
+  // Title
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(26);
+  setColor(doc, COLORS.white, "text");
+  doc.text("تقرير الإيرادات", pageWidth / 2, 42, { align: "center" });
+
+  yPos = 60;
+
+  // ==========================================
+  // BRANCH INFO BOX
+  // ==========================================
+  const boxX = 15;
+  const boxWidth = pageWidth - 30;
+  const boxHeight = 22;
+
+  // White background
+  setColor(doc, COLORS.white, "fill");
+  doc.roundedRect(boxX, yPos, boxWidth, boxHeight, 4, 4, "F");
+
+  // Blue border
+  setColor(doc, COLORS.lightBluePrimary, "draw");
+  doc.setLineWidth(1.5);
+  doc.roundedRect(boxX, yPos, boxWidth, boxHeight, 4, 4, "S");
+
+  // Branch name
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  setColor(doc, COLORS.darkBlueAccent, "text");
+  doc.text(`الفرع: ${branchName}`, pageWidth - 20, yPos + 8, {
+    align: "right",
+  });
+
+  // Supervisor
+  const supervisor = getSupervisorName(branchName);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  setColor(doc, COLORS.textBlack, "text");
+  doc.text(`المشرف: ${supervisor}`, pageWidth - 20, yPos + 16, {
+    align: "right",
+  });
+
+  yPos += boxHeight + 5;
+
+  // Period
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  setColor(doc, COLORS.textBlack, "text");
+  const startStr = formatDateSafely(startDate);
+  const endStr = formatDateSafely(endDate);
+  doc.text(
+    `الفترة: من ${startStr} إلى ${endStr}`,
+    pageWidth / 2,
+    yPos + 5,
+    { align: "center" },
+  );
+
+  yPos += 15;
+
+  // ==========================================
+  // TABLE WITH ENHANCED BORDERS
+  // ==========================================
+  const tableData = data.map((row) => [
+    formatDateSafely(row.date),
+    formatCurrency(row.cash),
+    formatCurrency(row.network),
+    formatCurrency(row.budget),
+    formatCurrency(row.calculatedTotal || row.total),
+    row.isMatched ? "متطابق ✓" : "غير متطابق ✗",
+  ]);
+
   autoTable(doc, {
-    startY,
-    head: [["Date", "Cash (SAR)", "Network (SAR)", "Budget (SAR)", "Total (SAR)", "Status"]],
+    startY: yPos,
+    head: [["التاريخ", "كاش", "شبكة", "موازنة", "الإجمالي", "الحالة"]],
     body: tableData,
-    theme: "grid",
-    
-    // CRITICAL: Column widths to prevent cutoff
-    columnStyles: {
-      0: { cellWidth: 25, halign: "center" },      // Date
-      1: { cellWidth: 30, halign: "right" },       // Cash
-      2: { cellWidth: 30, halign: "right" },       // Network
-      3: { cellWidth: 30, halign: "right" },       // Budget
-      4: { cellWidth: 35, halign: "right" },       // Total
-      5: { cellWidth: 30, halign: "center" },      // Status - FIXED WIDTH!
-    },
-    
-    headStyles: {
-      fillColor: COLORS.lightBluePrimary,
-      textColor: COLORS.white,
-      fontSize: 12,
-      fontStyle: "bold",
-      halign: "center",
-      valign: "middle",
-      lineColor: COLORS.deepBlue,
-      lineWidth: 0.5,
-      cellPadding: { top: 6, right: 4, bottom: 6, left: 4 },
-    },
-    
-    bodyStyles: {
-      fontSize: 11,
-      textColor: COLORS.textBlack,
-      cellPadding: { top: 5, right: 4, bottom: 5, left: 4 },
-      lineColor: [187, 222, 251],
-      lineWidth: 0.5,
-    },
-    
-    alternateRowStyles: {
-      fillColor: COLORS.tableStripe,
-    },
-    
+    theme: "grid", // Use grid theme for clear borders
     styles: {
       font: "helvetica",
-      overflow: "linebreak",
-      cellWidth: "wrap",
+      fontSize: 11,
+      cellPadding: 5,
+      lineColor: COLORS.lightBlueSecondary as [number, number, number],
+      lineWidth: 0.5,
+      halign: "center",
+      valign: "middle",
     },
-    
-    didParseCell: (data) => {
-      // Status column - green for matched
-      if (data.column.index === 5 && data.cell.text[0] === "Matched") {
-        data.cell.styles.textColor = COLORS.successGreen;
-        data.cell.styles.fontStyle = "bold";
-      }
-      
-      // Amount columns - bold blue
-      if (data.section === "body" && data.column.index >= 1 && data.column.index <= 4) {
-        data.cell.styles.textColor = COLORS.darkBlueAccent;
-        data.cell.styles.fontStyle = "bold";
-      }
+    headStyles: {
+      fillColor: COLORS.lightBluePrimary as [number, number, number],
+      textColor: COLORS.white as [number, number, number],
+      fontStyle: "bold",
+      fontSize: 12,
+      halign: "center",
+      lineWidth: 1,
+      lineColor: COLORS.deepBlue as [number, number, number],
     },
+    alternateRowStyles: {
+      fillColor: COLORS.tableStripe as [number, number, number],
+    },
+    columnStyles: {
+      0: { cellWidth: 25, halign: "center" }, // Date
+      1: { cellWidth: 30, halign: "right" }, // Cash
+      2: { cellWidth: 30, halign: "right" }, // Network
+      3: { cellWidth: 30, halign: "right" }, // Budget
+      4: { cellWidth: 35, halign: "right", fontStyle: "bold" }, // Total
+      5: { cellWidth: 30, halign: "center" }, // Status
+    },
+    margin: { left: 15, right: 15 },
   });
-  
-  return (doc as typeof doc & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
+
+  yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+
+  // ==========================================
+  // SUMMARY BOX WITH GRADIENT
+  // ==========================================
+  const summaryBoxHeight = 30;
+  drawGradient(
+    doc,
+    15,
+    yPos,
+    boxWidth,
+    summaryBoxHeight,
+    COLORS.lightBluePrimary,
+    COLORS.lightBlueSecondary,
+    20,
+  );
+
+  // Border
+  setColor(doc, COLORS.deepBlue, "draw");
+  doc.setLineWidth(1.5);
+  doc.roundedRect(15, yPos, boxWidth, summaryBoxHeight, 4, 4, "S");
+
+  // Calculate totals
+  const totalCash = data.reduce((sum, row) => sum + (row.cash || 0), 0);
+  const totalNetwork = data.reduce((sum, row) => sum + (row.network || 0), 0);
+  const totalBudget = data.reduce((sum, row) => sum + (row.budget || 0), 0);
+  const grandTotal = totalCash + totalNetwork + totalBudget;
+
+  // Summary text
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  setColor(doc, COLORS.white, "text");
+
+  doc.text(
+    `إجمالي الكاش: ${formatCurrency(totalCash)} ريال`,
+    pageWidth - 20,
+    yPos + 8,
+    { align: "right" },
+  );
+  doc.text(
+    `إجمالي الشبكة: ${formatCurrency(totalNetwork)} ريال`,
+    pageWidth - 20,
+    yPos + 16,
+    { align: "right" },
+  );
+  doc.text(
+    `المجموع الكلي: ${formatCurrency(grandTotal)} ريال`,
+    pageWidth - 20,
+    yPos + 24,
+    { align: "right" },
+  );
+
+  // ==========================================
+  // STAMP AT BOTTOM
+  // ==========================================
+  const stampSize = 35;
+  const stampX = pageWidth / 2 - stampSize / 2;
+  const stampY = pageHeight - 60;
+
+  const stampUrl = "https://cdn.hercules.app/file_KxtpKU0KZ8CJ5zEVgJRzSTOG";
+  const stampData = await loadImageSafely(stampUrl);
+  if (stampData) {
+    try {
+      doc.addImage(stampData, "PNG", stampX, stampY, stampSize, stampSize);
+    } catch (error) {
+      console.error("Error adding stamp:", error);
+    }
+  }
+
+  // "معتمد" text below stamp
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  setColor(doc, COLORS.deepBlue, "text");
+  doc.text("معتمد", pageWidth / 2, stampY + stampSize + 8, {
+    align: "center",
+  });
+
+  // ==========================================
+  // FOOTER
+  // ==========================================
+  const footerY = pageHeight - 15;
+
+  // Gradient line
+  const gradientLineY = footerY - 3;
+  for (let i = 0; i < 20; i++) {
+    const ratio = i / 20;
+    const x = 15 + (boxWidth * i) / 20;
+    const width = boxWidth / 20;
+    const r = Math.round(
+      COLORS.lightBlueSecondary[0] +
+        (COLORS.skyBlue[0] - COLORS.lightBlueSecondary[0]) * ratio,
+    );
+    const g = Math.round(
+      COLORS.lightBlueSecondary[1] +
+        (COLORS.skyBlue[1] - COLORS.lightBlueSecondary[1]) * ratio,
+    );
+    const b = Math.round(
+      COLORS.lightBlueSecondary[2] +
+        (COLORS.skyBlue[2] - COLORS.lightBlueSecondary[2]) * ratio,
+    );
+    doc.setFillColor(r, g, b);
+    doc.rect(x, gradientLineY, width, 1, "F");
+  }
+
+  // Footer text
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  setColor(doc, [100, 100, 100], "text");
+
+  const now = new Date();
+  const dateTimeStr = format(now, "dd/MM/yyyy HH:mm");
+  doc.text(`تاريخ الإنشاء: ${dateTimeStr}`, 20, footerY, { align: "left" });
+  doc.text(`صفحة 1 / 1`, pageWidth - 20, footerY, { align: "right" });
+
+  // Save
+  const fileName = `تقرير_الإيرادات_${branchName}_${formatDateSafely(startDate)}.pdf`;
+  doc.save(fileName);
 }
 
-interface ExpenseData {
+// ==========================================
+// EXPENSE PDF GENERATION
+// ==========================================
+
+type ExpenseData = {
   title: string;
   category: string;
   amount: number;
-  date: Date;
+  date: Date | number | string;
   description?: string;
-}
-
-function createExpensesTable(doc: jsPDF, data: ExpenseData[], startY: number) {
-  const tableData = data.map((row) => {
-    let dateStr = "";
-    try {
-      dateStr = format(new Date(row.date), "dd/MM/yyyy");
-    } catch (error) {
-      console.error("Error formatting date in expenses table:", error, row.date);
-      dateStr = "Invalid Date";
-    }
-    return [
-      row.title,
-      row.category,
-      row.amount.toFixed(2),
-      dateStr,
-      row.description || "-",
-    ];
-  });
-  
-  autoTable(doc, {
-    startY,
-    head: [["Title", "Category", "Amount (SAR)", "Date", "Description"]],
-    body: tableData,
-    theme: "grid",
-    
-    columnStyles: {
-      0: { cellWidth: 40, halign: "left" },
-      1: { cellWidth: 35, halign: "center" },
-      2: { cellWidth: 30, halign: "right" },
-      3: { cellWidth: 28, halign: "center" },
-      4: { cellWidth: 45, halign: "left" },
-    },
-    
-    headStyles: {
-      fillColor: COLORS.lightBluePrimary,
-      textColor: COLORS.white,
-      fontSize: 12,
-      fontStyle: "bold",
-      halign: "center",
-      valign: "middle",
-      lineColor: COLORS.deepBlue,
-      lineWidth: 0.5,
-      cellPadding: { top: 6, right: 4, bottom: 6, left: 4 },
-    },
-    
-    bodyStyles: {
-      fontSize: 11,
-      textColor: COLORS.textBlack,
-      cellPadding: { top: 5, right: 4, bottom: 5, left: 4 },
-      lineColor: [187, 222, 251],
-      lineWidth: 0.5,
-    },
-    
-    alternateRowStyles: {
-      fillColor: COLORS.tableStripe,
-    },
-    
-    didParseCell: (data) => {
-      // Amount column - bold blue
-      if (data.section === "body" && data.column.index === 2) {
-        data.cell.styles.textColor = COLORS.darkBlueAccent;
-        data.cell.styles.fontStyle = "bold";
-      }
-    },
-  });
-  
-  return (doc as typeof doc & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
-}
-
-// ============================================================
-// Summary Box with Gradient
-// ============================================================
-
-function drawGradientSummaryBox(
-  doc: jsPDF,
-  yPosition: number,
-  summaries: Array<{ label: string; value: string }>
-) {
-  const pageWidth = doc.internal.pageSize.width;
-  const boxHeight = summaries.length * 9 + 16;
-  const boxX = 15;
-  const boxWidth = pageWidth - 30;
-  const layers = 20;
-  
-  // Gradient: Light Blue Primary → Light Blue Secondary
-  for (let i = 0; i < layers; i++) {
-    const progress = i / layers;
-    const r = COLORS.lightBluePrimary[0] + (COLORS.lightBlueSecondary[0] - COLORS.lightBluePrimary[0]) * progress;
-    const g = COLORS.lightBluePrimary[1] + (COLORS.lightBlueSecondary[1] - COLORS.lightBluePrimary[1]) * progress;
-    const b = COLORS.lightBluePrimary[2] + (COLORS.lightBlueSecondary[2] - COLORS.lightBluePrimary[2]) * progress;
-    
-    doc.setFillColor(r, g, b);
-    const layerHeight = boxHeight / layers;
-    doc.roundedRect(boxX, yPosition + i * layerHeight, boxWidth, layerHeight + 0.1, 4, 4, "F");
-  }
-  
-  // Border
-  doc.setDrawColor(...COLORS.deepBlue);
-  doc.setLineWidth(1.5);
-  doc.roundedRect(boxX, yPosition, boxWidth, boxHeight, 4, 4, "S");
-  
-  // Content
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...COLORS.white);
-  
-  let currentY = yPosition + 10;
-  summaries.forEach((summary) => {
-    doc.text(summary.label, boxX + 5, currentY);
-    doc.text(summary.value, pageWidth - 20, currentY, { align: "right" });
-    currentY += 9;
-  });
-  
-  return yPosition + boxHeight;
-}
-
-// ============================================================
-// CRITICAL FIX 5: Official Seal (35mm × 35mm)
-// ============================================================
-
-async function addOfficialSeal(doc: jsPDF) {
-  const pageHeight = doc.internal.pageSize.height;
-  const sealSize = 35;
-  const sealX = doc.internal.pageSize.width - 20 - sealSize;
-  const sealY = pageHeight - 60;
-  
-  try {
-    const sealBase64 = await loadImageAsBase64("https://cdn.hercules.app/file_KxtpKU0KZ8CJ5zEVgJRzSTOG");
-    if (sealBase64) {
-      // Shadow effect
-      // Shadow effect (simulated with offset)
-      doc.addImage(sealBase64, "PNG", sealX + 0.5, sealY + 0.5, sealSize, sealSize);
-      
-      // Main seal
-      doc.addImage(sealBase64, "PNG", sealX, sealY, sealSize, sealSize);
-    }
-  } catch (error) {
-    console.error("Seal loading failed:", error);
-  }
-}
-
-// ============================================================
-// Footer with Gradient Line
-// ============================================================
-
-function addFooter(doc: jsPDF, pageNumber: number, totalPages: number) {
-  const pageWidth = doc.internal.pageSize.width;
-  const pageHeight = doc.internal.pageSize.height;
-  const footerY = pageHeight - 15;
-  
-  // Gradient line
-  const lineY = footerY - 3;
-  const segments = 20;
-  for (let i = 0; i < segments; i++) {
-    const progress = i / segments;
-    const r = COLORS.lightBlueSecondary[0] + (COLORS.skyBlue[0] - COLORS.lightBlueSecondary[0]) * progress;
-    const g = COLORS.lightBlueSecondary[1] + (COLORS.skyBlue[1] - COLORS.lightBlueSecondary[1]) * progress;
-    const b = COLORS.lightBlueSecondary[2] + (COLORS.skyBlue[2] - COLORS.lightBlueSecondary[2]) * progress;
-    
-    doc.setDrawColor(r, g, b);
-    doc.setLineWidth(1);
-    const segmentWidth = pageWidth / segments;
-    doc.line(i * segmentWidth, lineY, (i + 1) * segmentWidth, lineY);
-  }
-  
-  // Footer text
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
-  
-  const dateStr = format(new Date(), "dd/MM/yyyy HH:mm");
-  doc.text(`Generated: ${dateStr}`, 15, footerY);
-  doc.text(`Page ${pageNumber} / ${totalPages}`, pageWidth - 15, footerY, { align: "right" });
-}
-
-// ============================================================
-// Main Export Functions
-// ============================================================
-
-export async function generateRevenuesPDF(
-  revenues: RevenueData[],
-  branchName: string,
-  startDate: Date,
-  endDate: Date
-) {
-  const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4",
-    compress: true,
-  });
-  
-  // Header
-  await addHeaderWithLogo(doc, "Revenue Report", "Financial Management System");
-  
-  // Branch info
-  let currentY = await addBranchInfoBox(doc, branchName, startDate, endDate, 60);
-  
-  // Table
-  currentY = createRevenuesTable(doc, revenues, currentY + 5);
-  
-  // Summary
-  const totalCash = revenues.reduce((sum, r) => sum + (r.cash || 0), 0);
-  const totalNetwork = revenues.reduce((sum, r) => sum + (r.network || 0), 0);
-  const totalBudget = revenues.reduce((sum, r) => sum + (r.budget || 0), 0);
-  const grandTotal = totalCash + totalNetwork + totalBudget;
-  
-  currentY = drawGradientSummaryBox(doc, currentY + 10, [
-    { label: "Total Cash:", value: `${totalCash.toFixed(2)} SAR` },
-    { label: "Total Network:", value: `${totalNetwork.toFixed(2)} SAR` },
-    { label: "Total Budget:", value: `${totalBudget.toFixed(2)} SAR` },
-    { label: "Grand Total:", value: `${grandTotal.toFixed(2)} SAR` },
-  ]);
-  
-  // Seal
-  await addOfficialSeal(doc);
-  
-  // Footer
-  addFooter(doc, 1, 1);
-  
-  // Save
-  const fileName = `Revenue_Report_${branchName.replace(/\s+/g, "_")}_${format(new Date(), "yyyyMMdd")}.pdf`;
-  doc.save(fileName);
-}
+};
 
 export async function generateExpensesPDF(
-  expenses: ExpenseData[],
-  branchName: string
-) {
+  data: ExpenseData[],
+  branchName: string,
+): Promise<void> {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
     format: "a4",
-    compress: true,
   });
-  
-  // Header
-  await addHeaderWithLogo(doc, "Expenses Report", "Financial Management System");
-  
-  // Branch info (using current date range)
-  const endDate = new Date();
-  const startDate = new Date(endDate);
-  startDate.setMonth(startDate.getMonth() - 1);
-  let currentY = await addBranchInfoBox(doc, branchName, startDate, endDate, 60);
-  
-  // Table
-  currentY = createExpensesTable(doc, expenses, currentY + 5);
-  
-  // Summary
-  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const categories = [...new Set(expenses.map((e) => e.category))];
-  const categoryTotals = categories.map((cat) => ({
-    category: cat,
-    total: expenses.filter((e) => e.category === cat).reduce((sum, e) => sum + e.amount, 0),
-  }));
-  
-  const summaries = [
-    { label: "Total Expenses:", value: `${totalExpenses.toFixed(2)} SAR` },
-    { label: "Total Transactions:", value: `${expenses.length}` },
-  ];
-  
-  categoryTotals.forEach((ct) => {
-    summaries.push({ label: `${ct.category}:`, value: `${ct.total.toFixed(2)} SAR` });
-  });
-  
-  currentY = drawGradientSummaryBox(doc, currentY + 10, summaries);
-  
-  // Seal
-  await addOfficialSeal(doc);
-  
-  // Footer
-  addFooter(doc, 1, 1);
-  
-  // Save
-  const fileName = `Expenses_Report_${branchName.replace(/\s+/g, "_")}_${format(new Date(), "yyyyMMdd")}.pdf`;
-  doc.save(fileName);
-}
 
-// ============================================================
-// Legacy API for backwards compatibility
-// ============================================================
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  let yPos = 15;
 
-interface LegacyPDFOptions {
-  title: string;
-  subtitle?: string;
-  branchName: string;
-  dateRange?: { from: string; to: string };
-  columns: Array<{ header: string; dataKey: string; align?: "left" | "center" | "right"; width?: number }>;
-  data: Array<Record<string, string | number | boolean>>;
-  summaries?: Array<{ label: string; value: string }>;
-}
+  // ==========================================
+  // HEADER WITH GRADIENT
+  // ==========================================
+  drawGradient(
+    doc,
+    0,
+    0,
+    pageWidth,
+    50,
+    COLORS.deepBlue,
+    COLORS.lightBluePrimary,
+    30,
+  );
 
-export async function generatePDF(options: LegacyPDFOptions) {
-  if (options.title.includes("Revenue")) {
-    // Map legacy format to new revenues format
-    const revenues: RevenueData[] = options.data.map((row) => ({
-      date: new Date(row.date as string),
-      cash: typeof row.cash === "number" ? row.cash : undefined,
-      network: typeof row.network === "number" ? row.network : undefined,
-      budget: typeof row.budget === "number" ? row.budget : undefined,
-      total: typeof row.total === "number" ? row.total : undefined,
-      calculatedTotal: typeof row.calculatedTotal === "number" ? row.calculatedTotal : undefined,
-      isMatched: row.isMatched === "Matched" || row.isMatched === "true" || row.isMatched === true,
-    }));
-    
-    const startDate = options.dateRange?.from ? new Date(options.dateRange.from) : new Date();
-    const endDate = options.dateRange?.to ? new Date(options.dateRange.to) : new Date();
-    
-    await generateRevenuesPDF(revenues, options.branchName, startDate, endDate);
-  } else if (options.title.includes("Expense")) {
-    // Map legacy format to new expenses format
-    const expenses: ExpenseData[] = options.data.map((row) => ({
-      title: String(row.title || ""),
-      category: String(row.category || ""),
-      amount: typeof row.amount === "number" ? row.amount : 0,
-      date: new Date(row.date as string),
-      description: row.description ? String(row.description) : undefined,
-    }));
-    
-    await generateExpensesPDF(expenses, options.branchName);
+  // Add border to header
+  setColor(doc, COLORS.deepBlue, "draw");
+  doc.setLineWidth(3);
+  doc.line(0, 50, pageWidth, 50);
+
+  // Load and add logo
+  const logoUrl = "https://cdn.hercules.app/file_2EDW4ulZlmwarzzXHgYjO1Hv";
+  const logoData = await loadImageSafely(logoUrl);
+  if (logoData) {
+    try {
+      doc.addImage(logoData, "PNG", pageWidth / 2 - 15, 5, 30, 30);
+    } catch (error) {
+      console.error("Error adding logo:", error);
+    }
   }
-}
 
-export async function printPDF(options: LegacyPDFOptions) {
-  // Generate PDF first
-  await generatePDF(options);
-  
-  // Note: Auto-print is not directly supported in jsPDF
-  // The PDF will be saved and the user can print it manually
-  console.log("PDF generated successfully");
+  // Title
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(26);
+  setColor(doc, COLORS.white, "text");
+  doc.text("تقرير المصروفات", pageWidth / 2, 42, { align: "center" });
+
+  yPos = 60;
+
+  // ==========================================
+  // BRANCH INFO BOX
+  // ==========================================
+  const boxX = 15;
+  const boxWidth = pageWidth - 30;
+  const boxHeight = 22;
+
+  // White background
+  setColor(doc, COLORS.white, "fill");
+  doc.roundedRect(boxX, yPos, boxWidth, boxHeight, 4, 4, "F");
+
+  // Blue border
+  setColor(doc, COLORS.lightBluePrimary, "draw");
+  doc.setLineWidth(1.5);
+  doc.roundedRect(boxX, yPos, boxWidth, boxHeight, 4, 4, "S");
+
+  // Branch name
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  setColor(doc, COLORS.darkBlueAccent, "text");
+  doc.text(`الفرع: ${branchName}`, pageWidth - 20, yPos + 8, {
+    align: "right",
+  });
+
+  // Supervisor
+  const supervisor = getSupervisorName(branchName);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  setColor(doc, COLORS.textBlack, "text");
+  doc.text(`المشرف: ${supervisor}`, pageWidth - 20, yPos + 16, {
+    align: "right",
+  });
+
+  yPos += boxHeight + 10;
+
+  // ==========================================
+  // TABLE WITH ENHANCED BORDERS
+  // ==========================================
+  const tableData = data.map((row) => [
+    row.title,
+    row.category,
+    formatCurrency(row.amount),
+    formatDateSafely(row.date),
+  ]);
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [["العنوان", "التصنيف", "المبلغ (ريال)", "التاريخ"]],
+    body: tableData,
+    theme: "grid", // Use grid theme for clear borders
+    styles: {
+      font: "helvetica",
+      fontSize: 11,
+      cellPadding: 5,
+      lineColor: COLORS.lightBlueSecondary as [number, number, number],
+      lineWidth: 0.5,
+      halign: "center",
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: COLORS.lightBluePrimary as [number, number, number],
+      textColor: COLORS.white as [number, number, number],
+      fontStyle: "bold",
+      fontSize: 12,
+      halign: "center",
+      lineWidth: 1,
+      lineColor: COLORS.deepBlue as [number, number, number],
+    },
+    alternateRowStyles: {
+      fillColor: COLORS.tableStripe as [number, number, number],
+    },
+    columnStyles: {
+      0: { cellWidth: 60, halign: "right" }, // Title
+      1: { cellWidth: 40, halign: "center" }, // Category
+      2: { cellWidth: 35, halign: "right", fontStyle: "bold" }, // Amount
+      3: { cellWidth: 25, halign: "center" }, // Date
+    },
+    margin: { left: 15, right: 15 },
+  });
+
+  yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+
+  // ==========================================
+  // SUMMARY BOX WITH GRADIENT
+  // ==========================================
+  const summaryBoxHeight = 22;
+  drawGradient(
+    doc,
+    15,
+    yPos,
+    boxWidth,
+    summaryBoxHeight,
+    COLORS.lightBluePrimary,
+    COLORS.lightBlueSecondary,
+    20,
+  );
+
+  // Border
+  setColor(doc, COLORS.deepBlue, "draw");
+  doc.setLineWidth(1.5);
+  doc.roundedRect(15, yPos, boxWidth, summaryBoxHeight, 4, 4, "S");
+
+  // Calculate totals
+  const totalExpenses = data.reduce((sum, row) => sum + (row.amount || 0), 0);
+  const totalTransactions = data.length;
+
+  // Summary text
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  setColor(doc, COLORS.white, "text");
+
+  doc.text(
+    `إجمالي المصروفات: ${formatCurrency(totalExpenses)} ريال`,
+    pageWidth - 20,
+    yPos + 8,
+    { align: "right" },
+  );
+  doc.text(
+    `عدد العمليات: ${totalTransactions}`,
+    pageWidth - 20,
+    yPos + 16,
+    { align: "right" },
+  );
+
+  // ==========================================
+  // STAMP AT BOTTOM
+  // ==========================================
+  const stampSize = 35;
+  const stampX = pageWidth / 2 - stampSize / 2;
+  const stampY = pageHeight - 60;
+
+  const stampUrl = "https://cdn.hercules.app/file_KxtpKU0KZ8CJ5zEVgJRzSTOG";
+  const stampData = await loadImageSafely(stampUrl);
+  if (stampData) {
+    try {
+      doc.addImage(stampData, "PNG", stampX, stampY, stampSize, stampSize);
+    } catch (error) {
+      console.error("Error adding stamp:", error);
+    }
+  }
+
+  // "معتمد" text below stamp
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  setColor(doc, COLORS.deepBlue, "text");
+  doc.text("معتمد", pageWidth / 2, stampY + stampSize + 8, {
+    align: "center",
+  });
+
+  // ==========================================
+  // FOOTER
+  // ==========================================
+  const footerY = pageHeight - 15;
+
+  // Gradient line
+  const gradientLineY = footerY - 3;
+  for (let i = 0; i < 20; i++) {
+    const ratio = i / 20;
+    const x = 15 + (boxWidth * i) / 20;
+    const width = boxWidth / 20;
+    const r = Math.round(
+      COLORS.lightBlueSecondary[0] +
+        (COLORS.skyBlue[0] - COLORS.lightBlueSecondary[0]) * ratio,
+    );
+    const g = Math.round(
+      COLORS.lightBlueSecondary[1] +
+        (COLORS.skyBlue[1] - COLORS.lightBlueSecondary[1]) * ratio,
+    );
+    const b = Math.round(
+      COLORS.lightBlueSecondary[2] +
+        (COLORS.skyBlue[2] - COLORS.lightBlueSecondary[2]) * ratio,
+    );
+    doc.setFillColor(r, g, b);
+    doc.rect(x, gradientLineY, width, 1, "F");
+  }
+
+  // Footer text
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  setColor(doc, [100, 100, 100], "text");
+
+  const now = new Date();
+  const dateTimeStr = format(now, "dd/MM/yyyy HH:mm");
+  doc.text(`تاريخ الإنشاء: ${dateTimeStr}`, 20, footerY, { align: "left" });
+  doc.text(`صفحة 1 / 1`, pageWidth - 20, footerY, { align: "right" });
+
+  // Save
+  const fileName = `تقرير_المصروفات_${branchName}_${dateTimeStr}.pdf`;
+  doc.save(fileName);
 }
