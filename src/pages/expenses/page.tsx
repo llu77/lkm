@@ -142,13 +142,18 @@ function ExpensesContent() {
               </h1>
               <p className="text-muted-foreground mt-1">تتبع وإدارة جميع المصاريف والنفقات</p>
             </div>
+            <Button 
+              size="lg" 
+              className="gap-2"
+              onClick={() => {
+                console.log("Button clicked - Opening dialog!");
+                setIsCreateDialogOpen(true);
+              }}
+            >
+              <PlusIcon className="size-5" />
+              إضافة مصروف جديد
+            </Button>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="lg" className="gap-2">
-                  <PlusIcon className="size-5" />
-                  إضافة مصروف جديد
-                </Button>
-              </DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
                 <form onSubmit={handleCreateExpense}>
                   <DialogHeader>
