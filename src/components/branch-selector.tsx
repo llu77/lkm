@@ -135,7 +135,7 @@ export function BranchSelector({ onBranchSelected }: BranchSelectorProps) {
           <img 
             src="https://cdn.hercules.app/file_vQl30LwwutdTJK2LlWgX0FdU" 
             alt="Logo" 
-            className="mx-auto h-28 w-28 object-contain" 
+            className="mx-auto h-40 w-40 object-contain" 
           />
           <CardTitle className="text-2xl">
             {isLocked ? "الخانة مقفلة" : "اختيار الفرع"}

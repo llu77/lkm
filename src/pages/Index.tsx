@@ -29,7 +29,7 @@ export default function Index() {
               <img 
                 src="https://cdn.hercules.app/file_vQl30LwwutdTJK2LlWgX0FdU" 
                 alt="Logo" 
-                className="mx-auto h-32 w-32 object-contain" 
+                className="mx-auto h-40 w-40 object-contain" 
               />
               <CardTitle className="text-4xl font-bold">نظام الإدارة المالية</CardTitle>
               <CardDescription className="text-lg">

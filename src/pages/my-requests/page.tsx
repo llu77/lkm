@@ -7,12 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
-import { ClipboardListIcon, CheckCircleIcon, XCircleIcon, ClockIcon, EyeIcon } from "lucide-react";
+import { ClipboardListIcon, CheckCircleIcon, XCircleIcon, ClockIcon, EyeIcon, ArrowLeftIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useState } from "react";
 import { useBranch } from "@/hooks/use-branch.ts";
 import { BranchSelector } from "@/components/branch-selector.tsx";
+import { useNavigate } from "react-router-dom";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 
 interface Request {
@@ -77,6 +78,7 @@ export default function MyRequestsPage() {
 function MyRequestsContent({ branchId, branchName }: { branchId: string; branchName: string }) {
   const requests = useQuery(api.employeeRequests.getAllRequests, { branchId });
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const navigate = useNavigate();
 
   if (requests === undefined) {
     return (
