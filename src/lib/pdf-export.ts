@@ -21,6 +21,25 @@ interface PDFData {
 }
 
 const LOGO_URL = "https://cdn.hercules.app/file_2EDW4ulZlmwarzzXHgYjO1Hv";
+const STAMP_URL = "https://cdn.hercules.app/file_KxtpKU0KZ8CJ5zEVgJRzSTOG";
+
+// معلومات المشرفين حسب الفرع
+const BRANCH_SUPERVISORS: Record<string, string> = {
+  "1010": "عبدالحي جلال",
+  "لبن": "عبدالحي جلال",
+  "2020": "محمد إسماعيل",
+  "طويق": "محمد إسماعيل",
+};
+
+function getSupervisorName(branchName: string): string {
+  // البحث عن اسم المشرف بناءً على اسم الفرع أو رقمه
+  for (const [key, supervisor] of Object.entries(BRANCH_SUPERVISORS)) {
+    if (branchName.includes(key) || key.includes(branchName)) {
+      return supervisor;
+    }
+  }
+  return ""; // إذا لم يتم العثور على مشرف
+}
 
 async function loadImage(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -94,12 +113,24 @@ export async function generatePDF({
     currentY += 8;
   }
 
-  // معلومات الفرع والتاريخ
-  doc.setFontSize(11);
+  // معلومات الفرع والمشرف
+  doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
   doc.text(`Branch: ${header.branchName}`, pageWidth / 2, currentY, { align: "center" });
   currentY += 6;
+
+  // اسم المشرف
+  const supervisorName = getSupervisorName(header.branchName);
+  if (supervisorName) {
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Supervisor: ${supervisorName}`, pageWidth / 2, currentY, { align: "center" });
+    currentY += 6;
+  } else {
+    currentY += 2;
+  }
 
   if (header.dateRange) {
     doc.setFontSize(10);
@@ -206,6 +237,17 @@ export async function generatePDF({
     });
   }
 
+  // إضافة الختم في الصفحة الأخيرة
+  try {
+    const stampData = await loadImage(STAMP_URL);
+    const stampSize = 35; // حجم الختم
+    const stampX = pageWidth - stampSize - 20; // يمين الصفحة
+    const stampY = pageHeight - stampSize - 25; // أسفل الصفحة
+    doc.addImage(stampData, "PNG", stampX, stampY, stampSize, stampSize);
+  } catch (error) {
+    console.error("Failed to load stamp:", error);
+  }
+
   // حفظ الملف
   doc.save(`${fileName}.pdf`);
 }
@@ -249,12 +291,24 @@ export async function printPDF(pdfOptions: Parameters<typeof generatePDF>[0]) {
     currentY += 8;
   }
 
-  // معلومات الفرع والتاريخ
-  doc.setFontSize(11);
+  // معلومات الفرع والمشرف
+  doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
   doc.text(`Branch: ${pdfOptions.header.branchName}`, pageWidth / 2, currentY, { align: "center" });
   currentY += 6;
+
+  // اسم المشرف
+  const supervisorName = getSupervisorName(pdfOptions.header.branchName);
+  if (supervisorName) {
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Supervisor: ${supervisorName}`, pageWidth / 2, currentY, { align: "center" });
+    currentY += 6;
+  } else {
+    currentY += 2;
+  }
 
   if (pdfOptions.header.dateRange) {
     doc.setFontSize(10);
@@ -361,6 +415,17 @@ export async function printPDF(pdfOptions: Parameters<typeof generatePDF>[0]) {
       doc.text(total.label, 20, y);
       doc.text(String(total.value), pageWidth - 20, y, { align: "right" });
     });
+  }
+
+  // إضافة الختم في الصفحة الأخيرة
+  try {
+    const stampData = await loadImage(STAMP_URL);
+    const stampSize = 35; // حجم الختم
+    const stampX = pageWidth - stampSize - 20; // يمين الصفحة
+    const stampY = pageHeight - stampSize - 25; // أسفل الصفحة
+    doc.addImage(stampData, "PNG", stampX, stampY, stampSize, stampSize);
+  } catch (error) {
+    console.error("Failed to load stamp:", error);
   }
 
   // فتح نافذة الطباعة
