@@ -101,13 +101,12 @@ export const getMyRequests = query({
   },
 });
 
-// الحصول على جميع الطلبات (للأدمن)
+// الحصول على جميع الطلبات من كل الفروع (للأدمن)
 export const getAllRequests = query({
-  args: { branchId: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
     const requests = await ctx.db
       .query("employeeRequests")
-      .withIndex("by_branch", (q) => q.eq("branchId", args.branchId))
       .order("desc")
       .collect();
 

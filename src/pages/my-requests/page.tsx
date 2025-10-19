@@ -76,7 +76,11 @@ export default function MyRequestsPage() {
 }
 
 function MyRequestsContent({ branchId, branchName }: { branchId: string; branchName: string }) {
-  const requests = useQuery(api.employeeRequests.getAllRequests, { branchId });
+  const [selectedEmployee, setSelectedEmployee] = useState("");
+  const requests = useQuery(
+    selectedEmployee ? api.employeeRequests.getMyRequests : "skip",
+    selectedEmployee ? { branchId, employeeName: selectedEmployee } : "skip"
+  ) as any;
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const navigate = useNavigate();
 

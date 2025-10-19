@@ -142,7 +142,7 @@ export default function ManageRequestsPage() {
 }
 
 function ManageRequestsContent({ branchId, branchName }: { branchId: string; branchName: string }) {
-  const requests = useQuery(api.employeeRequests.getAllRequests, { branchId });
+  const requests = useQuery(api.employeeRequests.getAllRequests, {});
   const updateStatus = useMutation(api.employeeRequests.updateStatus);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
@@ -150,8 +150,8 @@ function ManageRequestsContent({ branchId, branchName }: { branchId: string; bra
   const [reviewAction, setReviewAction] = useState<"approve" | "reject">("approve");
 
   useEffect(() => {
-    console.log("📋 Requests Data:", { branchId, branchName, requests, count: requests?.length });
-  }, [branchId, branchName, requests]);
+    console.log("📋 All Requests Data:", { requests, count: requests?.length });
+  }, [requests]);
 
   if (requests === undefined) {
     return (
