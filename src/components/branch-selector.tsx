@@ -25,7 +25,7 @@ export function BranchSelector({ onBranchSelected }: BranchSelectorProps) {
     const branchName = BRANCHES[trimmedId as keyof typeof BRANCHES];
     
     if (!branchName) {
-      toast.error("معرف الفرع غير صحيح. الرجاء إدخال 1010 أو 2020");
+      toast.error("معرف الفرع غير صحيح. الرجاء إدخال المعرف الصحيح");
       return;
     }
 
@@ -71,12 +71,10 @@ export function BranchSelector({ onBranchSelected }: BranchSelectorProps) {
                 <div className="flex items-center gap-2">
                   <CheckCircle2Icon className="size-4 text-green-600" />
                   <span className="font-medium">فرع لبن</span>
-                  <span className="text-muted-foreground">- المعرف: 1010</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2Icon className="size-4 text-green-600" />
                   <span className="font-medium">فرع طويق</span>
-                  <span className="text-muted-foreground">- المعرف: 2020</span>
                 </div>
               </div>
             </div>
