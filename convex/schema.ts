@@ -26,12 +26,16 @@ export default defineSchema({
     isMatched: v.optional(v.boolean()), // حالة المطابقة
     mismatchReason: v.optional(v.string()), // سبب عدم المطابقة
     userId: v.id("users"),
+    branchId: v.optional(v.string()), // معرف الفرع
+    branchName: v.optional(v.string()), // اسم الفرع
     // Old fields for migration
     title: v.optional(v.string()),
     amount: v.optional(v.number()),
     category: v.optional(v.string()),
     description: v.optional(v.string()),
-  }).index("by_date", ["date"]),
+  })
+    .index("by_date", ["date"])
+    .index("by_branch", ["branchId"]),
 
   expenses: defineTable({
     title: v.string(),
@@ -40,7 +44,11 @@ export default defineSchema({
     description: v.optional(v.string()),
     date: v.number(),
     userId: v.id("users"),
-  }).index("by_date", ["date"]),
+    branchId: v.optional(v.string()), // معرف الفرع
+    branchName: v.optional(v.string()), // اسم الفرع
+  })
+    .index("by_date", ["date"])
+    .index("by_branch", ["branchId"]),
 
   productOrders: defineTable({
     productName: v.string(),
@@ -49,7 +57,11 @@ export default defineSchema({
     status: v.string(), // "pending", "approved", "rejected", "completed"
     requestedBy: v.id("users"),
     notes: v.optional(v.string()),
-  }).index("by_status", ["status"]),
+    branchId: v.optional(v.string()), // معرف الفرع
+    branchName: v.optional(v.string()), // اسم الفرع
+  })
+    .index("by_status", ["status"])
+    .index("by_branch", ["branchId"]),
 
   employeeOrders: defineTable({
     requestType: v.string(),
@@ -57,5 +69,9 @@ export default defineSchema({
     status: v.string(), // "pending", "approved", "rejected", "completed"
     priority: v.string(), // "low", "medium", "high"
     requestedBy: v.id("users"),
-  }).index("by_status", ["status"]),
+    branchId: v.optional(v.string()), // معرف الفرع
+    branchName: v.optional(v.string()), // اسم الفرع
+  })
+    .index("by_status", ["status"])
+    .index("by_branch", ["branchId"]),
 });

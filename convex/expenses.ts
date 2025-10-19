@@ -9,6 +9,8 @@ export const create = mutation({
     category: v.string(),
     description: v.optional(v.string()),
     date: v.number(),
+    branchId: v.string(),
+    branchName: v.string(),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -38,6 +40,8 @@ export const create = mutation({
       description: args.description,
       date: args.date,
       userId: user._id,
+      branchId: args.branchId,
+      branchName: args.branchName,
     });
 
     return expenseId;
@@ -46,6 +50,7 @@ export const create = mutation({
 
 export const list = query({
   args: {
+    branchId: v.string(),
     category: v.optional(v.string()),
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
@@ -61,6 +66,7 @@ export const list = query({
 
     let expenses = await ctx.db
       .query("expenses")
+      .withIndex("by_branch", (q) => q.eq("branchId", args.branchId))
       .order("desc")
       .collect();
 
@@ -166,8 +172,8 @@ export const remove = mutation({
 });
 
 export const getCategories = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { branchId: v.string() },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({
@@ -176,15 +182,18 @@ export const getCategories = query({
       });
     }
 
-    const expenses = await ctx.db.query("expenses").collect();
+    const expenses = await ctx.db
+      .query("expenses")
+      .withIndex("by_branch", (q) => q.eq("branchId", args.branchId))
+      .collect();
     const categories = [...new Set(expenses.map((e) => e.category))];
     return categories;
   },
 });
 
 export const getStats = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { branchId: v.string() },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({
@@ -193,7 +202,10 @@ export const getStats = query({
       });
     }
 
-    const allExpenses = await ctx.db.query("expenses").collect();
+    const allExpenses = await ctx.db
+      .query("expenses")
+      .withIndex("by_branch", (q) => q.eq("branchId", args.branchId))
+      .collect();
 
     // Get current month data
     const now = new Date();

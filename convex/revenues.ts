@@ -9,6 +9,8 @@ export const create = mutation({
     network: v.number(),
     budget: v.number(),
     mismatchReason: v.optional(v.string()),
+    branchId: v.string(),
+    branchName: v.string(),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -33,9 +35,12 @@ export const create = mutation({
 
     const total = args.cash + args.network + args.budget;
     
-    // التحقق من المطابقة: المجموع = الكاش + الشبكة
-    const expectedTotal = args.cash + args.network;
-    const isMatched = total === expectedTotal;
+    // شروط المطابقة:
+    // الشرط الأول: المجموع = كاش + شبكة (بدون موازنة)
+    // الشرط الثاني: الموازنة = الشبكة
+    const condition1 = total === (args.cash + args.network);
+    const condition2 = args.budget === args.network;
+    const isMatched = condition1 && condition2;
 
     // إذا لم تكن مطابقة ولم يتم إدخال سبب، نرمي خطأ
     if (!isMatched && !args.mismatchReason) {
@@ -54,6 +59,8 @@ export const create = mutation({
       isMatched,
       mismatchReason: args.mismatchReason,
       userId: user._id,
+      branchId: args.branchId,
+      branchName: args.branchName,
     });
 
     return revenueId;
@@ -62,6 +69,7 @@ export const create = mutation({
 
 export const list = query({
   args: {
+    branchId: v.string(),
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
   },
@@ -76,6 +84,7 @@ export const list = query({
 
     let revenues = await ctx.db
       .query("revenues")
+      .withIndex("by_branch", (q) => q.eq("branchId", args.branchId))
       .order("desc")
       .collect();
 
@@ -184,8 +193,8 @@ export const remove = mutation({
 
 
 export const getStats = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { branchId: v.string() },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({
@@ -194,7 +203,10 @@ export const getStats = query({
       });
     }
 
-    const allRevenues = await ctx.db.query("revenues").collect();
+    const allRevenues = await ctx.db
+      .query("revenues")
+      .withIndex("by_branch", (q) => q.eq("branchId", args.branchId))
+      .collect();
 
     // Get current month data
     const now = new Date();
