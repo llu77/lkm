@@ -40,7 +40,7 @@ export default function Navbar() {
         {/* Logo and Brand */}
         <Link to="/dashboard" className="flex items-center gap-3 text-primary-foreground font-bold hover:opacity-90 transition-opacity">
           <img 
-            src="https://cdn.hercules.app/file_vQl30LwwutdTJK2LlWgX0FdU" 
+            src="https://cdn.hercules.app/file_5Wlam502ojObMt2ow9U1N42S" 
             alt="Logo"
             className="h-20 w-20 object-contain"
             style={{ backgroundColor: 'transparent' }}
@@ -114,7 +114,7 @@ export default function Navbar() {
                 <SheetHeader className="space-y-2 pb-2">
                   <SheetTitle className="flex items-center gap-2 text-right text-base font-bold">
                     <img 
-                      src="https://cdn.hercules.app/file_vQl30LwwutdTJK2LlWgX0FdU" 
+                      src="https://cdn.hercules.app/file_5Wlam502ojObMt2ow9U1N42S" 
                       alt="Logo"
                       className="h-14 w-14 object-contain"
                       style={{ backgroundColor: 'transparent' }}
@@ -127,7 +127,7 @@ export default function Navbar() {
                     </div>
                   )}
                 </SheetHeader>
-                <div className="flex flex-col gap-1.5 mt-4">
+                <div className="flex flex-col gap-1.5 mt-2">
                   {links.map((link) => {
                     const Icon = link.icon;
                     const isActive = location.pathname === link.path;

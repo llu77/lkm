@@ -133,7 +133,7 @@ export function BranchSelector({ onBranchSelected }: BranchSelectorProps) {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center space-y-4">
           <img 
-            src="https://cdn.hercules.app/file_vQl30LwwutdTJK2LlWgX0FdU" 
+            src="https://cdn.hercules.app/file_5Wlam502ojObMt2ow9U1N42S" 
             alt="Logo" 
             className="mx-auto h-40 w-40 object-contain"
             style={{ backgroundColor: 'transparent' }} 
