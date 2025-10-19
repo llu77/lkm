@@ -128,6 +128,19 @@ export const create = mutation({
       });
     }
 
+    // ⚠️ حماية من التلاعب: التحقق من مجموع إيرادات الموظفين
+    if (args.employees && args.employees.length > 0) {
+      const employeesTotal = args.employees.reduce((sum, emp) => sum + emp.revenue, 0);
+      
+      // يجب أن يكون مجموع إيرادات الموظفين = المجموع (كاش + شبكة)
+      if (employeesTotal !== total) {
+        throw new ConvexError({
+          message: `⚠️ خطأ: مجموع إيرادات الموظفين (${employeesTotal} ر.س) لا يساوي المجموع الإجمالي (${total} ر.س = كاش ${args.cash} + شبكة ${args.network}). يُرجى التحقق من الأرقام المدخلة.`,
+          code: "BAD_REQUEST",
+        });
+      }
+    }
+
     await ctx.db.insert("revenues", {
       date: args.date,
       cash: args.cash,

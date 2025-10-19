@@ -175,6 +175,21 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
       return;
     }
 
+    // ⚠️ حماية من التلاعب: التحقق من مجموع إيرادات الموظفين
+    const validEmployees = employees.filter(e => e.name && e.revenue > 0);
+    if (validEmployees.length > 0) {
+      const employeesTotal = validEmployees.reduce((sum: number, emp) => sum + emp.revenue, 0);
+      const calculatedTotal = cashNum + networkNum;
+      
+      if (employeesTotal !== calculatedTotal) {
+        toast.error(
+          `⚠️ خطأ: مجموع إيرادات الموظفين (${employeesTotal.toLocaleString()} ر.س) لا يساوي المجموع الإجمالي (${calculatedTotal.toLocaleString()} ر.س = كاش ${cashNum.toLocaleString()} + شبكة ${networkNum.toLocaleString()}). يُرجى التحقق من الأرقام المدخلة.`,
+          { duration: 8000 }
+        );
+        return;
+      }
+    }
+
     try {
       await createRevenue({
         date: new Date(date).getTime(),
@@ -197,7 +212,8 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
       setEmployees([]);
       setShowForm(false);
     } catch (error) {
-      toast.error("حدث خطأ أثناء إضافة الإيراد");
+      const errorMessage = error instanceof Error ? error.message : "حدث خطأ أثناء إضافة الإيراد";
+      toast.error(errorMessage, { duration: 6000 });
       console.error(error);
     }
   };
