@@ -21,18 +21,10 @@ export function useBranch() {
     localStorage.setItem("selectedBranchName", newBranchName);
   };
 
-  const clearBranch = () => {
-    setBranchId(null);
-    setBranchName(null);
-    localStorage.removeItem("selectedBranchId");
-    localStorage.removeItem("selectedBranchName");
-  };
-
   return {
     branchId,
     branchName,
     selectBranch,
-    clearBranch,
     isSelected: branchId !== null && branchName !== null,
   };
 }

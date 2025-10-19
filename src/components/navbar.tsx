@@ -72,18 +72,6 @@ export default function Navbar() {
             <div className="hidden md:flex items-center gap-2">
               <Button
                 variant="ghost"
-                size="sm"
-                onClick={() => {
-                  localStorage.removeItem("selectedBranchId");
-                  localStorage.removeItem("selectedBranchName");
-                  window.location.reload();
-                }}
-                className="text-primary-foreground hover:bg-primary-foreground/20"
-              >
-                تغيير الفرع
-              </Button>
-              <Button
-                variant="ghost"
                 size="default"
                 onClick={() => signoutRedirect()}
                 className="text-primary-foreground hover:bg-primary-foreground/20"
@@ -136,19 +124,6 @@ export default function Navbar() {
                     );
                   })}
                   <div className="border-t my-4" />
-                  <Button
-                    variant="ghost"
-                    size="lg"
-                    onClick={() => {
-                      setIsOpen(false);
-                      localStorage.removeItem("selectedBranchId");
-                      localStorage.removeItem("selectedBranchName");
-                      window.location.reload();
-                    }}
-                    className="justify-start"
-                  >
-                    تغيير الفرع
-                  </Button>
                   <Button
                     variant="ghost"
                     size="lg"
