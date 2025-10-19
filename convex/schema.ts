@@ -18,12 +18,17 @@ export default defineSchema({
     .index("by_username", ["username"]),
 
   revenues: defineTable({
-    title: v.string(),
-    amount: v.number(),
-    category: v.string(),
-    description: v.optional(v.string()),
     date: v.number(),
+    cash: v.optional(v.number()),
+    network: v.optional(v.number()),
+    budget: v.optional(v.number()),
+    total: v.optional(v.number()),
     userId: v.id("users"),
+    // Old fields for migration
+    title: v.optional(v.string()),
+    amount: v.optional(v.number()),
+    category: v.optional(v.string()),
+    description: v.optional(v.string()),
   }).index("by_date", ["date"]),
 
   expenses: defineTable({

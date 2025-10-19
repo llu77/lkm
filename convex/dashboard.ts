@@ -42,11 +42,11 @@ export const getStats = query({
     );
 
     // Calculate totals
-    const totalRevenue = currentMonthRevenues.reduce((sum, r) => sum + r.amount, 0);
+    const totalRevenue = currentMonthRevenues.reduce((sum, r) => sum + (r.total || 0), 0);
     const totalExpenses = currentMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
     const netIncome = totalRevenue - totalExpenses;
 
-    const lastMonthTotalRevenue = lastMonthRevenues.reduce((sum, r) => sum + r.amount, 0);
+    const lastMonthTotalRevenue = lastMonthRevenues.reduce((sum, r) => sum + (r.total || 0), 0);
     const lastMonthTotalExpenses = lastMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
     const lastMonthNetIncome = lastMonthTotalRevenue - lastMonthTotalExpenses;
 
@@ -152,7 +152,7 @@ export const getChartData = query({
         .withIndex("by_date", (q) => q.gte("date", startOfMonth).lte("date", endOfMonth))
         .collect();
 
-      const totalRevenue = revenues.reduce((sum, r) => sum + r.amount, 0);
+      const totalRevenue = revenues.reduce((sum, r) => sum + (r.total || 0), 0);
       const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
 
       monthsData.push({

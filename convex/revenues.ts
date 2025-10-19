@@ -4,11 +4,10 @@ import { v } from "convex/values";
 
 export const create = mutation({
   args: {
-    title: v.string(),
-    amount: v.number(),
-    category: v.string(),
-    description: v.optional(v.string()),
     date: v.number(),
+    cash: v.number(),
+    network: v.number(),
+    budget: v.number(),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -31,12 +30,14 @@ export const create = mutation({
       });
     }
 
+    const total = args.cash + args.network + args.budget;
+
     const revenueId = await ctx.db.insert("revenues", {
-      title: args.title,
-      amount: args.amount,
-      category: args.category,
-      description: args.description,
       date: args.date,
+      cash: args.cash,
+      network: args.network,
+      budget: args.budget,
+      total,
       userId: user._id,
     });
 
@@ -46,7 +47,6 @@ export const create = mutation({
 
 export const list = query({
   args: {
-    category: v.optional(v.string()),
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
   },
@@ -63,11 +63,6 @@ export const list = query({
       .query("revenues")
       .order("desc")
       .collect();
-
-    // Filter by category if provided
-    if (args.category && args.category !== "all") {
-      revenues = revenues.filter((r) => r.category === args.category);
-    }
 
     // Filter by date range if provided
     if (args.startDate && args.endDate) {
@@ -106,11 +101,10 @@ export const getById = query({
 export const update = mutation({
   args: {
     id: v.id("revenues"),
-    title: v.optional(v.string()),
-    amount: v.optional(v.number()),
-    category: v.optional(v.string()),
-    description: v.optional(v.string()),
     date: v.optional(v.number()),
+    cash: v.optional(v.number()),
+    network: v.optional(v.number()),
+    budget: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -130,11 +124,18 @@ export const update = mutation({
     }
 
     const updates: Record<string, unknown> = {};
-    if (args.title !== undefined) updates.title = args.title;
-    if (args.amount !== undefined) updates.amount = args.amount;
-    if (args.category !== undefined) updates.category = args.category;
-    if (args.description !== undefined) updates.description = args.description;
     if (args.date !== undefined) updates.date = args.date;
+    if (args.cash !== undefined) updates.cash = args.cash;
+    if (args.network !== undefined) updates.network = args.network;
+    if (args.budget !== undefined) updates.budget = args.budget;
+
+    // Recalculate total if any amount field changed
+    if (args.cash !== undefined || args.network !== undefined || args.budget !== undefined) {
+      const cash = args.cash !== undefined ? args.cash : (revenue.cash || 0);
+      const network = args.network !== undefined ? args.network : (revenue.network || 0);
+      const budget = args.budget !== undefined ? args.budget : (revenue.budget || 0);
+      updates.total = cash + network + budget;
+    }
 
     await ctx.db.patch(args.id, updates);
     return args.id;
@@ -165,22 +166,7 @@ export const remove = mutation({
   },
 });
 
-export const getCategories = query({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({
-        code: "UNAUTHENTICATED",
-        message: "User not logged in",
-      });
-    }
 
-    const revenues = await ctx.db.query("revenues").collect();
-    const categories = [...new Set(revenues.map((r) => r.category))];
-    return categories;
-  },
-});
 
 export const getStats = query({
   args: {},
@@ -204,28 +190,30 @@ export const getStats = query({
       (r) => r.date >= startOfMonth && r.date <= endOfMonth,
     );
 
-    const totalRevenue = allRevenues.reduce((sum, r) => sum + r.amount, 0);
-    const currentMonthTotal = currentMonthRevenues.reduce((sum, r) => sum + r.amount, 0);
+    const totalRevenue = allRevenues.reduce((sum, r) => sum + (r.total || 0), 0);
+    const totalCash = allRevenues.reduce((sum, r) => sum + (r.cash || 0), 0);
+    const totalNetwork = allRevenues.reduce((sum, r) => sum + (r.network || 0), 0);
+    const totalBudget = allRevenues.reduce((sum, r) => sum + (r.budget || 0), 0);
+
+    const currentMonthTotal = currentMonthRevenues.reduce((sum, r) => sum + (r.total || 0), 0);
+    const currentMonthCash = currentMonthRevenues.reduce((sum, r) => sum + (r.cash || 0), 0);
+    const currentMonthNetwork = currentMonthRevenues.reduce((sum, r) => sum + (r.network || 0), 0);
+    const currentMonthBudget = currentMonthRevenues.reduce((sum, r) => sum + (r.budget || 0), 0);
+
     const averageRevenue = allRevenues.length > 0 ? totalRevenue / allRevenues.length : 0;
-
-    // Get category breakdown
-    const categoryMap = new Map<string, number>();
-    allRevenues.forEach((r) => {
-      categoryMap.set(r.category, (categoryMap.get(r.category) || 0) + r.amount);
-    });
-
-    const categoryTotals = Array.from(categoryMap.entries()).map(([category, total]) => ({
-      category,
-      total,
-    }));
 
     return {
       totalRevenue,
+      totalCash,
+      totalNetwork,
+      totalBudget,
       currentMonthTotal,
+      currentMonthCash,
+      currentMonthNetwork,
+      currentMonthBudget,
       totalCount: allRevenues.length,
       currentMonthCount: currentMonthRevenues.length,
       averageRevenue,
-      categoryTotals,
     };
   },
 });

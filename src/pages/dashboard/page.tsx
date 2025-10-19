@@ -14,6 +14,8 @@ import {
   PackageIcon,
 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 
 function DashboardContent() {
   const stats = useQuery(api.dashboard.getStats);
@@ -263,11 +265,15 @@ function DashboardContent() {
                     {recentActivity.recentRevenues.map((revenue) => (
                       <div key={revenue._id} className="flex items-center justify-between border-b pb-2 last:border-0">
                         <div>
-                          <p className="text-sm font-medium">{revenue.title}</p>
-                          <p className="text-xs text-muted-foreground">{revenue.category}</p>
+                          <p className="text-sm font-medium">
+                            {format(new Date(revenue.date), "d MMM yyyy", { locale: ar })}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            كاش: {formatCurrency(revenue.cash || 0)} • شبكة: {formatCurrency(revenue.network || 0)}
+                          </p>
                         </div>
                         <p className="text-sm font-semibold text-green-500">
-                          {formatCurrency(revenue.amount)}
+                          {formatCurrency(revenue.total || 0)}
                         </p>
                       </div>
                     ))}

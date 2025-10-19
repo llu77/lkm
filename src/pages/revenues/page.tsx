@@ -12,16 +12,13 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyCont
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { Textarea } from "@/components/ui/textarea.tsx";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { 
   TrendingUpIcon,
   PlusIcon,
   CalendarIcon,
   DollarSignIcon,
-  TagIcon,
-  FilterIcon,
-  EditIcon,
+  CreditCardIcon,
+  WalletIcon,
   TrashIcon,
   BarChart3Icon,
 } from "lucide-react";
@@ -29,63 +26,57 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
-const REVENUE_CATEGORIES = [
-  "مبيعات",
-  "خدمات",
-  "استثمارات",
-  "عقود",
-  "مشاريع",
-  "استشارات",
-  "تدريب",
-  "أخرى",
-];
-
 function RevenuesContent() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("");
-  const [description, setDescription] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [cash, setCash] = useState("");
+  const [network, setNetwork] = useState("");
+  const [budget, setBudget] = useState("");
 
-  const revenues = useQuery(api.revenues.list, { 
-    category: selectedCategory === "all" ? undefined : selectedCategory 
-  });
+  const revenues = useQuery(api.revenues.list, {});
   const stats = useQuery(api.revenues.getStats);
   const createRevenue = useMutation(api.revenues.create);
   const removeRevenue = useMutation(api.revenues.remove);
 
+  const calculateTotal = () => {
+    const cashNum = parseFloat(cash) || 0;
+    const networkNum = parseFloat(network) || 0;
+    const budgetNum = parseFloat(budget) || 0;
+    return cashNum + networkNum + budgetNum;
+  };
+
   const handleCreateRevenue = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title.trim() || !amount || !category) {
-      toast.error("يرجى ملء جميع الحقول المطلوبة");
+    const cashNum = parseFloat(cash) || 0;
+    const networkNum = parseFloat(network) || 0;
+    const budgetNum = parseFloat(budget) || 0;
+
+    if (cashNum < 0 || networkNum < 0 || budgetNum < 0) {
+      toast.error("يرجى إدخال قيم صحيحة");
       return;
     }
 
-    const amountNum = parseFloat(amount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      toast.error("يرجى إدخال مبلغ صحيح");
+    const total = calculateTotal();
+    if (total === 0) {
+      toast.error("يجب أن يكون المجموع أكبر من صفر");
       return;
     }
 
     try {
       await createRevenue({
-        title: title.trim(),
-        amount: amountNum,
-        category,
-        description: description.trim() || undefined,
         date: new Date(date).getTime(),
+        cash: cashNum,
+        network: networkNum,
+        budget: budgetNum,
       });
       
       toast.success("تم إضافة الإيراد بنجاح");
       setIsCreateDialogOpen(false);
-      setTitle("");
-      setAmount("");
-      setCategory("");
-      setDescription("");
       setDate(format(new Date(), "yyyy-MM-dd"));
+      setCash("");
+      setNetwork("");
+      setBudget("");
     } catch (error) {
       toast.error("حدث خطأ أثناء إضافة الإيراد");
       console.error(error);
@@ -138,7 +129,7 @@ function RevenuesContent() {
                 <TrendingUpIcon className="size-8 text-primary" />
                 إدارة الإيرادات
               </h1>
-              <p className="text-muted-foreground mt-1">تتبع وإدارة جميع مصادر الدخل</p>
+              <p className="text-muted-foreground mt-1">تتبع وإدارة جميع مصادر الدخل اليومية</p>
             </div>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
@@ -152,69 +143,63 @@ function RevenuesContent() {
                   <DialogHeader>
                     <DialogTitle>إضافة إيراد جديد</DialogTitle>
                     <DialogDescription>
-                      أضف إيراد جديد إلى السجلات المالية
+                      أضف إيراد جديد مع تفاصيل الدفع
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="space-y-2">
-                      <Label htmlFor="title">العنوان *</Label>
+                      <Label htmlFor="date">التاريخ *</Label>
                       <Input
-                        id="title"
-                        placeholder="مثال: دفعة مشروع العميل أ"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                        id="date"
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
                         required
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="amount">المبلغ (ريال) *</Label>
-                        <Input
-                          id="amount"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="0.00"
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="date">التاريخ *</Label>
-                        <Input
-                          id="date"
-                          type="date"
-                          value={date}
-                          onChange={(e) => setDate(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="category">التصنيف *</Label>
-                      <Select value={category} onValueChange={setCategory} required>
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر التصنيف" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {REVENUE_CATEGORIES.map((cat) => (
-                            <SelectItem key={cat} value={cat}>
-                              {cat}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="description">الوصف</Label>
-                      <Textarea
-                        id="description"
-                        placeholder="تفاصيل إضافية عن الإيراد..."
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        rows={3}
+                      <Label htmlFor="cash">الكاش (ريال)</Label>
+                      <Input
+                        id="cash"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={cash}
+                        onChange={(e) => setCash(e.target.value)}
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="network">الشبكة (ريال)</Label>
+                      <Input
+                        id="network"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={network}
+                        onChange={(e) => setNetwork(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="budget">الموازنة (ريال)</Label>
+                      <Input
+                        id="budget"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={budget}
+                        onChange={(e) => setBudget(e.target.value)}
+                      />
+                    </div>
+                    <div className="rounded-lg border bg-muted p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold">المجموع:</span>
+                        <span className="text-2xl font-bold text-primary">
+                          {formatCurrency(calculateTotal())}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <DialogFooter>
@@ -229,7 +214,7 @@ function RevenuesContent() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">إجمالي الإيرادات</CardTitle>
@@ -245,7 +230,46 @@ function RevenuesContent() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">إيرادات الشهر الحالي</CardTitle>
+                <CardTitle className="text-sm font-medium">إجمالي الكاش</CardTitle>
+                <WalletIcon className="size-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(stats.totalCash)}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  نقدي
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">إجمالي الشبكة</CardTitle>
+                <CreditCardIcon className="size-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(stats.totalNetwork)}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  بطاقات
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">إجمالي الموازنة</CardTitle>
+                <BarChart3Icon className="size-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(stats.totalBudget)}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  موازنة
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">الشهر الحالي</CardTitle>
                 <CalendarIcon className="size-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -255,65 +279,7 @@ function RevenuesContent() {
                 </p>
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">متوسط الإيراد</CardTitle>
-                <BarChart3Icon className="size-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(stats.averageRevenue)}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  لكل عملية
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">عدد التصنيفات</CardTitle>
-                <TagIcon className="size-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {stats.categoryTotals.length}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  تصنيف نشط
-                </p>
-              </CardContent>
-            </Card>
           </div>
-
-          {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FilterIcon className="size-5" />
-                تصفية الإيرادات
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <Label htmlFor="filter-category">التصنيف</Label>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger id="filter-category">
-                      <SelectValue placeholder="جميع التصنيفات" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">جميع التصنيفات</SelectItem>
-                      {REVENUE_CATEGORIES.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Revenues List */}
           <Card>
@@ -350,33 +316,41 @@ function RevenuesContent() {
                       className="flex items-center justify-between rounded-lg border p-4 hover:bg-accent/50 transition-colors"
                     >
                       <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <div className="flex size-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
-                            <TrendingUpIcon className="size-5 text-green-600 dark:text-green-400" />
+                        <div className="flex items-center gap-4">
+                          <div className="flex size-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
+                            <CalendarIcon className="size-6 text-green-600 dark:text-green-400" />
                           </div>
-                          <div>
-                            <h3 className="font-semibold">{revenue.title}</h3>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                              <TagIcon className="size-3" />
-                              <span>{revenue.category}</span>
-                              <span>•</span>
-                              <CalendarIcon className="size-3" />
-                              <span>
-                                {format(new Date(revenue.date), "d MMMM yyyy", { locale: ar })}
-                              </span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-semibold text-lg">
+                                {format(new Date(revenue.date), "EEEE، d MMMM yyyy", { locale: ar })}
+                              </h3>
                             </div>
-                            {revenue.description && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {revenue.description}
-                              </p>
-                            )}
+                            <div className="grid grid-cols-3 gap-4 text-sm">
+                              <div className="flex items-center gap-2">
+                                <WalletIcon className="size-4 text-muted-foreground" />
+                                <span className="text-muted-foreground">كاش:</span>
+                                <span className="font-medium">{formatCurrency(revenue.cash || 0)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <CreditCardIcon className="size-4 text-muted-foreground" />
+                                <span className="text-muted-foreground">شبكة:</span>
+                                <span className="font-medium">{formatCurrency(revenue.network || 0)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <BarChart3Icon className="size-4 text-muted-foreground" />
+                                <span className="text-muted-foreground">موازنة:</span>
+                                <span className="font-medium">{formatCurrency(revenue.budget || 0)}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-left">
+                          <p className="text-xs text-muted-foreground mb-1">المجموع</p>
                           <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                            {formatCurrency(revenue.amount)}
+                            {formatCurrency(revenue.total || 0)}
                           </p>
                         </div>
                         <Button
