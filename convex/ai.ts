@@ -1,7 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
-import { action, internalMutation } from "./_generated/server";
+import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import Anthropic from "@anthropic-ai/sdk";
 import { Resend } from "resend";
@@ -154,7 +154,7 @@ ${revenue.employees && revenue.employees.length > 0 ? `- الموظفون: ${rev
 
       // Create notification if needed
       if (analysisResult.notification?.shouldCreate) {
-        await ctx.runMutation(internal.ai.createNotification, {
+        await ctx.runMutation(internal.notifications.createAINotification, {
           branchId,
           branchName,
           type: analysisResult.riskLevel === "critical" ? "error" : "warning",
@@ -323,15 +323,34 @@ export const sendSmartEmail = action({
       throw new Error("RESEND_API_KEY not configured");
     }
 
-    // Generate email content using Content Writer Agent
-    const emailContent = await ctx.runAction(internal.ai.generateSmartContent, {
-      contentType: "email",
-      context: {
-        branchName,
-        data,
-        purpose: `إرسال ${emailType === "alert" ? "تنبيه" : emailType === "report" ? "تقرير" : "ملخص"}`,
-      },
+    // Generate email content using Anthropic directly
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new Error("ANTHROPIC_API_KEY not configured");
+    }
+    
+    const anthropic = new Anthropic({ apiKey });
+    const prompt = `أنت Email Writer Agent. اكتب إيميل احترافي لفرع ${branchName}.
+    
+الغرض: إرسال ${emailType === "alert" ? "تنبيه" : emailType === "report" ? "تقرير" : "ملخص"}
+البيانات: ${data}
+
+أعطني JSON:
+{
+  "subject": "موضوع الإيميل",
+  "html": "<html>محتوى HTML للإيميل</html>"
+}`;
+
+    const message = await anthropic.messages.create({
+      model: "claude-3-5-sonnet-20241022",
+      max_tokens: 2048,
+      messages: [{ role: "user", content: prompt }],
     });
+
+    const textContent = message.content.find((b: { type: string }) => b.type === "text");
+    const responseText: string = textContent?.type === "text" ? (textContent as { type: string; text: string }).text : "{}";
+    const jsonMatch: RegExpMatchArray | null = responseText.match(/\{[\s\S]*\}/);
+    const emailContent: { subject?: string; html?: string } = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 
     const resend = new Resend(resendKey);
 
@@ -339,8 +358,8 @@ export const sendSmartEmail = action({
       const result = await resend.emails.send({
         from: "نظام الإدارة المالية <onboarding@resend.dev>",
         to,
-        subject: emailContent.content.subject || `تنبيه من ${branchName}`,
-        html: emailContent.content.body || "<p>لا يوجد محتوى</p>",
+        subject: emailContent.subject || `تنبيه من ${branchName}`,
+        html: emailContent.html || "<p>لا يوجد محتوى</p>",
       });
 
       return {
@@ -359,45 +378,8 @@ export const sendSmartEmail = action({
 // Agent 4: Notification Agent
 // ============================================================================
 
-export const createNotification = internalMutation({
-  args: {
-    branchId: v.string(),
-    branchName: v.string(),
-    type: v.string(),
-    severity: v.string(),
-    title: v.string(),
-    message: v.string(),
-    reasoning: v.string(),
-    aiGenerated: v.boolean(),
-    actionRequired: v.boolean(),
-    relatedEntity: v.object({
-      type: v.string(),
-      id: v.string(),
-    }),
-  },
-  handler: async (ctx, args) => {
-    // Create notification
-    const notificationId = await ctx.db.insert("notifications", {
-      branchId: args.branchId,
-      branchName: args.branchName,
-      type: args.type,
-      severity: args.severity,
-      title: args.title,
-      message: args.message,
-      reasoning: args.reasoning,
-      aiGenerated: args.aiGenerated,
-      actionRequired: args.actionRequired,
-      relatedEntity: args.relatedEntity,
-      isRead: false,
-      isDismissed: false,
-      expiresAt: args.severity === "critical" 
-        ? undefined 
-        : Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
-    });
-
-    return notificationId;
-  },
-});
+// Note: Notification creation moved to notifications.ts
+// Use ctx.runMutation(internal.notifications.createAINotification, ...)
 
 // ============================================================================
 // Agent 5: Pattern Detection Agent (Autonomous Background Worker)
@@ -418,7 +400,7 @@ export const analyzeRevenuePatterns = action({
 
     // Get recent revenues (last 30 days)
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-    const revenues = await ctx.runQuery(internal.ai.getRecentRevenues, {
+    const revenues: Array<{ date: number; total: number; isMatched: boolean; cash: number; network: number }> = await ctx.runMutation(internal.notifications.getRecentRevenues, {
       branchId,
       sinceDate: thirtyDaysAgo,
     });
@@ -431,14 +413,14 @@ export const analyzeRevenuePatterns = action({
     }
 
     // Prepare data summary
-    const dataSummary = revenues.map((r: { date: number; total: number; isMatched: boolean; cash: number; network: number }) => ({
+    const dataSummary = revenues.map((r) => ({
       date: new Date(r.date).toLocaleDateString("ar-EG"),
       total: r.total,
       isMatched: r.isMatched,
       dayOfWeek: new Date(r.date).toLocaleDateString("ar-EG", { weekday: "long" }),
     }));
 
-    const prompt = `أنت Pattern Detection Agent متخصص في اكتشاف الأنماط في البيانات المالية.
+    const prompt: string = `أنت Pattern Detection Agent متخصص في اكتشاف الأنماط في البيانات المالية.
 
 قم بتحليل إيرادات فرع ${branchName} (آخر 30 يوم):
 
@@ -478,19 +460,19 @@ ${JSON.stringify(dataSummary, null, 2)}
         messages: [{ role: "user", content: prompt }],
       });
 
-      const textContent = message.content.find((block) => block.type === "text");
-      const responseText = textContent?.type === "text" ? textContent.text : "{}";
+      const textContent = message.content.find((block: { type: string }) => block.type === "text");
+      const responseText: string = textContent?.type === "text" ? (textContent as { type: string; text: string }).text : "{}";
       
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+      const jsonMatch: RegExpMatchArray | null = responseText.match(/\{[\s\S]*\}/);
+      const analysis: { patterns?: Array<{ impact: string; [key: string]: unknown }>; insights?: string } = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 
       // Create notification if high-impact patterns found
       const highImpactPatterns = analysis.patterns?.filter(
-        (p: { impact: string }) => p.impact === "high"
+        (p) => p.impact === "high"
       ) || [];
 
       if (highImpactPatterns.length > 0) {
-        await ctx.runMutation(internal.ai.createNotification, {
+        await ctx.runMutation(internal.notifications.createAINotification, {
           branchId,
           branchName,
           type: "info",
@@ -522,27 +504,5 @@ ${JSON.stringify(dataSummary, null, 2)}
 // Helper Queries for Agents
 // ============================================================================
 
-export const getRecentRevenues = internalMutation({
-  args: {
-    branchId: v.string(),
-    sinceDate: v.number(),
-  },
-  handler: async (ctx, { branchId, sinceDate }) => {
-    const revenues = await ctx.db
-      .query("revenues")
-      .withIndex("by_branch", (q) => q.eq("branchId", branchId))
-      .filter((q) => q.gte(q.field("date"), sinceDate))
-      .collect();
-
-    return revenues.map(r => ({
-      date: r.date,
-      total: r.total || 0,
-      isMatched: r.isMatched || false,
-      cash: r.cash || 0,
-      network: r.network || 0,
-    }));
-  },
-});
-
-// Export internal namespace for type safety
-export { internal } from "./_generated/api";
+// Note: getRecentRevenues moved to notifications.ts
+// Use ctx.runMutation(internal.notifications.getRecentRevenues, ...)

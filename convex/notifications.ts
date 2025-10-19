@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel.d.ts";
 
 /**
@@ -154,5 +154,72 @@ export const create = mutation({
     });
 
     return notificationId;
+  },
+});
+
+/**
+ * Create AI-generated notification (called from AI agents)
+ */
+export const createAINotification = internalMutation({
+  args: {
+    branchId: v.string(),
+    branchName: v.string(),
+    type: v.string(),
+    severity: v.string(),
+    title: v.string(),
+    message: v.string(),
+    reasoning: v.string(),
+    aiGenerated: v.boolean(),
+    actionRequired: v.boolean(),
+    relatedEntity: v.object({
+      type: v.string(),
+      id: v.string(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const notificationId = await ctx.db.insert("notifications", {
+      branchId: args.branchId,
+      branchName: args.branchName,
+      type: args.type,
+      severity: args.severity,
+      title: args.title,
+      message: args.message,
+      reasoning: args.reasoning,
+      aiGenerated: args.aiGenerated,
+      actionRequired: args.actionRequired,
+      relatedEntity: args.relatedEntity,
+      isRead: false,
+      isDismissed: false,
+      expiresAt: args.severity === "critical" 
+        ? undefined 
+        : Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
+    });
+
+    return notificationId;
+  },
+});
+
+/**
+ * Get recent revenues (called from AI agents)
+ */
+export const getRecentRevenues = internalMutation({
+  args: {
+    branchId: v.string(),
+    sinceDate: v.number(),
+  },
+  handler: async (ctx, { branchId, sinceDate }) => {
+    const revenues = await ctx.db
+      .query("revenues")
+      .withIndex("by_branch", (q) => q.eq("branchId", branchId))
+      .filter((q) => q.gte(q.field("date"), sinceDate))
+      .collect();
+
+    return revenues.map(r => ({
+      date: r.date,
+      total: r.total || 0,
+      isMatched: r.isMatched || false,
+      cash: r.cash || 0,
+      network: r.network || 0,
+    }));
   },
 });
