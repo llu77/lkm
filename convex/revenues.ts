@@ -108,6 +108,31 @@ export const create = mutation({
       });
     }
 
+    // ⚠️ حماية: منع إدخال أكثر من إيراد واحد لنفس التاريخ في نفس الفرع
+    const startOfDay = new Date(args.date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(args.date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    const existingRevenue = await ctx.db
+      .query("revenues")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("branchId"), args.branchId),
+          q.gte(q.field("date"), startOfDay.getTime()),
+          q.lte(q.field("date"), endOfDay.getTime())
+        )
+      )
+      .first();
+
+    if (existingRevenue) {
+      const dateStr = new Date(args.date).toLocaleDateString('ar-SA');
+      throw new ConvexError({
+        message: `⚠️ لا يمكن إضافة أكثر من إيراد واحد لنفس التاريخ (${dateStr}). يوجد إيراد مسجل بالفعل لهذا اليوم.`,
+        code: "CONFLICT",
+      });
+    }
+
     // المجموع = كاش + شبكة فقط (بدون موازنة)
     const total = args.cash + args.network;
     const calculatedTotal = args.cash + args.network;
