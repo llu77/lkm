@@ -36,7 +36,7 @@ const OBJECTION_REASONS = [
 ];
 
 export default function EmployeeRequests() {
-  const { branchId, branchName } = useBranch();
+  const { branchId, branchName, selectBranch } = useBranch();
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [requestType, setRequestType] = useState("");
 
@@ -66,7 +66,7 @@ export default function EmployeeRequests() {
   const createRequest = useMutation(api.employeeRequests.create);
 
   if (!branchId) {
-    return <BranchSelector onBranchSelected={() => {}} />;
+    return <BranchSelector onBranchSelected={selectBranch} />;
   }
 
   const employees = BRANCH_EMPLOYEES[branchId as keyof typeof BRANCH_EMPLOYEES] || [];
