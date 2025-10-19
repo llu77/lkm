@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea.tsx";
 import { ClipboardListIcon, CheckCircleIcon, XCircleIcon, ClockIcon, EyeIcon, ShieldIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useBranch } from "@/hooks/use-branch.ts";
 import { BranchSelector } from "@/components/branch-selector.tsx";
 import { toast } from "sonner";
@@ -47,51 +47,17 @@ interface Request {
 
 export default function ManageRequestsPage() {
   const { branchId, branchName, isSelected, selectBranch } = useBranch();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    console.log("🔐 Manage Requests Page Loaded", { isSelected, isAuthenticated, branchId, branchName });
+  }, [isSelected, isAuthenticated, branchId, branchName]);
 
   if (!isSelected) {
     return <BranchSelector onBranchSelected={selectBranch} />;
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <Unauthenticated>
-        <div className="flex min-h-screen items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <CardTitle>إدارة الطلبات</CardTitle>
-              <CardDescription>يرجى تسجيل الدخول أولاً</CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center">
-              <SignInButton />
-            </CardContent>
-          </Card>
-        </div>
-      </Unauthenticated>
-      <AuthLoading>
-        <div className="container mx-auto max-w-7xl p-4 space-y-4">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-32 w-full" />
-        </div>
-      </AuthLoading>
-      <Authenticated>
-        <ManageRequestsContent branchId={branchId!} branchName={branchName!} />
-      </Authenticated>
-    </div>
-  );
-}
-
-function ManageRequestsContent({ branchId, branchName }: { branchId: string; branchName: string }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState("");
-  
-  const requests = useQuery(api.employeeRequests.getAllRequests, { branchId });
-  const updateStatus = useMutation(api.employeeRequests.updateStatus);
-  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
-  const [showReviewDialog, setShowReviewDialog] = useState(false);
-  const [adminResponse, setAdminResponse] = useState("");
-  const [reviewAction, setReviewAction] = useState<"approve" | "reject">("approve");
-
-  // نموذج إدخال كلمة المرور
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -100,7 +66,7 @@ function ManageRequestsContent({ branchId, branchName }: { branchId: string; bra
             <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-primary/10">
               <ShieldIcon className="size-8 text-primary" />
             </div>
-            <CardTitle>إدارة الطلبات - {branchName}</CardTitle>
+            <CardTitle>إدارة الطلبات</CardTitle>
             <CardDescription>
               هذه الصفحة محمية. يرجى إدخال كلمة المرور للوصول
             </CardDescription>
@@ -147,6 +113,46 @@ function ManageRequestsContent({ branchId, branchName }: { branchId: string; bra
     );
   }
 
+  return (
+    <div className="min-h-screen bg-background">
+      <Unauthenticated>
+        <div className="flex min-h-screen items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <CardTitle>إدارة الطلبات</CardTitle>
+              <CardDescription>يرجى تسجيل الدخول أولاً</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <SignInButton />
+            </CardContent>
+          </Card>
+        </div>
+      </Unauthenticated>
+      <AuthLoading>
+        <div className="container mx-auto max-w-7xl p-4 space-y-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      </AuthLoading>
+      <Authenticated>
+        <ManageRequestsContent branchId={branchId!} branchName={branchName!} />
+      </Authenticated>
+    </div>
+  );
+}
+
+function ManageRequestsContent({ branchId, branchName }: { branchId: string; branchName: string }) {
+  const requests = useQuery(api.employeeRequests.getAllRequests, { branchId });
+  const updateStatus = useMutation(api.employeeRequests.updateStatus);
+  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [adminResponse, setAdminResponse] = useState("");
+  const [reviewAction, setReviewAction] = useState<"approve" | "reject">("approve");
+
+  useEffect(() => {
+    console.log("📋 Requests Data:", { branchId, branchName, requests, count: requests?.length });
+  }, [branchId, branchName, requests]);
+
   if (requests === undefined) {
     return (
       <div className="container mx-auto max-w-7xl p-4 space-y-4">
@@ -156,81 +162,81 @@ function ManageRequestsContent({ branchId, branchName }: { branchId: string; bra
     );
   }
 
-  const pending = requests.filter((r) => r.status === "تحت الإجراء");
-  const approved = requests.filter((r) => r.status === "مقبول");
-  const rejected = requests.filter((r) => r.status === "مرفوض");
+  const pendingRequests = requests.filter((r) => r.status === "تحت الإجراء");
+  const approvedRequests = requests.filter((r) => r.status === "مقبول");
+  const rejectedRequests = requests.filter((r) => r.status === "مرفوض");
 
-  const handleReview = (request: Request, action: "approve" | "reject") => {
-    setSelectedRequest(request);
-    setReviewAction(action);
-    setAdminResponse("");
-    setShowReviewDialog(true);
-  };
-
-  const handleSubmitReview = async () => {
+  const handleReview = async (action: "approve" | "reject") => {
     if (!selectedRequest) return;
 
-    const newStatus = reviewAction === "approve" ? "مقبول" : "مرفوض";
-    
     try {
+      const status = action === "approve" ? "مقبول" : "مرفوض";
       await updateStatus({
         requestId: selectedRequest._id,
-        status: newStatus,
-        adminResponse: adminResponse || undefined,
+        status,
+        adminResponse: adminResponse.trim() || undefined,
       });
 
-      toast.success(
-        reviewAction === "approve"
-          ? "تم قبول الطلب بنجاح"
-          : "تم رفض الطلب"
-      );
+      toast.success(`تم ${status === "مقبول" ? "قبول" : "رفض"} الطلب بنجاح`);
       setShowReviewDialog(false);
       setSelectedRequest(null);
       setAdminResponse("");
     } catch (error) {
-      toast.error("حدث خطأ أثناء معالجة الطلب");
-      console.error(error);
+      toast.error("فشل في تحديث الطلب");
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    if (status === "تحت الإجراء") {
-      return <Badge variant="secondary"><ClockIcon className="size-3 ml-1" />تحت الإجراء</Badge>;
+  const renderRequestDetails = (request: Request) => {
+    switch (request.requestType) {
+      case "سلفة":
+        return (
+          <div className="space-y-2">
+            <p><strong>المبلغ:</strong> {request.advanceAmount?.toLocaleString()} ر.س</p>
+          </div>
+        );
+      case "إجازة":
+        return (
+          <div className="space-y-2">
+            <p><strong>تاريخ الإجازة:</strong> {request.vacationDate ? format(request.vacationDate, "dd/MM/yyyy", { locale: ar }) : "-"}</p>
+          </div>
+        );
+      case "صرف متأخرات":
+        return (
+          <div className="space-y-2">
+            <p><strong>المبلغ المطلوب:</strong> {request.duesAmount?.toLocaleString()} ر.س</p>
+          </div>
+        );
+      case "استئذان":
+        return (
+          <div className="space-y-2">
+            <p><strong>تاريخ الاستئذان:</strong> {request.permissionDate ? format(request.permissionDate, "dd/MM/yyyy", { locale: ar }) : "-"}</p>
+            <p><strong>من الساعة:</strong> {request.permissionStartTime}</p>
+            <p><strong>إلى الساعة:</strong> {request.permissionEndTime}</p>
+            <p><strong>عدد الساعات:</strong> {request.permissionHours} ساعة</p>
+          </div>
+        );
+      case "اعتراض على مخالفة":
+        return (
+          <div className="space-y-2">
+            <p><strong>تاريخ المخالفة:</strong> {request.violationDate ? format(request.violationDate, "dd/MM/yyyy", { locale: ar }) : "-"}</p>
+            <p><strong>سبب الاعتراض:</strong> {request.objectionReason}</p>
+            {request.objectionDetails && (
+              <p><strong>التفاصيل:</strong> {request.objectionDetails}</p>
+            )}
+          </div>
+        );
+      case "استقالة":
+        return (
+          <div className="space-y-2">
+            <p><strong>رقم الهوية:</strong> {request.nationalId}</p>
+            <div className="mt-2 rounded-md bg-muted p-3">
+              <p className="whitespace-pre-wrap text-sm">{request.resignationText}</p>
+            </div>
+          </div>
+        );
+      default:
+        return null;
     }
-    if (status === "مقبول") {
-      return <Badge className="bg-green-600"><CheckCircleIcon className="size-3 ml-1" />مقبول</Badge>;
-    }
-    return <Badge variant="destructive"><XCircleIcon className="size-3 ml-1" />مرفوض</Badge>;
-  };
-
-  const getRequestDetails = (request: Request) => {
-    const details: { label: string; value: string }[] = [];
-
-    if (request.advanceAmount) {
-      details.push({ label: "المبلغ", value: `${request.advanceAmount} ر.س` });
-    }
-    if (request.vacationDate) {
-      details.push({ label: "تاريخ الإجازة", value: format(request.vacationDate, "dd/MM/yyyy", { locale: ar }) });
-    }
-    if (request.duesAmount) {
-      details.push({ label: "المبلغ", value: `${request.duesAmount} ر.س` });
-    }
-    if (request.permissionDate) {
-      details.push({ label: "تاريخ الاستئذان", value: format(request.permissionDate, "dd/MM/yyyy", { locale: ar }) });
-      if (request.permissionStartTime) details.push({ label: "وقت الاستئذان", value: request.permissionStartTime });
-      if (request.permissionEndTime) details.push({ label: "وقت العودة", value: request.permissionEndTime });
-      if (request.permissionHours) details.push({ label: "عدد الساعات", value: `${request.permissionHours} ساعة` });
-    }
-    if (request.violationDate) {
-      details.push({ label: "تاريخ المخالفة", value: format(request.violationDate, "dd/MM/yyyy", { locale: ar }) });
-      if (request.objectionReason) details.push({ label: "سبب الاعتراض", value: request.objectionReason });
-      if (request.objectionDetails) details.push({ label: "تفاصيل إضافية", value: request.objectionDetails });
-    }
-    if (request.nationalId) {
-      details.push({ label: "رقم الهوية", value: request.nationalId });
-    }
-
-    return details;
   };
 
   return (
@@ -239,158 +245,197 @@ function ManageRequestsContent({ branchId, branchName }: { branchId: string; bra
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">إدارة الطلبات</h1>
-          <p className="text-muted-foreground">مراجعة وإدارة طلبات الموظفين - {branchName}</p>
-        </div>
-        <div className="flex gap-2">
-          <Badge variant="secondary" className="text-lg py-2 px-4">
-            <ClipboardListIcon className="size-4 ml-1" />
-            {requests.length} طلب
-          </Badge>
+          <p className="text-muted-foreground">{branchName}</p>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">تحت الإجراء</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">إجمالي الطلبات</CardTitle>
+            <ClipboardListIcon className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{pending.length}</div>
+            <div className="text-2xl font-bold">{requests.length}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">مقبول</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">تحت الإجراء</CardTitle>
+            <ClockIcon className="size-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">{approved.length}</div>
+            <div className="text-2xl font-bold">{pendingRequests.length}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">مرفوض</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">مقبول</CardTitle>
+            <CheckCircleIcon className="size-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-destructive">{rejected.length}</div>
+            <div className="text-2xl font-bold">{approvedRequests.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">مرفوض</CardTitle>
+            <XCircleIcon className="size-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{rejectedRequests.length}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Requests List */}
-      {requests.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <ClipboardListIcon className="size-12 text-muted-foreground mb-4" />
-            <p className="text-lg font-medium">لا توجد طلبات</p>
-            <p className="text-sm text-muted-foreground">سيتم عرض الطلبات هنا عندما يتم إنشاؤها</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {requests.map((request) => (
-            <Card key={request._id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="flex items-center gap-2">
-                      {request.employeeName}
-                      {getStatusBadge(request.status)}
-                    </CardTitle>
-                    <CardDescription>
-                      {request.requestType} • {format(request.requestDate, "dd MMMM yyyy", { locale: ar })}
-                    </CardDescription>
+      <Card>
+        <CardHeader>
+          <CardTitle>جميع الطلبات</CardTitle>
+          <CardDescription>قائمة بجميع طلبات الموظفين</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {requests.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              لا توجد طلبات حالياً
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {requests.map((request) => (
+                <div
+                  key={request._id}
+                  className="flex items-center justify-between rounded-lg border p-4"
+                >
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">{request.employeeName}</h3>
+                      <Badge variant="outline">{request.requestType}</Badge>
+                      <Badge
+                        variant={
+                          request.status === "مقبول"
+                            ? "default"
+                            : request.status === "مرفوض"
+                            ? "destructive"
+                            : "secondary"
+                        }
+                      >
+                        {request.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      تاريخ الطلب: {format(request.requestDate, "dd MMMM yyyy - hh:mm a", { locale: ar })}
+                    </p>
                   </div>
                   <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedRequest(request);
+                        setShowReviewDialog(true);
+                        setReviewAction("approve");
+                        setAdminResponse(request.adminResponse || "");
+                      }}
+                    >
+                      <EyeIcon className="size-4 ml-2" />
+                      عرض
+                    </Button>
                     {request.status === "تحت الإجراء" && (
                       <>
                         <Button
-                          size="sm"
                           variant="default"
-                          onClick={() => handleReview(request, "approve")}
+                          size="sm"
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setReviewAction("approve");
+                            setAdminResponse("");
+                            setShowReviewDialog(true);
+                          }}
                         >
-                          <CheckCircleIcon className="size-4 ml-1" />
+                          <CheckCircleIcon className="size-4 ml-2" />
                           قبول
                         </Button>
                         <Button
-                          size="sm"
                           variant="destructive"
-                          onClick={() => handleReview(request, "reject")}
+                          size="sm"
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setReviewAction("reject");
+                            setAdminResponse("");
+                            setShowReviewDialog(true);
+                          }}
                         >
-                          <XCircleIcon className="size-4 ml-1" />
+                          <XCircleIcon className="size-4 ml-2" />
                           رفض
                         </Button>
                       </>
                     )}
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {getRequestDetails(request).map((detail, idx) => (
-                  <div key={idx} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{detail.label}:</span>
-                    <span className="font-medium">{detail.value}</span>
-                  </div>
-                ))}
-                
-                {request.resignationText && (
-                  <div className="rounded-lg bg-muted p-3 text-sm">
-                    <div className="font-medium mb-2">نص الاستقالة:</div>
-                    <div className="whitespace-pre-wrap">{request.resignationText}</div>
-                  </div>
-                )}
-
-                {request.adminResponse && (
-                  <div className="rounded-lg bg-blue-50 dark:bg-blue-950 p-3 text-sm border border-blue-200 dark:border-blue-800">
-                    <div className="font-medium mb-2 text-blue-900 dark:text-blue-100">رد الإدارة:</div>
-                    <div className="text-blue-800 dark:text-blue-200">{request.adminResponse}</div>
-                    {request.responseDate && (
-                      <div className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                        {format(request.responseDate, "dd/MM/yyyy HH:mm", { locale: ar })}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Review Dialog */}
       <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="review-dialog-description">
           <DialogHeader>
             <DialogTitle>
               {reviewAction === "approve" ? "قبول الطلب" : "رفض الطلب"}
             </DialogTitle>
-            <DialogDescription>
-              {selectedRequest && `طلب ${selectedRequest.requestType} من ${selectedRequest.employeeName}`}
+            <DialogDescription id="review-dialog-description">
+              مراجعة تفاصيل الطلب وإضافة رد الإدارة
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="response">رد الإدارة {reviewAction === "reject" ? "(مطلوب)" : "(اختياري)"}</Label>
-              <Textarea
-                id="response"
-                placeholder="اكتب رد الإدارة هنا..."
-                value={adminResponse}
-                onChange={(e) => setAdminResponse(e.target.value)}
-                rows={4}
-              />
+          {selectedRequest && (
+            <div className="space-y-4">
+              <div>
+                <Label>الموظف</Label>
+                <p className="text-sm">{selectedRequest.employeeName}</p>
+              </div>
+              <div>
+                <Label>نوع الطلب</Label>
+                <p className="text-sm">{selectedRequest.requestType}</p>
+              </div>
+              <div>
+                <Label>التفاصيل</Label>
+                {renderRequestDetails(selectedRequest)}
+              </div>
+              {selectedRequest.status !== "تحت الإجراء" && selectedRequest.adminResponse && (
+                <div>
+                  <Label>رد الإدارة السابق</Label>
+                  <p className="text-sm rounded-md bg-muted p-3">{selectedRequest.adminResponse}</p>
+                </div>
+              )}
+              {selectedRequest.status === "تحت الإجراء" && (
+                <div className="space-y-2">
+                  <Label htmlFor="adminResponse">رد الإدارة (اختياري)</Label>
+                  <Textarea
+                    id="adminResponse"
+                    placeholder="أضف رد الإدارة هنا..."
+                    value={adminResponse}
+                    onChange={(e) => setAdminResponse(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+              )}
             </div>
-          </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowReviewDialog(false)}>
               إلغاء
             </Button>
-            <Button
-              onClick={handleSubmitReview}
-              disabled={reviewAction === "reject" && !adminResponse.trim()}
-              variant={reviewAction === "approve" ? "default" : "destructive"}
-            >
-              {reviewAction === "approve" ? "قبول الطلب" : "رفض الطلب"}
-            </Button>
+            {selectedRequest?.status === "تحت الإجراء" && (
+              <Button
+                variant={reviewAction === "approve" ? "default" : "destructive"}
+                onClick={() => handleReview(reviewAction)}
+              >
+                {reviewAction === "approve" ? "قبول" : "رفض"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
