@@ -15,6 +15,7 @@ import type {
 } from "convex/server";
 import type * as dashboard from "../dashboard.js";
 import type * as migration from "../migration.js";
+import type * as revenues from "../revenues.js";
 import type * as users from "../users.js";
 
 /**
@@ -28,6 +29,7 @@ import type * as users from "../users.js";
 declare const fullApi: ApiFromModules<{
   dashboard: typeof dashboard;
   migration: typeof migration;
+  revenues: typeof revenues;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

@@ -48,13 +48,23 @@ function DashboardContent() {
   };
 
   return (
-    <div className="container py-8">
-      <div className="space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">لوحة التحكم</h1>
-          <p className="text-muted-foreground">نظرة عامة على الأداء المالي</p>
-        </div>
+    <div className="h-[calc(100vh-4rem)] overflow-y-auto">
+      <div className="container max-w-7xl py-6">
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">لوحة التحكم</h1>
+              <p className="text-muted-foreground mt-1">نظرة عامة على الأداء المالي</p>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {new Date().toLocaleDateString("ar-SA", { 
+                year: "numeric", 
+                month: "long", 
+                day: "numeric" 
+              })}
+            </div>
+          </div>
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -137,37 +147,106 @@ function DashboardContent() {
           </Card>
         </div>
 
-        {/* Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>الأداء المالي - آخر 6 أشهر</CardTitle>
-            <CardDescription>مقارنة الإيرادات والمصروفات</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
-                  labelStyle={{ color: "hsl(var(--foreground))" }}
-                  contentStyle={{ 
-                    backgroundColor: "hsl(var(--card))", 
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "6px"
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="revenue" fill="hsl(var(--chart-1))" name="الإيرادات" />
-                <Bar dataKey="expense" fill="hsl(var(--chart-2))" name="المصروفات" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        {/* Main Content Grid */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Chart - Takes 2 columns */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>الأداء المالي - آخر 6 أشهر</CardTitle>
+                <CardDescription>مقارنة الإيرادات والمصروفات</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                    <XAxis 
+                      dataKey="month" 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => formatCurrency(value)}
+                      labelStyle={{ color: "hsl(var(--foreground))" }}
+                      contentStyle={{ 
+                        backgroundColor: "hsl(var(--card))", 
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "6px"
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="revenue" fill="hsl(var(--chart-1))" name="الإيرادات" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="expense" fill="hsl(var(--chart-2))" name="المصروفات" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Summary Stats - Takes 1 column */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">ملخص الشهر الحالي</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">عدد الإيرادات</span>
+                  <span className="font-semibold">{stats.currentMonth.revenues}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">عدد المصروفات</span>
+                  <span className="font-semibold">{stats.currentMonth.expenses}</span>
+                </div>
+              </div>
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium mb-3">مقارنة بالشهر الماضي</p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">الإيرادات</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{formatCurrency(stats.lastMonth.totalRevenue)}</span>
+                      {stats.revenueGrowth >= 0 ? (
+                        <ArrowUpIcon className="size-3 text-green-500" />
+                      ) : (
+                        <ArrowDownIcon className="size-3 text-red-500" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">المصروفات</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{formatCurrency(stats.lastMonth.totalExpenses)}</span>
+                      {stats.expenseGrowth >= 0 ? (
+                        <ArrowUpIcon className="size-3 text-red-500" />
+                      ) : (
+                        <ArrowDownIcon className="size-3 text-green-500" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">صافي الدخل</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{formatCurrency(stats.lastMonth.netIncome)}</span>
+                      {stats.netIncomeGrowth >= 0 ? (
+                        <ArrowUpIcon className="size-3 text-green-500" />
+                      ) : (
+                        <ArrowDownIcon className="size-3 text-red-500" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Recent Activity */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">آخر الإيرادات</CardTitle>
@@ -224,12 +303,13 @@ function DashboardContent() {
         </div>
       </div>
     </div>
+    </div>
   );
 }
 
 export default function Dashboard() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex h-screen flex-col bg-background">
       <Navbar />
       <Unauthenticated>
         <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
