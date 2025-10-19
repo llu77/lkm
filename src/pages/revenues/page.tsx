@@ -382,22 +382,6 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                   <span className="font-semibold">المجموع المحسوب (كاش + شبكة):</span>
                   <span className="text-xl font-bold text-primary">{calculatedTotal.toLocaleString()} ر.س</span>
                 </div>
-                <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
-                  <span>الشرط الأول: المجموع = كاش + شبكة</span>
-                  {condition1 ? (
-                    <CheckCircle2Icon className="size-5 text-green-600" />
-                  ) : (
-                    <XCircleIcon className="size-5 text-red-600" />
-                  )}
-                </div>
-                <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
-                  <span>الشرط الثاني: الموازنة = الشبكة</span>
-                  {condition2 ? (
-                    <CheckCircle2Icon className="size-5 text-green-600" />
-                  ) : (
-                    <XCircleIcon className="size-5 text-red-600" />
-                  )}
-                </div>
                 <div className="mt-3 flex items-center justify-between border-t pt-3">
                   <span className="font-semibold">حالة المطابقة:</span>
                   {isMatched ? (

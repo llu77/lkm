@@ -29,11 +29,9 @@ export function BranchSelector({ onBranchSelected }: BranchSelectorProps) {
       return;
     }
 
-    // حفظ معرف الفرع في localStorage
-    localStorage.setItem("selectedBranchId", trimmedId);
-    localStorage.setItem("selectedBranchName", branchName);
-    
     toast.success(`تم الدخول إلى ${branchName}`);
+    
+    // تحديث الـ state أولاً ثم حفظ في localStorage
     onBranchSelected(trimmedId, branchName);
   };
 
