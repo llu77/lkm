@@ -103,23 +103,23 @@ export default function Navbar() {
                   <MenuIcon className="size-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-72">
-                <SheetHeader className="space-y-3">
-                  <SheetTitle className="flex items-center gap-3 text-right text-xl font-bold">
+              <SheetContent side="right" className="w-64">
+                <SheetHeader className="space-y-2 pb-2">
+                  <SheetTitle className="flex items-center gap-2 text-right text-base font-bold">
                     <img 
                       src="https://cdn.hercules.app/file_vQl30LwwutdTJK2LlWgX0FdU" 
                       alt="Logo"
-                      className="h-12 w-12 object-contain"
+                      className="h-8 w-8 object-contain"
                     />
                     القائمة الرئيسية
                   </SheetTitle>
                   {branchName && (
-                    <div className="rounded-full bg-primary px-4 py-2 text-center text-sm font-bold text-primary-foreground shadow-md">
+                    <div className="rounded-full bg-primary px-3 py-1 text-center text-xs font-bold text-primary-foreground shadow-md">
                       {branchName}
                     </div>
                   )}
                 </SheetHeader>
-                <div className="flex flex-col gap-2 mt-8">
+                <div className="flex flex-col gap-1.5 mt-4">
                   {links.map((link) => {
                     const Icon = link.icon;
                     const isActive = location.pathname === link.path;
@@ -127,29 +127,29 @@ export default function Navbar() {
                       <Button
                         key={link.path}
                         variant={isActive ? "secondary" : "ghost"}
-                        size="lg"
+                        size="sm"
                         asChild
-                        className={isActive ? "font-bold justify-start text-lg" : "justify-start font-semibold text-lg"}
+                        className={isActive ? "font-bold justify-start text-sm h-9" : "justify-start font-semibold text-sm h-9"}
                         onClick={() => setIsOpen(false)}
                       >
                         <Link to={link.path}>
-                          <Icon className="size-6 ml-3" />
+                          <Icon className="size-4 ml-2" />
                           {link.label}
                         </Link>
                       </Button>
                     );
                   })}
-                  <div className="border-t my-4" />
+                  <div className="border-t my-2" />
                   <Button
                     variant="ghost"
-                    size="lg"
+                    size="sm"
                     onClick={() => {
                       setIsOpen(false);
                       signoutRedirect();
                     }}
-                    className="justify-start text-destructive hover:text-destructive"
+                    className="justify-start text-destructive hover:text-destructive h-9 text-sm"
                   >
-                    <LogOutIcon className="size-5 ml-3" />
+                    <LogOutIcon className="size-4 ml-2" />
                     تسجيل الخروج
                   </Button>
                 </div>
