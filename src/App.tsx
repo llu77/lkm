@@ -9,6 +9,7 @@ import Bonus from "./pages/bonus/page.tsx";
 import EmployeeRequests from "./pages/employee-requests/page.tsx";
 import MyRequests from "./pages/my-requests/page.tsx";
 import ManageRequests from "./pages/manage-requests/page.tsx";
+import ProductOrders from "./pages/product-orders/page.tsx";
 import Migration from "./pages/migration.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/employee-requests" element={<EmployeeRequests />} />
           <Route path="/my-requests" element={<MyRequests />} />
           <Route path="/manage-requests" element={<ManageRequests />} />
+          <Route path="/product-orders" element={<ProductOrders />} />
           <Route path="/migration" element={<Migration />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

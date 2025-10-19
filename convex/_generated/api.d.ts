@@ -19,6 +19,7 @@ import type * as dashboard from "../dashboard.js";
 import type * as employeeRequests from "../employeeRequests.js";
 import type * as expenses from "../expenses.js";
 import type * as migration from "../migration.js";
+import type * as productOrders from "../productOrders.js";
 import type * as revenues from "../revenues.js";
 import type * as users from "../users.js";
 
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   employeeRequests: typeof employeeRequests;
   expenses: typeof expenses;
   migration: typeof migration;
+  productOrders: typeof productOrders;
   revenues: typeof revenues;
   users: typeof users;
 }>;

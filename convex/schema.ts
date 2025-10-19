@@ -57,17 +57,26 @@ export default defineSchema({
     .index("by_branch", ["branchId"]),
 
   productOrders: defineTable({
-    productName: v.string(),
-    quantity: v.number(),
-    price: v.number(),
-    status: v.string(), // "pending", "approved", "rejected", "completed"
+    orderName: v.optional(v.string()), // اسم الطلب (للمسودات المحفوظة)
+    products: v.array(v.object({
+      productName: v.string(),
+      quantity: v.number(),
+      price: v.number(),
+      total: v.number(), // الكمية × السعر
+    })),
+    grandTotal: v.number(), // مجموع كل المنتجات
+    status: v.string(), // "draft", "pending", "approved", "rejected", "completed"
+    isDraft: v.boolean(), // هل هو مسودة محفوظة؟
     requestedBy: v.id("users"),
+    employeeName: v.string(), // اسم الموظف
     notes: v.optional(v.string()),
-    branchId: v.optional(v.string()), // معرف الفرع
-    branchName: v.optional(v.string()), // اسم الفرع
+    branchId: v.string(), // معرف الفرع
+    branchName: v.string(), // اسم الفرع
   })
     .index("by_status", ["status"])
-    .index("by_branch", ["branchId"]),
+    .index("by_branch", ["branchId"])
+    .index("by_draft", ["isDraft"])
+    .index("by_employee", ["employeeName"]),
 
   employeeOrders: defineTable({
     requestType: v.string(),
