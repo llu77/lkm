@@ -22,7 +22,8 @@ export default defineSchema({
     cash: v.optional(v.number()),
     network: v.optional(v.number()),
     budget: v.optional(v.number()),
-    total: v.optional(v.number()),
+    total: v.optional(v.number()), // كاش + شبكة فقط
+    calculatedTotal: v.optional(v.number()), // المجموع المحسوب
     isMatched: v.optional(v.boolean()), // حالة المطابقة
     mismatchReason: v.optional(v.string()), // سبب عدم المطابقة
     userId: v.id("users"),
