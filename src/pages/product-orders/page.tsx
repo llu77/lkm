@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
-import { PlusIcon, TrashIcon, SaveIcon, SendIcon, PackageIcon, PrinterIcon } from "lucide-react";
+import { PlusIcon, TrashIcon, SaveIcon, SendIcon, PackageIcon, PrinterIcon, ArrowLeftIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import type { Id } from "@/convex/_generated/dataModel";
 import { printProductOrderPDF } from "@/lib/pdf-export.ts";
 
@@ -288,8 +289,21 @@ function ProductOrdersContent({ branchId, branchName }: { branchId: string; bran
     }
   };
 
+  const navigate = useNavigate();
+
   return (
     <div className="container mx-auto p-4 space-y-6">
+      {/* Back Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate(-1)}
+        className="gap-2"
+      >
+        <ArrowLeftIcon className="size-4" />
+        رجوع
+      </Button>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
