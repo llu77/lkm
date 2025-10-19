@@ -1,14 +1,14 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button.tsx";
 import { Authenticated, Unauthenticated } from "convex/react";
 import { SignInButton } from "@/components/ui/signin.tsx";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet.tsx";
 import { 
   LayoutDashboardIcon,
   TrendingUpIcon, 
   TrendingDownIcon, 
-  PackageIcon, 
-  UsersIcon,
-  InboxIcon,
+  MenuIcon,
   LogOutIcon
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth.ts";
@@ -16,59 +16,121 @@ import { useAuth } from "@/hooks/use-auth.ts";
 export default function Navbar() {
   const location = useLocation();
   const { signoutRedirect } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
 
   const links = [
     { path: "/dashboard", label: "لوحة التحكم", icon: LayoutDashboardIcon },
     { path: "/revenues", label: "الإيرادات", icon: TrendingUpIcon },
     { path: "/expenses", label: "المصروفات", icon: TrendingDownIcon },
-    { path: "/product-orders", label: "طلبات المنتجات", icon: PackageIcon },
-    { path: "/employee-orders", label: "طلبات الموظفين", icon: UsersIcon },
-    { path: "/my-requests", label: "صندوق طلباتي", icon: InboxIcon },
   ];
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-primary">
+    <nav className="sticky top-0 z-50 w-full border-b bg-primary shadow-md">
       <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link to="/dashboard" className="flex items-center gap-2 text-primary-foreground font-bold text-xl">
-            <LayoutDashboardIcon className="size-6" />
-            <span>نظام الإدارة</span>
-          </Link>
-          <Authenticated>
-            <div className="hidden lg:flex items-center gap-2">
-              {links.map((link) => {
-                const Icon = link.icon;
-                const isActive = location.pathname === link.path;
-                return (
-                  <Button
-                    key={link.path}
-                    variant={isActive ? "secondary" : "ghost"}
-                    size="sm"
-                    asChild
-                    className={isActive ? "" : "text-primary-foreground hover:bg-primary-foreground/10"}
-                  >
-                    <Link to={link.path}>
-                      <Icon className="size-4 mr-2" />
-                      {link.label}
-                    </Link>
-                  </Button>
-                );
-              })}
-            </div>
-          </Authenticated>
-        </div>
+        {/* Logo and Brand */}
+        <Link to="/dashboard" className="flex items-center gap-2 text-primary-foreground font-bold text-xl hover:opacity-90 transition-opacity">
+          <LayoutDashboardIcon className="size-7" />
+          <span className="hidden sm:inline">نظام الإدارة المالية</span>
+          <span className="sm:hidden">الإدارة المالية</span>
+        </Link>
+
+        {/* Desktop Navigation */}
+        <Authenticated>
+          <div className="hidden md:flex items-center gap-1">
+            {links.map((link) => {
+              const Icon = link.icon;
+              const isActive = location.pathname === link.path;
+              return (
+                <Button
+                  key={link.path}
+                  variant={isActive ? "secondary" : "ghost"}
+                  size="default"
+                  asChild
+                  className={isActive 
+                    ? "font-semibold" 
+                    : "text-primary-foreground hover:bg-primary-foreground/20 font-medium"
+                  }
+                >
+                  <Link to={link.path}>
+                    <Icon className="size-5 ml-2" />
+                    {link.label}
+                  </Link>
+                </Button>
+              );
+            })}
+          </div>
+        </Authenticated>
+
+        {/* Right Side Actions */}
         <div className="flex items-center gap-2">
           <Authenticated>
+            {/* Desktop Logout */}
             <Button
               variant="ghost"
-              size="sm"
+              size="default"
               onClick={() => signoutRedirect()}
-              className="text-primary-foreground hover:bg-primary-foreground/10"
+              className="hidden md:flex text-primary-foreground hover:bg-primary-foreground/20"
             >
-              <LogOutIcon className="size-4 mr-2" />
+              <LogOutIcon className="size-4 ml-2" />
               تسجيل الخروج
             </Button>
+
+            {/* Mobile Menu */}
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden text-primary-foreground hover:bg-primary-foreground/20"
+                >
+                  <MenuIcon className="size-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-72">
+                <SheetHeader>
+                  <SheetTitle className="flex items-center gap-2 text-right">
+                    <LayoutDashboardIcon className="size-6" />
+                    القائمة الرئيسية
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col gap-2 mt-8">
+                  {links.map((link) => {
+                    const Icon = link.icon;
+                    const isActive = location.pathname === link.path;
+                    return (
+                      <Button
+                        key={link.path}
+                        variant={isActive ? "secondary" : "ghost"}
+                        size="lg"
+                        asChild
+                        className={isActive ? "font-semibold justify-start" : "justify-start"}
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Link to={link.path}>
+                          <Icon className="size-5 ml-3" />
+                          {link.label}
+                        </Link>
+                      </Button>
+                    );
+                  })}
+                  <div className="border-t my-4" />
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    onClick={() => {
+                      setIsOpen(false);
+                      signoutRedirect();
+                    }}
+                    className="justify-start text-destructive hover:text-destructive"
+                  >
+                    <LogOutIcon className="size-5 ml-3" />
+                    تسجيل الخروج
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
           </Authenticated>
+          
           <Unauthenticated>
             <SignInButton />
           </Unauthenticated>
