@@ -518,12 +518,12 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                   onClick={async () => {
                     const pdfData = revenues.map((rev) => ({
                       date: new Date(rev.date),
-                      cash: rev.cash,
-                      network: rev.network,
-                      budget: rev.budget,
-                      total: rev.total,
-                      calculatedTotal: rev.calculatedTotal,
-                      isMatched: rev.isMatched,
+                      cash: rev.cash || 0,
+                      network: rev.network || 0,
+                      budget: rev.budget || 0,
+                      total: rev.total || 0,
+                      calculatedTotal: rev.calculatedTotal || 0,
+                      isMatched: rev.isMatched ?? false,
                     }));
 
                     const totalCash = revenues.reduce((sum, r) => sum + (r.cash || 0), 0);
@@ -551,12 +551,12 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                   onClick={async () => {
                     const pdfData = revenues.map((rev) => ({
                       date: new Date(rev.date),
-                      cash: rev.cash,
-                      network: rev.network,
-                      budget: rev.budget,
-                      total: rev.total,
-                      calculatedTotal: rev.calculatedTotal,
-                      isMatched: rev.isMatched,
+                      cash: rev.cash || 0,
+                      network: rev.network || 0,
+                      budget: rev.budget || 0,
+                      total: rev.total || 0,
+                      calculatedTotal: rev.calculatedTotal || 0,
+                      isMatched: rev.isMatched ?? false,
                     }));
 
                     await generateRevenuesPDF(

@@ -1,655 +1,845 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { format } from "date-fns";
+/**
+ * نظام تصدير PDF محسّن مع معالجة أخطاء متقدمة
+ * - خط Cairo العربي من Google Fonts
+ * - معالجة آمنة للأخطاء مع fallbacks
+ * - تحميل صور محسّن
+ * - تنسيق عربي محسّن
+ */
 
-// ==========================================
-// CMYK COLORS - Professional Blue Theme
-// ==========================================
-const COLORS = {
-  // Primary Blues
-  lightBluePrimary: [100, 181, 246], // #64B5F6
-  lightBlueSecondary: [144, 202, 249], // #90CAF9
-  skyBlue: [187, 222, 251], // #BBDEFB
-  deepBlue: [33, 150, 243], // #2196F3
-  darkBlueAccent: [13, 71, 161], // #0D47A1
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { format } from 'date-fns';
+import { ar } from 'date-fns/locale';
 
-  // Neutrals
-  white: [255, 255, 255],
-  textBlack: [33, 33, 33],
-  lightGrayBg: [250, 250, 250],
-  tableStripe: [227, 242, 253], // #E3F2FD
+// ================== Types ==================
+
+export interface RevenueData {
+  date: Date;
+  cash: number;
+  network: number;
+  budget: number;
+  total: number;
+  calculatedTotal: number;
+  isMatched: boolean;
+}
+
+export interface ExpenseData {
+  date: Date;
+  amount: number;
+  category: string;
+  description: string;
+}
+
+export interface PDFConfig {
+  companyName?: string;
+  companyLogo?: string;
+  stampImage?: string;
+  supervisorName?: string;
+  colors?: {
+    primary?: string;
+    secondary?: string;
+    accent?: string;
+  };
+}
+
+// ================== Constants ==================
+
+const DEFAULT_CONFIG: Required<PDFConfig> = {
+  companyName: 'النظام المالي',
+  companyLogo: 'https://cdn.hercules.app/file_2EDW4ulZlmwarzzXHgYjO1Hv',
+  stampImage: 'https://cdn.hercules.app/file_KxtpKU0KZ8CJ5zEVgJRzSTOG',
+  supervisorName: '',
+  colors: {
+    primary: '#64B5F6',
+    secondary: '#90CAF9',
+    accent: '#E3F2FD',
+  },
 };
 
-// Helper function to set RGB color
-function setColor(
-  doc: jsPDF,
-  color: number[],
-  type: "fill" | "text" | "draw" = "fill",
-) {
-  const [r, g, b] = color;
-  if (type === "fill") {
-    doc.setFillColor(r, g, b);
-  } else if (type === "text") {
-    doc.setTextColor(r, g, b);
-  } else {
-    doc.setDrawColor(r, g, b);
+const SUPERVISOR_MAP: Record<string, string> = {
+  '1010': 'عبدالهاي جلال',
+  'لبن': 'عبدالهاي جلال',
+  '2020': 'محمد إسماعيل',
+  'طويق': 'محمد إسماعيل',
+};
+
+// ================== Utilities ==================
+
+/**
+ * تنسيق التاريخ بالعربية مع معالجة آمنة
+ */
+function formatArabicDate(date: Date): string {
+  try {
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      throw new Error('Invalid date');
+    }
+    return format(date, 'dd/MM/yyyy');
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return format(new Date(), 'dd/MM/yyyy');
   }
 }
 
-// Helper to create gradient effect with multiple layers
-function drawGradient(
+/**
+ * تنسيق الأرقام بالفواصل
+ */
+function formatNumber(num: number): string {
+  try {
+    if (typeof num !== 'number' || isNaN(num)) {
+      return '0.00';
+    }
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(num);
+  } catch (error) {
+    console.error('Number formatting error:', error);
+    return num.toFixed(2);
+  }
+}
+
+/**
+ * استخراج اسم المشرف من اسم الفرع
+ */
+function getSupervisorName(branchName: string): string {
+  for (const [key, supervisor] of Object.entries(SUPERVISOR_MAP)) {
+    if (branchName.includes(key)) {
+      return supervisor;
+    }
+  }
+  return '';
+}
+
+/**
+ * تحميل صورة وتحويلها لـ base64 بشكل آمن
+ */
+async function loadImage(url: string): Promise<string> {
+  // إذا كانت base64 بالفعل
+  if (url.startsWith('data:image')) {
+    return url;
+  }
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('FileReader error'));
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error(`Image load error (${url}):`, error);
+    return ''; // fallback - لا صورة
+  }
+}
+
+/**
+ * تحميل خط Cairo العربي من Google Fonts
+ */
+async function loadCairoFont(): Promise<string> {
+  try {
+    // خط Cairo Regular من Google Fonts
+    const fontUrl =
+      'https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkvangtZmpcWmhzfH5lkSs2SgRjCAGMQ1z0hGA-W1ToLQ-HmkA.ttf';
+
+    const response = await fetch(fontUrl);
+    if (!response.ok) throw new Error('Font fetch failed');
+
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = btoa(
+      new Uint8Array(arrayBuffer).reduce(
+        (data, byte) => data + String.fromCharCode(byte),
+        ''
+      )
+    );
+    return base64;
+  } catch (error) {
+    console.error('Cairo font loading error:', error);
+    return ''; // سيستخدم Helvetica الافتراضي
+  }
+}
+
+/**
+ * إعداد jsPDF مع الخط العربي
+ */
+async function setupPDF(
+  orientation: 'portrait' | 'landscape' = 'portrait'
+): Promise<jsPDF> {
+  const doc = new jsPDF({
+    orientation,
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  try {
+    // محاولة تحميل وإضافة خط Cairo
+    const cairoFont = await loadCairoFont();
+    if (cairoFont) {
+      doc.addFileToVFS('Cairo-Regular.ttf', cairoFont);
+      doc.addFont('Cairo-Regular.ttf', 'Cairo', 'normal');
+      doc.setFont('Cairo');
+    } else {
+      // fallback to Helvetica
+      doc.setFont('Helvetica');
+    }
+  } catch (error) {
+    console.warn('Using Helvetica font due to error:', error);
+    doc.setFont('Helvetica');
+  }
+
+  return doc;
+}
+
+/**
+ * رسم تدرج أزرق (محاكاة)
+ */
+function drawBlueGradient(
   doc: jsPDF,
   x: number,
   y: number,
   width: number,
-  height: number,
-  colorStart: number[],
-  colorEnd: number[],
-  steps: number = 30,
-) {
+  height: number
+): void {
+  const steps = 20;
   const stepHeight = height / steps;
+
+  // من أزرق داكن إلى أزرق فاتح
   for (let i = 0; i < steps; i++) {
     const ratio = i / steps;
-    const r = Math.round(colorStart[0] + (colorEnd[0] - colorStart[0]) * ratio);
-    const g = Math.round(colorStart[1] + (colorEnd[1] - colorStart[1]) * ratio);
-    const b = Math.round(colorStart[2] + (colorEnd[2] - colorStart[2]) * ratio);
+    const r = Math.round(33 + (100 - 33) * ratio);
+    const g = Math.round(150 + (181 - 150) * ratio);
+    const b = Math.round(243 + (246 - 243) * ratio);
+
     doc.setFillColor(r, g, b);
-    doc.rect(x, y + i * stepHeight, width, stepHeight, "F");
+    doc.rect(x, y + i * stepHeight, width, stepHeight, 'F');
   }
 }
 
-// Load image safely
-async function loadImageSafely(url: string): Promise<string | null> {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.warn(`Failed to load image from ${url}`);
-      return null;
+/**
+ * إضافة هيدر للصفحة
+ */
+async function addHeader(
+  doc: jsPDF,
+  title: string,
+  config: Required<PDFConfig>,
+  branchName: string,
+  dateRange?: { start: Date; end: Date }
+): Promise<void> {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let yPos = 15;
+
+  // تدرج الهيدر
+  drawBlueGradient(doc, 0, 0, pageWidth, 50);
+
+  // الشعار
+  if (config.companyLogo) {
+    try {
+      const logo = await loadImage(config.companyLogo);
+      if (logo) {
+        doc.addImage(logo, 'PNG', pageWidth / 2 - 15, yPos, 30, 30);
+        yPos += 35;
+      } else {
+        yPos += 10;
+      }
+    } catch (error) {
+      console.warn('Logo loading failed:', error);
+      yPos += 10;
     }
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
+  }
+
+  // عنوان التقرير
+  doc.setFontSize(26);
+  doc.setTextColor(255, 255, 255);
+  doc.text(title, pageWidth / 2, yPos, { align: 'center' });
+  yPos += 10;
+
+  // خط فاصل
+  doc.setDrawColor(255, 255, 255);
+  doc.setLineWidth(3);
+  doc.line(pageWidth / 2 - 30, yPos, pageWidth / 2 + 30, yPos);
+
+  // معلومات الفرع (صندوق أبيض)
+  yPos = 60;
+  const boxX = 15;
+  const boxWidth = pageWidth - 30;
+  const boxHeight = 22;
+
+  // صندوق أبيض مع إطار أزرق
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(100, 181, 246);
+  doc.setLineWidth(1.5);
+  doc.roundedRect(boxX, yPos, boxWidth, boxHeight, 4, 4, 'FD');
+
+  // النصوص داخل الصندوق
+  yPos += 8;
+
+  // اسم الفرع
+  doc.setFontSize(14);
+  doc.setTextColor(13, 71, 161);
+  doc.text(`الفرع: ${branchName}`, pageWidth / 2, yPos, { align: 'center' });
+  yPos += 7;
+
+  // اسم المشرف
+  const supervisor = config.supervisorName || getSupervisorName(branchName);
+  if (supervisor) {
+    doc.setFontSize(12);
+    doc.setTextColor(33, 33, 33);
+    doc.text(`المشرف: ${supervisor}`, pageWidth / 2, yPos, {
+      align: 'center',
+    });
+  }
+
+  // الفترة الزمنية
+  if (dateRange) {
+    yPos += 10;
+    doc.setFontSize(11);
+    doc.setTextColor(100, 116, 139);
+    const startDate = formatArabicDate(dateRange.start);
+    const endDate = formatArabicDate(dateRange.end);
+    doc.text(`الفترة: من ${startDate} إلى ${endDate}`, pageWidth / 2, yPos, {
+      align: 'center',
+    });
+  }
+}
+
+/**
+ * إضافة ختم وكلمة "معتمد"
+ */
+async function addStampWithApproval(
+  doc: jsPDF,
+  config: Required<PDFConfig>
+): Promise<void> {
+  if (!config.stampImage) return;
+
+  try {
+    const stamp = await loadImage(config.stampImage);
+    if (!stamp) return;
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    // الختم في الأسفل (مركز)
+    const stampSize = 35;
+    const stampX = pageWidth / 2 - stampSize / 2;
+    const stampY = pageHeight - 80;
+
+    doc.addImage(stamp, 'PNG', stampX, stampY, stampSize, stampSize);
+
+    // كلمة "معتمد" أسفل الختم
+    doc.setFontSize(16);
+    doc.setTextColor(33, 150, 243);
+    doc.text('معتمد', pageWidth / 2, stampY + stampSize + 8, {
+      align: 'center',
     });
   } catch (error) {
-    console.error("Error loading image:", error);
-    return null;
+    console.warn('Stamp loading failed:', error);
   }
 }
 
-// Get supervisor name based on branch
-function getSupervisorName(branchName: string): string {
-  const lowerBranch = branchName.toLowerCase();
-  if (lowerBranch.includes("لبن") || lowerBranch.includes("1010")) {
-    return "عبدالهاي جلال";
-  } else if (lowerBranch.includes("طويق") || lowerBranch.includes("2020")) {
-    return "محمد إسماعيل";
-  }
-  return "غير محدد";
-}
+/**
+ * إضافة تذييل للصفحة
+ */
+function addFooter(
+  doc: jsPDF,
+  pageNum: number,
+  totalPages: number
+): void {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const now = new Date();
+  const dateTime = format(now, 'dd/MM/yyyy HH:mm');
 
-// Format currency
-function formatCurrency(amount: number | undefined): string {
-  if (amount === undefined || amount === null) return "0.00";
-  return amount.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+  // خط متدرج
+  const steps = 20;
+  const stepWidth = pageWidth / steps;
+  for (let i = 0; i < steps; i++) {
+    const ratio = i / steps;
+    const r = Math.round(144 + (187 - 144) * ratio);
+    const g = Math.round(202 + (222 - 202) * ratio);
+    const b = Math.round(249 + (251 - 249) * ratio);
+    doc.setFillColor(r, g, b);
+    doc.rect(i * stepWidth, pageHeight - 15, stepWidth, 1, 'F');
+  }
+
+  doc.setFontSize(9);
+  doc.setTextColor(100, 116, 139);
+
+  // تاريخ الإنشاء - يسار
+  doc.text(`تاريخ الإنشاء: ${dateTime}`, 20, pageHeight - 8);
+
+  // رقم الصفحة - يمين
+  doc.text(`صفحة ${pageNum} / ${totalPages}`, pageWidth - 20, pageHeight - 8, {
+    align: 'right',
   });
 }
 
-// Format date safely
-function formatDateSafely(date: Date | number | string): string {
-  try {
-    const dateObj = new Date(date);
-    if (isNaN(dateObj.getTime())) {
-      return "تاريخ غير صحيح";
-    }
-    return format(dateObj, "dd/MM/yyyy");
-  } catch (error) {
-    console.error("Error formatting date:", error);
-    return "تاريخ غير صحيح";
-  }
-}
+// ================== Revenue PDF ==================
 
-// ==========================================
-// REVENUE PDF GENERATION
-// ==========================================
-
-type RevenueData = {
-  date: Date | number | string;
-  cash?: number;
-  network?: number;
-  budget?: number;
-  total?: number;
-  calculatedTotal?: number;
-  isMatched?: boolean;
-};
-
+/**
+ * تصدير تقرير الإيرادات
+ */
 export async function generateRevenuesPDF(
   data: RevenueData[],
   branchName: string,
   startDate: Date,
   endDate: Date,
+  config: Partial<PDFConfig> = {}
 ): Promise<void> {
-  const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4",
-  });
+  const fullConfig = { ...DEFAULT_CONFIG, ...config };
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  let yPos = 15;
+  try {
+    // إنشاء PDF
+    const doc = await setupPDF('portrait');
 
-  // ==========================================
-  // HEADER WITH GRADIENT
-  // ==========================================
-  drawGradient(
-    doc,
-    0,
-    0,
-    pageWidth,
-    50,
-    COLORS.deepBlue,
-    COLORS.lightBluePrimary,
-    30,
-  );
+    // إضافة الهيدر
+    await addHeader(doc, 'تقرير الإيرادات', fullConfig, branchName, {
+      start: startDate,
+      end: endDate,
+    });
 
-  // Add border to header
-  setColor(doc, COLORS.deepBlue, "draw");
-  doc.setLineWidth(3);
-  doc.line(0, 50, pageWidth, 50);
+    // إعداد البيانات للجدول
+    const tableData = data.map((row) => [
+      formatArabicDate(row.date),
+      formatNumber(row.cash),
+      formatNumber(row.network),
+      formatNumber(row.budget),
+      formatNumber(row.total),
+      row.isMatched ? 'متطابق ✓' : 'غير متطابق ✗',
+    ]);
 
-  // Load and add logo
-  const logoUrl = "https://cdn.hercules.app/file_2EDW4ulZlmwarzzXHgYjO1Hv";
-  const logoData = await loadImageSafely(logoUrl);
-  if (logoData) {
-    try {
-      doc.addImage(logoData, "PNG", pageWidth / 2 - 15, 5, 30, 30);
-    } catch (error) {
-      console.error("Error adding logo:", error);
+    // حساب الإجماليات
+    const totals = data.reduce(
+      (acc, row) => ({
+        cash: acc.cash + row.cash,
+        network: acc.network + row.network,
+        budget: acc.budget + row.budget,
+        total: acc.total + row.total,
+      }),
+      { cash: 0, network: 0, budget: 0, total: 0 }
+    );
+
+    // إنشاء الجدول
+    autoTable(doc, {
+      head: [['التاريخ', 'كاش', 'شبكة', 'موازنة', 'الإجمالي', 'الحالة']],
+      body: tableData,
+      startY: 95,
+      theme: 'grid',
+      styles: {
+        font: 'Cairo',
+        fontSize: 11,
+        cellPadding: 5,
+        halign: 'center',
+        valign: 'middle',
+        lineColor: [144, 202, 249],
+        lineWidth: 0.5,
+      },
+      headStyles: {
+        fillColor: [100, 181, 246],
+        textColor: [255, 255, 255],
+        fontSize: 12,
+        fontStyle: 'bold',
+        halign: 'center',
+        lineColor: [33, 150, 243],
+        lineWidth: 1,
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 30 },
+        1: { halign: 'right', cellWidth: 30 },
+        2: { halign: 'right', cellWidth: 30 },
+        3: { halign: 'right', cellWidth: 30 },
+        4: { halign: 'right', cellWidth: 35, fontStyle: 'bold' },
+        5: { halign: 'center', cellWidth: 35 },
+      },
+      didParseCell: (hookData) => {
+        // تلوين الحالة
+        if (
+          hookData.column.index === 5 &&
+          hookData.section === 'body'
+        ) {
+          const cellText = hookData.cell.text[0];
+          if (cellText.includes('متطابق')) {
+            hookData.cell.styles.textColor = [16, 185, 129]; // أخضر
+          } else {
+            hookData.cell.styles.textColor = [239, 68, 68]; // أحمر
+          }
+          hookData.cell.styles.fontStyle = 'bold';
+        }
+      },
+    });
+
+    // صندوق الإجماليات
+    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    const boxX = 15;
+    const boxWidth = doc.internal.pageSize.getWidth() - 30;
+    const boxHeight = 25;
+
+    // تدرج أزرق
+    drawBlueGradient(doc, boxX, finalY, boxWidth, boxHeight);
+
+    // إطار
+    doc.setDrawColor(33, 150, 243);
+    doc.setLineWidth(1.5);
+    doc.roundedRect(boxX, finalY, boxWidth, boxHeight, 4, 4, 'D');
+
+    // النصوص
+    doc.setFontSize(13);
+    doc.setTextColor(255, 255, 255);
+    doc.text(
+      `إجمالي الكاش: ${formatNumber(totals.cash)} ريال`,
+      boxX + 10,
+      finalY + 8
+    );
+    doc.text(
+      `إجمالي الشبكة: ${formatNumber(totals.network)} ريال`,
+      boxX + 10,
+      finalY + 15
+    );
+    doc.text(
+      `المجموع الكلي: ${formatNumber(totals.total)} ريال`,
+      boxX + 10,
+      finalY + 22
+    );
+
+    // إضافة الختم
+    await addStampWithApproval(doc, fullConfig);
+
+    // إضافة التذييل
+    const totalPages = (doc.internal as { pages: unknown[] }).pages.length - 1;
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      addFooter(doc, i, totalPages);
     }
-  }
 
-  // Title
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(26);
-  setColor(doc, COLORS.white, "text");
-  doc.text("تقرير الإيرادات", pageWidth / 2, 42, { align: "center" });
-
-  yPos = 60;
-
-  // ==========================================
-  // BRANCH INFO BOX
-  // ==========================================
-  const boxX = 15;
-  const boxWidth = pageWidth - 30;
-  const boxHeight = 22;
-
-  // White background
-  setColor(doc, COLORS.white, "fill");
-  doc.roundedRect(boxX, yPos, boxWidth, boxHeight, 4, 4, "F");
-
-  // Blue border
-  setColor(doc, COLORS.lightBluePrimary, "draw");
-  doc.setLineWidth(1.5);
-  doc.roundedRect(boxX, yPos, boxWidth, boxHeight, 4, 4, "S");
-
-  // Branch name
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  setColor(doc, COLORS.darkBlueAccent, "text");
-  doc.text(`الفرع: ${branchName}`, pageWidth - 20, yPos + 8, {
-    align: "right",
-  });
-
-  // Supervisor
-  const supervisor = getSupervisorName(branchName);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(12);
-  setColor(doc, COLORS.textBlack, "text");
-  doc.text(`المشرف: ${supervisor}`, pageWidth - 20, yPos + 16, {
-    align: "right",
-  });
-
-  yPos += boxHeight + 5;
-
-  // Period
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  setColor(doc, COLORS.textBlack, "text");
-  const startStr = formatDateSafely(startDate);
-  const endStr = formatDateSafely(endDate);
-  doc.text(
-    `الفترة: من ${startStr} إلى ${endStr}`,
-    pageWidth / 2,
-    yPos + 5,
-    { align: "center" },
-  );
-
-  yPos += 15;
-
-  // ==========================================
-  // TABLE WITH ENHANCED BORDERS
-  // ==========================================
-  const tableData = data.map((row) => [
-    formatDateSafely(row.date),
-    formatCurrency(row.cash),
-    formatCurrency(row.network),
-    formatCurrency(row.budget),
-    formatCurrency(row.calculatedTotal || row.total),
-    row.isMatched ? "متطابق ✓" : "غير متطابق ✗",
-  ]);
-
-  autoTable(doc, {
-    startY: yPos,
-    head: [["التاريخ", "كاش", "شبكة", "موازنة", "الإجمالي", "الحالة"]],
-    body: tableData,
-    theme: "grid", // Use grid theme for clear borders
-    styles: {
-      font: "helvetica",
-      fontSize: 11,
-      cellPadding: 5,
-      lineColor: COLORS.lightBlueSecondary as [number, number, number],
-      lineWidth: 0.5,
-      halign: "center",
-      valign: "middle",
-    },
-    headStyles: {
-      fillColor: COLORS.lightBluePrimary as [number, number, number],
-      textColor: COLORS.white as [number, number, number],
-      fontStyle: "bold",
-      fontSize: 12,
-      halign: "center",
-      lineWidth: 1,
-      lineColor: COLORS.deepBlue as [number, number, number],
-    },
-    alternateRowStyles: {
-      fillColor: COLORS.tableStripe as [number, number, number],
-    },
-    columnStyles: {
-      0: { cellWidth: 25, halign: "center" }, // Date
-      1: { cellWidth: 30, halign: "right" }, // Cash
-      2: { cellWidth: 30, halign: "right" }, // Network
-      3: { cellWidth: 30, halign: "right" }, // Budget
-      4: { cellWidth: 35, halign: "right", fontStyle: "bold" }, // Total
-      5: { cellWidth: 30, halign: "center" }, // Status
-    },
-    margin: { left: 15, right: 15 },
-  });
-
-  yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
-
-  // ==========================================
-  // SUMMARY BOX WITH GRADIENT
-  // ==========================================
-  const summaryBoxHeight = 30;
-  drawGradient(
-    doc,
-    15,
-    yPos,
-    boxWidth,
-    summaryBoxHeight,
-    COLORS.lightBluePrimary,
-    COLORS.lightBlueSecondary,
-    20,
-  );
-
-  // Border
-  setColor(doc, COLORS.deepBlue, "draw");
-  doc.setLineWidth(1.5);
-  doc.roundedRect(15, yPos, boxWidth, summaryBoxHeight, 4, 4, "S");
-
-  // Calculate totals
-  const totalCash = data.reduce((sum, row) => sum + (row.cash || 0), 0);
-  const totalNetwork = data.reduce((sum, row) => sum + (row.network || 0), 0);
-  const totalBudget = data.reduce((sum, row) => sum + (row.budget || 0), 0);
-  const grandTotal = totalCash + totalNetwork + totalBudget;
-
-  // Summary text
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  setColor(doc, COLORS.white, "text");
-
-  doc.text(
-    `إجمالي الكاش: ${formatCurrency(totalCash)} ريال`,
-    pageWidth - 20,
-    yPos + 8,
-    { align: "right" },
-  );
-  doc.text(
-    `إجمالي الشبكة: ${formatCurrency(totalNetwork)} ريال`,
-    pageWidth - 20,
-    yPos + 16,
-    { align: "right" },
-  );
-  doc.text(
-    `المجموع الكلي: ${formatCurrency(grandTotal)} ريال`,
-    pageWidth - 20,
-    yPos + 24,
-    { align: "right" },
-  );
-
-  // ==========================================
-  // STAMP AT BOTTOM
-  // ==========================================
-  const stampSize = 35;
-  const stampX = pageWidth / 2 - stampSize / 2;
-  const stampY = pageHeight - 60;
-
-  const stampUrl = "https://cdn.hercules.app/file_KxtpKU0KZ8CJ5zEVgJRzSTOG";
-  const stampData = await loadImageSafely(stampUrl);
-  if (stampData) {
-    try {
-      doc.addImage(stampData, "PNG", stampX, stampY, stampSize, stampSize);
-    } catch (error) {
-      console.error("Error adding stamp:", error);
-    }
-  }
-
-  // "معتمد" text below stamp
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  setColor(doc, COLORS.deepBlue, "text");
-  doc.text("معتمد", pageWidth / 2, stampY + stampSize + 8, {
-    align: "center",
-  });
-
-  // ==========================================
-  // FOOTER
-  // ==========================================
-  const footerY = pageHeight - 15;
-
-  // Gradient line
-  const gradientLineY = footerY - 3;
-  for (let i = 0; i < 20; i++) {
-    const ratio = i / 20;
-    const x = 15 + (boxWidth * i) / 20;
-    const width = boxWidth / 20;
-    const r = Math.round(
-      COLORS.lightBlueSecondary[0] +
-        (COLORS.skyBlue[0] - COLORS.lightBlueSecondary[0]) * ratio,
+    // حفظ PDF
+    const fileName = `تقرير_الإيرادات_${branchName}_${format(startDate, 'yyyy-MM-dd')}.pdf`;
+    doc.save(fileName);
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    throw new Error(
+      'فشل في إنشاء تقرير الإيرادات. يرجى المحاولة مرة أخرى.'
     );
-    const g = Math.round(
-      COLORS.lightBlueSecondary[1] +
-        (COLORS.skyBlue[1] - COLORS.lightBlueSecondary[1]) * ratio,
-    );
-    const b = Math.round(
-      COLORS.lightBlueSecondary[2] +
-        (COLORS.skyBlue[2] - COLORS.lightBlueSecondary[2]) * ratio,
-    );
-    doc.setFillColor(r, g, b);
-    doc.rect(x, gradientLineY, width, 1, "F");
   }
-
-  // Footer text
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  setColor(doc, [100, 100, 100], "text");
-
-  const now = new Date();
-  const dateTimeStr = format(now, "dd/MM/yyyy HH:mm");
-  doc.text(`تاريخ الإنشاء: ${dateTimeStr}`, 20, footerY, { align: "left" });
-  doc.text(`صفحة 1 / 1`, pageWidth - 20, footerY, { align: "right" });
-
-  // Save
-  const fileName = `تقرير_الإيرادات_${branchName}_${formatDateSafely(startDate)}.pdf`;
-  doc.save(fileName);
 }
 
-// ==========================================
-// EXPENSE PDF GENERATION
-// ==========================================
+/**
+ * طباعة تقرير الإيرادات
+ */
+export async function printRevenuesPDF(
+  data: RevenueData[],
+  branchName: string,
+  startDate: Date,
+  endDate: Date,
+  config: Partial<PDFConfig> = {}
+): Promise<void> {
+  const fullConfig = { ...DEFAULT_CONFIG, ...config };
 
-type ExpenseData = {
-  title: string;
-  category: string;
-  amount: number;
-  date: Date | number | string;
-  description?: string;
-};
+  try {
+    const doc = await setupPDF('portrait');
+    await addHeader(doc, 'تقرير الإيرادات', fullConfig, branchName, {
+      start: startDate,
+      end: endDate,
+    });
+
+    const tableData = data.map((row) => [
+      formatArabicDate(row.date),
+      formatNumber(row.cash),
+      formatNumber(row.network),
+      formatNumber(row.budget),
+      formatNumber(row.total),
+      row.isMatched ? 'متطابق ✓' : 'غير متطابق ✗',
+    ]);
+
+    const totals = data.reduce(
+      (acc, row) => ({
+        cash: acc.cash + row.cash,
+        network: acc.network + row.network,
+        budget: acc.budget + row.budget,
+        total: acc.total + row.total,
+      }),
+      { cash: 0, network: 0, budget: 0, total: 0 }
+    );
+
+    autoTable(doc, {
+      head: [['التاريخ', 'كاش', 'شبكة', 'موازنة', 'الإجمالي', 'الحالة']],
+      body: tableData,
+      startY: 95,
+      theme: 'grid',
+      styles: {
+        font: 'Cairo',
+        fontSize: 11,
+        cellPadding: 5,
+        halign: 'center',
+        valign: 'middle',
+        lineColor: [144, 202, 249],
+        lineWidth: 0.5,
+      },
+      headStyles: {
+        fillColor: [100, 181, 246],
+        textColor: [255, 255, 255],
+        fontSize: 12,
+        fontStyle: 'bold',
+        halign: 'center',
+        lineColor: [33, 150, 243],
+        lineWidth: 1,
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 30 },
+        1: { halign: 'right', cellWidth: 30 },
+        2: { halign: 'right', cellWidth: 30 },
+        3: { halign: 'right', cellWidth: 30 },
+        4: { halign: 'right', cellWidth: 35, fontStyle: 'bold' },
+        5: { halign: 'center', cellWidth: 35 },
+      },
+      didParseCell: (hookData) => {
+        if (hookData.column.index === 5 && hookData.section === 'body') {
+          const cellText = hookData.cell.text[0];
+          if (cellText.includes('متطابق')) {
+            hookData.cell.styles.textColor = [16, 185, 129];
+          } else {
+            hookData.cell.styles.textColor = [239, 68, 68];
+          }
+          hookData.cell.styles.fontStyle = 'bold';
+        }
+      },
+    });
+
+    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    const boxX = 15;
+    const boxWidth = doc.internal.pageSize.getWidth() - 30;
+    const boxHeight = 25;
+
+    drawBlueGradient(doc, boxX, finalY, boxWidth, boxHeight);
+    doc.setDrawColor(33, 150, 243);
+    doc.setLineWidth(1.5);
+    doc.roundedRect(boxX, finalY, boxWidth, boxHeight, 4, 4, 'D');
+
+    doc.setFontSize(13);
+    doc.setTextColor(255, 255, 255);
+    doc.text(
+      `إجمالي الكاش: ${formatNumber(totals.cash)} ريال`,
+      boxX + 10,
+      finalY + 8
+    );
+    doc.text(
+      `إجمالي الشبكة: ${formatNumber(totals.network)} ريال`,
+      boxX + 10,
+      finalY + 15
+    );
+    doc.text(
+      `المجموع الكلي: ${formatNumber(totals.total)} ريال`,
+      boxX + 10,
+      finalY + 22
+    );
+
+    await addStampWithApproval(doc, fullConfig);
+
+    const totalPages = (doc.internal as { pages: unknown[] }).pages.length - 1;
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      addFooter(doc, i, totalPages);
+    }
+
+    // طباعة
+    doc.autoPrint();
+    window.open(doc.output('bloburl'), '_blank');
+  } catch (error) {
+    console.error('Print error:', error);
+    throw new Error(
+      'فشل في طباعة تقرير الإيرادات. يرجى المحاولة مرة أخرى.'
+    );
+  }
+}
+
+// ================== Expenses PDF ==================
 
 export async function generateExpensesPDF(
   data: ExpenseData[],
   branchName: string,
+  config: Partial<PDFConfig> = {}
 ): Promise<void> {
-  const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4",
-  });
+  const fullConfig = { ...DEFAULT_CONFIG, ...config };
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  let yPos = 15;
+  try {
+    const doc = await setupPDF('portrait');
+    await addHeader(doc, 'تقرير المصروفات', fullConfig, branchName);
 
-  // ==========================================
-  // HEADER WITH GRADIENT
-  // ==========================================
-  drawGradient(
-    doc,
-    0,
-    0,
-    pageWidth,
-    50,
-    COLORS.deepBlue,
-    COLORS.lightBluePrimary,
-    30,
-  );
+    const tableData = data.map((row) => [
+      formatArabicDate(row.date),
+      row.category,
+      formatNumber(row.amount),
+      row.description || '-',
+    ]);
 
-  // Add border to header
-  setColor(doc, COLORS.deepBlue, "draw");
-  doc.setLineWidth(3);
-  doc.line(0, 50, pageWidth, 50);
+    const total = data.reduce((acc, row) => acc + row.amount, 0);
 
-  // Load and add logo
-  const logoUrl = "https://cdn.hercules.app/file_2EDW4ulZlmwarzzXHgYjO1Hv";
-  const logoData = await loadImageSafely(logoUrl);
-  if (logoData) {
-    try {
-      doc.addImage(logoData, "PNG", pageWidth / 2 - 15, 5, 30, 30);
-    } catch (error) {
-      console.error("Error adding logo:", error);
+    autoTable(doc, {
+      head: [['التاريخ', 'التصنيف', 'المبلغ (ريال)', 'الوصف']],
+      body: tableData,
+      startY: 95,
+      theme: 'grid',
+      styles: {
+        font: 'Cairo',
+        fontSize: 11,
+        cellPadding: 5,
+        halign: 'center',
+        valign: 'middle',
+        lineColor: [144, 202, 249],
+        lineWidth: 0.5,
+      },
+      headStyles: {
+        fillColor: [100, 181, 246],
+        textColor: [255, 255, 255],
+        fontSize: 12,
+        fontStyle: 'bold',
+        halign: 'center',
+        lineColor: [33, 150, 243],
+        lineWidth: 1,
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 30 },
+        1: { halign: 'center', cellWidth: 35 },
+        2: { halign: 'right', cellWidth: 35, fontStyle: 'bold' },
+        3: { halign: 'right', cellWidth: 'auto' },
+      },
+    });
+
+    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    const boxX = 15;
+    const boxWidth = doc.internal.pageSize.getWidth() - 30;
+    const boxHeight = 20;
+
+    drawBlueGradient(doc, boxX, finalY, boxWidth, boxHeight);
+    doc.setDrawColor(33, 150, 243);
+    doc.setLineWidth(1.5);
+    doc.roundedRect(boxX, finalY, boxWidth, boxHeight, 4, 4, 'D');
+
+    doc.setFontSize(13);
+    doc.setTextColor(255, 255, 255);
+    doc.text(
+      `إجمالي المصروفات: ${formatNumber(total)} ريال`,
+      boxX + 10,
+      finalY + 8
+    );
+    doc.text(`عدد العمليات: ${data.length}`, boxX + 10, finalY + 15);
+
+    await addStampWithApproval(doc, fullConfig);
+
+    const totalPages = (doc.internal as { pages: unknown[] }).pages.length - 1;
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      addFooter(doc, i, totalPages);
     }
+
+    const fileName = `تقرير_المصروفات_${branchName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+    doc.save(fileName);
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    throw new Error(
+      'فشل في إنشاء تقرير المصروفات. يرجى المحاولة مرة أخرى.'
+    );
   }
+}
 
-  // Title
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(26);
-  setColor(doc, COLORS.white, "text");
-  doc.text("تقرير المصروفات", pageWidth / 2, 42, { align: "center" });
+export async function printExpensesPDF(
+  data: ExpenseData[],
+  branchName: string,
+  config: Partial<PDFConfig> = {}
+): Promise<void> {
+  const fullConfig = { ...DEFAULT_CONFIG, ...config };
 
-  yPos = 60;
+  try {
+    const doc = await setupPDF('portrait');
+    await addHeader(doc, 'تقرير المصروفات', fullConfig, branchName);
 
-  // ==========================================
-  // BRANCH INFO BOX
-  // ==========================================
-  const boxX = 15;
-  const boxWidth = pageWidth - 30;
-  const boxHeight = 22;
+    const tableData = data.map((row) => [
+      formatArabicDate(row.date),
+      row.category,
+      formatNumber(row.amount),
+      row.description || '-',
+    ]);
 
-  // White background
-  setColor(doc, COLORS.white, "fill");
-  doc.roundedRect(boxX, yPos, boxWidth, boxHeight, 4, 4, "F");
+    const total = data.reduce((acc, row) => acc + row.amount, 0);
 
-  // Blue border
-  setColor(doc, COLORS.lightBluePrimary, "draw");
-  doc.setLineWidth(1.5);
-  doc.roundedRect(boxX, yPos, boxWidth, boxHeight, 4, 4, "S");
+    autoTable(doc, {
+      head: [['التاريخ', 'التصنيف', 'المبلغ (ريال)', 'الوصف']],
+      body: tableData,
+      startY: 95,
+      theme: 'grid',
+      styles: {
+        font: 'Cairo',
+        fontSize: 11,
+        cellPadding: 5,
+        halign: 'center',
+        valign: 'middle',
+        lineColor: [144, 202, 249],
+        lineWidth: 0.5,
+      },
+      headStyles: {
+        fillColor: [100, 181, 246],
+        textColor: [255, 255, 255],
+        fontSize: 12,
+        fontStyle: 'bold',
+        halign: 'center',
+        lineColor: [33, 150, 243],
+        lineWidth: 1,
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 30 },
+        1: { halign: 'center', cellWidth: 35 },
+        2: { halign: 'right', cellWidth: 35, fontStyle: 'bold' },
+        3: { halign: 'right', cellWidth: 'auto' },
+      },
+    });
 
-  // Branch name
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  setColor(doc, COLORS.darkBlueAccent, "text");
-  doc.text(`الفرع: ${branchName}`, pageWidth - 20, yPos + 8, {
-    align: "right",
-  });
+    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    const boxX = 15;
+    const boxWidth = doc.internal.pageSize.getWidth() - 30;
+    const boxHeight = 20;
 
-  // Supervisor
-  const supervisor = getSupervisorName(branchName);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(12);
-  setColor(doc, COLORS.textBlack, "text");
-  doc.text(`المشرف: ${supervisor}`, pageWidth - 20, yPos + 16, {
-    align: "right",
-  });
+    drawBlueGradient(doc, boxX, finalY, boxWidth, boxHeight);
+    doc.setDrawColor(33, 150, 243);
+    doc.setLineWidth(1.5);
+    doc.roundedRect(boxX, finalY, boxWidth, boxHeight, 4, 4, 'D');
 
-  yPos += boxHeight + 10;
+    doc.setFontSize(13);
+    doc.setTextColor(255, 255, 255);
+    doc.text(
+      `إجمالي المصروفات: ${formatNumber(total)} ريال`,
+      boxX + 10,
+      finalY + 8
+    );
+    doc.text(`عدد العمليات: ${data.length}`, boxX + 10, finalY + 15);
 
-  // ==========================================
-  // TABLE WITH ENHANCED BORDERS
-  // ==========================================
-  const tableData = data.map((row) => [
-    row.title,
-    row.category,
-    formatCurrency(row.amount),
-    formatDateSafely(row.date),
-  ]);
+    await addStampWithApproval(doc, fullConfig);
 
-  autoTable(doc, {
-    startY: yPos,
-    head: [["العنوان", "التصنيف", "المبلغ (ريال)", "التاريخ"]],
-    body: tableData,
-    theme: "grid", // Use grid theme for clear borders
-    styles: {
-      font: "helvetica",
-      fontSize: 11,
-      cellPadding: 5,
-      lineColor: COLORS.lightBlueSecondary as [number, number, number],
-      lineWidth: 0.5,
-      halign: "center",
-      valign: "middle",
-    },
-    headStyles: {
-      fillColor: COLORS.lightBluePrimary as [number, number, number],
-      textColor: COLORS.white as [number, number, number],
-      fontStyle: "bold",
-      fontSize: 12,
-      halign: "center",
-      lineWidth: 1,
-      lineColor: COLORS.deepBlue as [number, number, number],
-    },
-    alternateRowStyles: {
-      fillColor: COLORS.tableStripe as [number, number, number],
-    },
-    columnStyles: {
-      0: { cellWidth: 60, halign: "right" }, // Title
-      1: { cellWidth: 40, halign: "center" }, // Category
-      2: { cellWidth: 35, halign: "right", fontStyle: "bold" }, // Amount
-      3: { cellWidth: 25, halign: "center" }, // Date
-    },
-    margin: { left: 15, right: 15 },
-  });
-
-  yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
-
-  // ==========================================
-  // SUMMARY BOX WITH GRADIENT
-  // ==========================================
-  const summaryBoxHeight = 22;
-  drawGradient(
-    doc,
-    15,
-    yPos,
-    boxWidth,
-    summaryBoxHeight,
-    COLORS.lightBluePrimary,
-    COLORS.lightBlueSecondary,
-    20,
-  );
-
-  // Border
-  setColor(doc, COLORS.deepBlue, "draw");
-  doc.setLineWidth(1.5);
-  doc.roundedRect(15, yPos, boxWidth, summaryBoxHeight, 4, 4, "S");
-
-  // Calculate totals
-  const totalExpenses = data.reduce((sum, row) => sum + (row.amount || 0), 0);
-  const totalTransactions = data.length;
-
-  // Summary text
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  setColor(doc, COLORS.white, "text");
-
-  doc.text(
-    `إجمالي المصروفات: ${formatCurrency(totalExpenses)} ريال`,
-    pageWidth - 20,
-    yPos + 8,
-    { align: "right" },
-  );
-  doc.text(
-    `عدد العمليات: ${totalTransactions}`,
-    pageWidth - 20,
-    yPos + 16,
-    { align: "right" },
-  );
-
-  // ==========================================
-  // STAMP AT BOTTOM
-  // ==========================================
-  const stampSize = 35;
-  const stampX = pageWidth / 2 - stampSize / 2;
-  const stampY = pageHeight - 60;
-
-  const stampUrl = "https://cdn.hercules.app/file_KxtpKU0KZ8CJ5zEVgJRzSTOG";
-  const stampData = await loadImageSafely(stampUrl);
-  if (stampData) {
-    try {
-      doc.addImage(stampData, "PNG", stampX, stampY, stampSize, stampSize);
-    } catch (error) {
-      console.error("Error adding stamp:", error);
+    const totalPages = (doc.internal as { pages: unknown[] }).pages.length - 1;
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      addFooter(doc, i, totalPages);
     }
+
+    doc.autoPrint();
+    window.open(doc.output('bloburl'), '_blank');
+  } catch (error) {
+    console.error('Print error:', error);
+    throw new Error(
+      'فشل في طباعة تقرير المصروفات. يرجى المحاولة مرة أخرى.'
+    );
   }
-
-  // "معتمد" text below stamp
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  setColor(doc, COLORS.deepBlue, "text");
-  doc.text("معتمد", pageWidth / 2, stampY + stampSize + 8, {
-    align: "center",
-  });
-
-  // ==========================================
-  // FOOTER
-  // ==========================================
-  const footerY = pageHeight - 15;
-
-  // Gradient line
-  const gradientLineY = footerY - 3;
-  for (let i = 0; i < 20; i++) {
-    const ratio = i / 20;
-    const x = 15 + (boxWidth * i) / 20;
-    const width = boxWidth / 20;
-    const r = Math.round(
-      COLORS.lightBlueSecondary[0] +
-        (COLORS.skyBlue[0] - COLORS.lightBlueSecondary[0]) * ratio,
-    );
-    const g = Math.round(
-      COLORS.lightBlueSecondary[1] +
-        (COLORS.skyBlue[1] - COLORS.lightBlueSecondary[1]) * ratio,
-    );
-    const b = Math.round(
-      COLORS.lightBlueSecondary[2] +
-        (COLORS.skyBlue[2] - COLORS.lightBlueSecondary[2]) * ratio,
-    );
-    doc.setFillColor(r, g, b);
-    doc.rect(x, gradientLineY, width, 1, "F");
-  }
-
-  // Footer text
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  setColor(doc, [100, 100, 100], "text");
-
-  const now = new Date();
-  const dateTimeStr = format(now, "dd/MM/yyyy HH:mm");
-  doc.text(`تاريخ الإنشاء: ${dateTimeStr}`, 20, footerY, { align: "left" });
-  doc.text(`صفحة 1 / 1`, pageWidth - 20, footerY, { align: "right" });
-
-  // Save
-  const fileName = `تقرير_المصروفات_${branchName}_${dateTimeStr}.pdf`;
-  doc.save(fileName);
 }
