@@ -23,6 +23,7 @@ import type * as emailLogs from "../emailLogs.js";
 import type * as emailSettings from "../emailSettings.js";
 import type * as emailSystem from "../emailSystem.js";
 import type * as employeeRequests from "../employeeRequests.js";
+import type * as employees from "../employees.js";
 import type * as expenses from "../expenses.js";
 import type * as migration from "../migration.js";
 import type * as notifications from "../notifications.js";
@@ -53,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   emailSettings: typeof emailSettings;
   emailSystem: typeof emailSystem;
   employeeRequests: typeof employeeRequests;
+  employees: typeof employees;
   expenses: typeof expenses;
   migration: typeof migration;
   notifications: typeof notifications;

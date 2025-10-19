@@ -302,4 +302,76 @@ export default defineSchema({
     ),
     updatedAt: v.number(),
   }).index("by_key", ["settingKey"]),
+
+  employees: defineTable({
+    branchId: v.string(),
+    branchName: v.string(),
+    employeeName: v.string(),
+    nationalId: v.optional(v.string()), // رقم الهوية
+    idExpiryDate: v.optional(v.number()), // تاريخ انتهاء الهوية
+    baseSalary: v.number(), // الراتب الأساسي
+    incentives: v.number(), // الحوافز الثابتة
+    isActive: v.boolean(), // هل الموظف نشط
+    createdBy: v.id("users"),
+  })
+    .index("by_branch", ["branchId"])
+    .index("by_name", ["employeeName"])
+    .index("by_branch_and_active", ["branchId", "isActive"]),
+
+  advances: defineTable({
+    branchId: v.string(),
+    branchName: v.string(),
+    employeeId: v.id("employees"),
+    employeeName: v.string(),
+    amount: v.number(),
+    month: v.number(), // 1-12
+    year: v.number(),
+    description: v.optional(v.string()),
+    recordedBy: v.id("users"),
+  })
+    .index("by_employee", ["employeeId"])
+    .index("by_month_year", ["year", "month"])
+    .index("by_employee_month", ["employeeId", "year", "month"]),
+
+  deductions: defineTable({
+    branchId: v.string(),
+    branchName: v.string(),
+    employeeId: v.id("employees"),
+    employeeName: v.string(),
+    amount: v.number(),
+    month: v.number(), // 1-12
+    year: v.number(),
+    reason: v.string(), // سبب الخصم
+    description: v.optional(v.string()),
+    recordedBy: v.id("users"),
+  })
+    .index("by_employee", ["employeeId"])
+    .index("by_month_year", ["year", "month"])
+    .index("by_employee_month", ["employeeId", "year", "month"]),
+
+  payrollRecords: defineTable({
+    branchId: v.string(),
+    branchName: v.string(),
+    supervisorName: v.optional(v.string()), // اسم المشرف
+    month: v.number(),
+    year: v.number(),
+    employees: v.array(v.object({
+      employeeId: v.id("employees"),
+      employeeName: v.string(),
+      nationalId: v.optional(v.string()),
+      baseSalary: v.number(),
+      incentives: v.number(),
+      totalAdvances: v.number(),
+      totalDeductions: v.number(),
+      netSalary: v.number(), // الصافي
+    })),
+    totalNetSalary: v.number(), // إجمالي الرواتب
+    generatedAt: v.number(),
+    generatedBy: v.id("users"),
+    pdfUrl: v.optional(v.string()), // رابط PDF
+    emailSent: v.boolean(), // هل تم إرسال البريد
+    emailSentAt: v.optional(v.number()),
+  })
+    .index("by_branch_month", ["branchId", "year", "month"])
+    .index("by_month_year", ["year", "month"]),
 });
