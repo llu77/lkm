@@ -152,7 +152,7 @@ function SystemSupportInner() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid grid-cols-6 w-full">
+          <TabsList className="grid grid-cols-7 w-full">
             <TabsTrigger value="overview">
               <ActivityIcon className="size-4 ml-2" />
               نظرة عامة
@@ -168,6 +168,10 @@ function SystemSupportInner() {
             <TabsTrigger value="zapier">
               <svg className="size-4 ml-2" viewBox="0 0 256 256" fill="currentColor"><path d="M154.8 10H101.2c-3.6 0-6.5 2.9-6.5 6.5v31.8c0 20.3-16.5 36.8-36.8 36.8H26.1c-3.6 0-6.5 2.9-6.5 6.5v53.6c0 3.6 2.9 6.5 6.5 6.5h31.8c20.3 0 36.8 16.5 36.8 36.8v31.8c0 3.6 2.9 6.5 6.5 6.5h53.6c3.6 0 6.5-2.9 6.5-6.5v-31.8c0-20.3 16.5-36.8 36.8-36.8h31.8c3.6 0 6.5-2.9 6.5-6.5V91.6c0-3.6-2.9-6.5-6.5-6.5h-31.8c-20.3 0-36.8-16.5-36.8-36.8V16.5c0-3.6-2.9-6.5-6.5-6.5z"/></svg>
               Zapier
+            </TabsTrigger>
+            <TabsTrigger value="pdfco">
+              <FileTextIcon className="size-4 ml-2" />
+              PDF.co
             </TabsTrigger>
             <TabsTrigger value="history">
               <MailIcon className="size-4 ml-2" />
@@ -607,6 +611,257 @@ function SystemSupportInner() {
                   <p className="text-sm text-green-800 dark:text-green-200">
                     التكامل نشط! جرب إنشاء إيراد أو مصروف جديد وشاهد البيانات تصل إلى Zapier تلقائياً.
                   </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* PDF.co Agent Tab */}
+          <TabsContent value="pdfco" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileTextIcon className="size-5" />
+                  PDF.co Agent - Advanced PDF Generation
+                </CardTitle>
+                <CardDescription>
+                  Generate professional PDFs using AI-powered PDF.co API
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Status & Connection Test */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">⚙️ Configuration Status</h3>
+                  <div className="rounded-lg border border-border p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">PDF.co API Key</p>
+                        <p className="text-sm text-muted-foreground">
+                          Configure in Secrets: PDFCO_API_KEY
+                        </p>
+                      </div>
+                      <Badge variant="secondary">Ready</Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Features */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">✨ Agent Capabilities</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-lg border p-4 space-y-2">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <FileTextIcon className="size-4 text-primary" />
+                        Revenue Reports
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Generate professional revenue reports with tables, charts, and Arabic RTL support
+                      </p>
+                      <div className="text-xs space-y-1 pt-2">
+                        <div className="flex items-center gap-1">
+                          <div className="size-1.5 rounded-full bg-green-500" />
+                          <span>Auto-triggered on export</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="size-1.5 rounded-full bg-green-500" />
+                          <span>Landscape A4 format</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border p-4 space-y-2">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <FileTextIcon className="size-4 text-destructive" />
+                        Expense Reports
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Beautiful expense reports with category breakdowns and summaries
+                      </p>
+                      <div className="text-xs space-y-1 pt-2">
+                        <div className="flex items-center gap-1">
+                          <div className="size-1.5 rounded-full bg-green-500" />
+                          <span>Auto-triggered on export</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="size-1.5 rounded-full bg-green-500" />
+                          <span>Portrait A4 format</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border p-4 space-y-2">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <FileTextIcon className="size-4 text-blue-500" />
+                        Product Orders
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Professional invoices with product lists, quantities, and totals
+                      </p>
+                      <div className="text-xs space-y-1 pt-2">
+                        <div className="flex items-center gap-1">
+                          <div className="size-1.5 rounded-full bg-green-500" />
+                          <span>Status-based formatting</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="size-1.5 rounded-full bg-green-500" />
+                          <span>QR code support</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border p-4 space-y-2">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <FileTextIcon className="size-4 text-orange-500" />
+                        Custom HTML to PDF
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        Convert any HTML content to professional PDFs on-demand
+                      </p>
+                      <div className="text-xs space-y-1 pt-2">
+                        <div className="flex items-center gap-1">
+                          <div className="size-1.5 rounded-full bg-green-500" />
+                          <span>Full CSS support</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="size-1.5 rounded-full bg-green-500" />
+                          <span>Custom page sizes</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* How It Works */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">🔄 How It Works</h3>
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                        1
+                      </div>
+                      <div>
+                        <p className="font-medium">User Action</p>
+                        <p className="text-sm text-muted-foreground">
+                          User clicks "Export PDF" or "Print" in any report page
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                        2
+                      </div>
+                      <div>
+                        <p className="font-medium">Agent Processing</p>
+                        <p className="text-sm text-muted-foreground">
+                          PDF.co Agent generates HTML with proper Arabic RTL formatting
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                        3
+                      </div>
+                      <div>
+                        <p className="font-medium">PDF.co API</p>
+                        <p className="text-sm text-muted-foreground">
+                          Converts HTML to professional PDF with high-quality rendering
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                        4
+                      </div>
+                      <div>
+                        <p className="font-medium">Delivery</p>
+                        <p className="text-sm text-muted-foreground">
+                          PDF is downloaded or opened in new tab for printing
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Setup Instructions */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">📝 Setup Instructions</h3>
+                  <ol className="space-y-3 text-sm">
+                    <li className="flex gap-2">
+                      <span className="font-bold text-primary">1.</span>
+                      <div>
+                        <span className="font-medium">Get PDF.co API Key:</span>
+                        <p className="text-muted-foreground">
+                          Sign up at{" "}
+                          <a
+                            href="https://pdf.co"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                          >
+                            pdf.co
+                          </a>
+                          {" "}and get your API key from dashboard
+                        </p>
+                      </div>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="font-bold text-primary">2.</span>
+                      <div>
+                        <span className="font-medium">Add to Secrets:</span>
+                        <p className="text-muted-foreground">
+                          Go to Secrets tab → Add → Name: <code className="rounded bg-muted px-1">PDFCO_API_KEY</code> → Value: your API key
+                        </p>
+                      </div>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="font-bold text-primary">3.</span>
+                      <div>
+                        <span className="font-medium">Test:</span>
+                        <p className="text-muted-foreground">
+                          Go to any report page and click "Export PDF" or "Print"
+                        </p>
+                      </div>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="font-bold text-primary">4.</span>
+                      <div>
+                        <span className="font-medium">Enjoy:</span>
+                        <p className="text-muted-foreground">
+                          PDFs will be generated automatically using PDF.co Agent!
+                        </p>
+                      </div>
+                    </li>
+                  </ol>
+                </div>
+
+                <Separator />
+
+                {/* Pricing Info */}
+                <div className="rounded-lg bg-muted p-4">
+                  <h4 className="font-semibold mb-2">💰 PDF.co Pricing</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    PDF.co offers generous free tier perfect for testing:
+                  </p>
+                  <ul className="space-y-1 text-sm">
+                    <li className="flex items-center gap-2">
+                      <div className="size-1.5 rounded-full bg-green-500" />
+                      <span>500 API credits/month free</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="size-1.5 rounded-full bg-green-500" />
+                      <span>Pay-as-you-go after free tier</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="size-1.5 rounded-full bg-green-500" />
+                      <span>No credit card required for trial</span>
+                    </li>
+                  </ul>
                 </div>
               </CardContent>
             </Card>
