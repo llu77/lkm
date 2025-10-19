@@ -30,14 +30,14 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 w-full border-b bg-primary shadow-md">
       <div className="container flex h-16 items-center justify-between">
         {/* Logo and Brand */}
-        <Link to="/dashboard" className="flex items-center gap-3 text-primary-foreground font-bold text-xl hover:opacity-90 transition-opacity">
+        <Link to="/dashboard" className="flex items-center gap-3 text-primary-foreground font-bold text-2xl hover:opacity-90 transition-opacity">
           <img 
             src="https://cdn.hercules.app/file_vQl30LwwutdTJK2LlWgX0FdU" 
             alt="Logo"
-            className="size-10 object-contain"
+            className="h-14 w-14 object-contain"
           />
           <span className="hidden sm:inline">نظام الإدارة المالية</span>
-          <span className="sm:hidden">الإدارة المالية</span>
+          <span className="sm:hidden text-lg">الإدارة المالية</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -50,11 +50,11 @@ export default function Navbar() {
                 <Button
                   key={link.path}
                   variant={isActive ? "secondary" : "ghost"}
-                  size="default"
+                  size="lg"
                   asChild
                   className={isActive 
-                    ? "font-semibold" 
-                    : "text-primary-foreground hover:bg-primary-foreground/20 font-medium"
+                    ? "font-bold text-base" 
+                    : "text-primary-foreground hover:bg-primary-foreground/20 font-semibold text-base"
                   }
                 >
                   <Link to={link.path}>
@@ -74,11 +74,11 @@ export default function Navbar() {
             <div className="hidden md:flex items-center gap-2">
               <Button
                 variant="ghost"
-                size="default"
+                size="lg"
                 onClick={() => signoutRedirect()}
-                className="text-primary-foreground hover:bg-primary-foreground/20"
+                className="text-primary-foreground hover:bg-primary-foreground/20 font-semibold text-base"
               >
-                <LogOutIcon className="size-4 ml-2" />
+                <LogOutIcon className="size-5 ml-2" />
                 تسجيل الخروج
               </Button>
             </div>
@@ -96,11 +96,11 @@ export default function Navbar() {
               </SheetTrigger>
               <SheetContent side="right" className="w-72">
                 <SheetHeader>
-                  <SheetTitle className="flex items-center gap-3 text-right">
+                  <SheetTitle className="flex items-center gap-3 text-right text-xl font-bold">
                     <img 
                       src="https://cdn.hercules.app/file_vQl30LwwutdTJK2LlWgX0FdU" 
                       alt="Logo"
-                      className="size-8 object-contain"
+                      className="h-12 w-12 object-contain"
                     />
                     القائمة الرئيسية
                   </SheetTitle>
@@ -115,11 +115,11 @@ export default function Navbar() {
                         variant={isActive ? "secondary" : "ghost"}
                         size="lg"
                         asChild
-                        className={isActive ? "font-semibold justify-start" : "justify-start"}
+                        className={isActive ? "font-bold justify-start text-lg" : "justify-start font-semibold text-lg"}
                         onClick={() => setIsOpen(false)}
                       >
                         <Link to={link.path}>
-                          <Icon className="size-5 ml-3" />
+                          <Icon className="size-6 ml-3" />
                           {link.label}
                         </Link>
                       </Button>
