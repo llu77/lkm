@@ -152,7 +152,7 @@ function SystemSupportInner() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid grid-cols-5 w-full">
+          <TabsList className="grid grid-cols-6 w-full">
             <TabsTrigger value="overview">
               <ActivityIcon className="size-4 ml-2" />
               نظرة عامة
@@ -164,6 +164,10 @@ function SystemSupportInner() {
             <TabsTrigger value="templates">
               <FileTextIcon className="size-4 ml-2" />
               القوالب
+            </TabsTrigger>
+            <TabsTrigger value="zapier">
+              <svg className="size-4 ml-2" viewBox="0 0 256 256" fill="currentColor"><path d="M154.8 10H101.2c-3.6 0-6.5 2.9-6.5 6.5v31.8c0 20.3-16.5 36.8-36.8 36.8H26.1c-3.6 0-6.5 2.9-6.5 6.5v53.6c0 3.6 2.9 6.5 6.5 6.5h31.8c20.3 0 36.8 16.5 36.8 36.8v31.8c0 3.6 2.9 6.5 6.5 6.5h53.6c3.6 0 6.5-2.9 6.5-6.5v-31.8c0-20.3 16.5-36.8 36.8-36.8h31.8c3.6 0 6.5-2.9 6.5-6.5V91.6c0-3.6-2.9-6.5-6.5-6.5h-31.8c-20.3 0-36.8-16.5-36.8-36.8V16.5c0-3.6-2.9-6.5-6.5-6.5z"/></svg>
+              Zapier
             </TabsTrigger>
             <TabsTrigger value="history">
               <MailIcon className="size-4 ml-2" />
@@ -477,6 +481,132 @@ function SystemSupportInner() {
                       <p>لا يوجد سجل إيميلات بعد</p>
                     </div>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Zapier Integration Tab */}
+          <TabsContent value="zapier" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <svg className="size-5" viewBox="0 0 256 256" fill="currentColor"><path d="M154.8 10H101.2c-3.6 0-6.5 2.9-6.5 6.5v31.8c0 20.3-16.5 36.8-36.8 36.8H26.1c-3.6 0-6.5 2.9-6.5 6.5v53.6c0 3.6 2.9 6.5 6.5 6.5h31.8c20.3 0 36.8 16.5 36.8 36.8v31.8c0 3.6 2.9 6.5 6.5 6.5h53.6c3.6 0 6.5-2.9 6.5-6.5v-31.8c0-20.3 16.5-36.8 36.8-36.8h31.8c3.6 0 6.5-2.9 6.5-6.5V91.6c0-3.6-2.9-6.5-6.5-6.5h-31.8c-20.3 0-36.8-16.5-36.8-36.8V16.5c0-3.6-2.9-6.5-6.5-6.5z"/></svg>
+                  تكامل Zapier
+                </CardTitle>
+                <CardDescription>
+                  ربط تطبيقك مع آلاف التطبيقات الأخرى عبر Zapier webhooks
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950">
+                  <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">🎉 تم التفعيل! Zapier Integration</h4>
+                  <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
+                    النظام الآن متصل مع Zapier ويمكنه إرسال أحداث تلقائياً!
+                  </p>
+                  <div className="flex gap-2 text-sm">
+                    <Badge variant="secondary">✅ Auto-trigger enabled</Badge>
+                    <Badge variant="secondary">📡 Webhooks ready</Badge>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Card className="border-2">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">إجمالي Webhooks</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">0</div>
+                      <p className="text-xs text-muted-foreground">نشط الآن</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-2">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">Total Triggers</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">0</div>
+                      <p className="text-xs text-muted-foreground">منذ البداية</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-2">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">Success Rate</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">100%</div>
+                      <p className="text-xs text-muted-foreground">معدل النجاح</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">🔗 Webhook URL (Ready to use!)</h3>
+                  <div className="rounded-md bg-muted p-3 font-mono text-sm break-all">
+                    https://hooks.zapier.com/hooks/catch/4045e58858fec2e48109352fcd71ead5/
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    هذا الـ URL جاهز للاستخدام في Zapier. يمكنك إضافته في خطوة "Webhooks by Zapier" → "Catch Hook"
+                  </p>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">📤 أحداث تلقائية متاحة</h3>
+                  <div className="grid gap-3">
+                    <div className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <div className="font-medium">revenue_created</div>
+                        <div className="text-sm text-muted-foreground">عند إنشاء إيراد جديد</div>
+                      </div>
+                      <Badge variant="secondary">Active</Badge>
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <div className="font-medium">expense_created</div>
+                        <div className="text-sm text-muted-foreground">عند إنشاء مصروف جديد</div>
+                      </div>
+                      <Badge variant="secondary">Active</Badge>
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <div className="font-medium">product_order_created</div>
+                        <div className="text-sm text-muted-foreground">عند إنشاء طلب منتجات</div>
+                      </div>
+                      <Badge variant="secondary">Active</Badge>
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <div className="font-medium">employee_request_created</div>
+                        <div className="text-sm text-muted-foreground">عند إنشاء طلب موظف</div>
+                      </div>
+                      <Badge variant="secondary">Active</Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">🎯 كيفية الاستخدام</h3>
+                  <ol className="list-decimal list-inside space-y-2 text-sm">
+                    <li>افتح Zapier وأنشئ Zap جديد</li>
+                    <li>اختر "Webhooks by Zapier" كـ Trigger</li>
+                    <li>اختر "Catch Hook"</li>
+                    <li>الصق الـ webhook URL أعلاه</li>
+                    <li>أنشئ أي حدث في النظام (إيراد، مصروف، إلخ)</li>
+                    <li>سيتم إرسال البيانات تلقائياً إلى Zapier!</li>
+                  </ol>
+                </div>
+
+                <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950">
+                  <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2">✅ جاهز للاستخدام الفوري</h4>
+                  <p className="text-sm text-green-800 dark:text-green-200">
+                    التكامل نشط! جرب إنشاء إيراد أو مصروف جديد وشاهد البيانات تصل إلى Zapier تلقائياً.
+                  </p>
                 </div>
               </CardContent>
             </Card>

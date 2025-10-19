@@ -264,4 +264,25 @@ export default defineSchema({
   })
     .index("by_status", ["status"])
     .index("by_sent_at", ["sentAt"]),
+
+  zapierWebhooks: defineTable({
+    name: v.string(),
+    webhookUrl: v.string(),
+    eventType: v.string(), // "revenue_created", "expense_created", "order_created", etc.
+    isActive: v.boolean(),
+    description: v.optional(v.string()),
+    lastTriggered: v.optional(v.number()),
+    triggerCount: v.number(),
+  }).index("by_event", ["eventType", "isActive"]),
+
+  zapierLogs: defineTable({
+    webhookId: v.id("zapierWebhooks"),
+    eventType: v.string(),
+    payload: v.string(), // JSON stringified
+    status: v.string(), // "sent", "failed"
+    responseCode: v.optional(v.number()),
+    error: v.optional(v.string()),
+  })
+    .index("by_webhook", ["webhookId"])
+    .index("by_status", ["status"]),
 });

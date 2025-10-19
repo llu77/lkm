@@ -28,6 +28,9 @@ import type * as notifications from "../notifications.js";
 import type * as productOrders from "../productOrders.js";
 import type * as revenues from "../revenues.js";
 import type * as users from "../users.js";
+import type * as zapier from "../zapier.js";
+import type * as zapierHelper from "../zapierHelper.js";
+import type * as zapierQueries from "../zapierQueries.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -53,6 +56,9 @@ declare const fullApi: ApiFromModules<{
   productOrders: typeof productOrders;
   revenues: typeof revenues;
   users: typeof users;
+  zapier: typeof zapier;
+  zapierHelper: typeof zapierHelper;
+  zapierQueries: typeof zapierQueries;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,
