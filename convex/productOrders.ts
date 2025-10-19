@@ -132,6 +132,37 @@ export const updateOrder = mutation({
   },
 });
 
+// Update order status (admin only)
+export const updateStatus = mutation({
+  args: {
+    orderId: v.id("productOrders"),
+    status: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        message: "يجب تسجيل الدخول أولاً",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    const order = await ctx.db.get(args.orderId);
+    if (!order) {
+      throw new ConvexError({
+        message: "الطلب غير موجود",
+        code: "NOT_FOUND",
+      });
+    }
+
+    await ctx.db.patch(args.orderId, {
+      status: args.status,
+    });
+
+    return args.orderId;
+  },
+});
+
 // Delete a draft
 export const deleteDraft = mutation({
   args: { orderId: v.id("productOrders") },

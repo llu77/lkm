@@ -118,8 +118,13 @@ function RedirectToDashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    navigate("/dashboard");
+    // Use replace to avoid adding to history
+    navigate("/dashboard", { replace: true });
   }, [navigate]);
 
-  return null;
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <Skeleton className="h-10 w-48" />
+    </div>
+  );
 }

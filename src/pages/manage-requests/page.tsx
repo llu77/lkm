@@ -7,10 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
-import { ClipboardListIcon, CheckCircleIcon, XCircleIcon, ClockIcon, EyeIcon, ShieldIcon } from "lucide-react";
+import { ClipboardListIcon, CheckCircleIcon, XCircleIcon, ClockIcon, EyeIcon, ShieldIcon, PackageIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useState, useEffect } from "react";
@@ -43,6 +44,25 @@ interface Request {
   resignationText?: string;
   adminResponse?: string;
   responseDate?: number;
+}
+
+interface ProductOrder {
+  _id: Id<"productOrders">;
+  _creationTime: number;
+  orderName?: string;
+  products: Array<{
+    productName: string;
+    quantity: number;
+    price: number;
+    total: number;
+  }>;
+  grandTotal: number;
+  status: string;
+  isDraft: boolean;
+  employeeName: string;
+  notes?: string;
+  branchId: string;
+  branchName: string;
 }
 
 export default function ManageRequestsPage() {
@@ -143,11 +163,16 @@ export default function ManageRequestsPage() {
 
 function ManageRequestsContent({ branchId, branchName }: { branchId: string; branchName: string }) {
   const requests = useQuery(api.employeeRequests.getAllRequests, {});
+  const productOrders = useQuery(api.productOrders.getOrders, { branchId });
   const updateStatus = useMutation(api.employeeRequests.updateStatus);
+  const updateProductOrderStatus = useMutation(api.productOrders.updateStatus);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [selectedProductOrder, setSelectedProductOrder] = useState<ProductOrder | null>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [showProductOrderDialog, setShowProductOrderDialog] = useState(false);
   const [adminResponse, setAdminResponse] = useState("");
   const [reviewAction, setReviewAction] = useState<"approve" | "reject">("approve");
+  const [activeTab, setActiveTab] = useState<"employee" | "product">("employee");
 
   useEffect(() => {
     console.log("📋 All Requests Data:", { requests, count: requests?.length });
@@ -289,13 +314,27 @@ function ManageRequestsContent({ branchId, branchName }: { branchId: string; bra
         </Card>
       </div>
 
-      {/* Requests List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>جميع الطلبات</CardTitle>
-          <CardDescription>قائمة بجميع طلبات الموظفين</CardDescription>
-        </CardHeader>
-        <CardContent>
+      {/* Requests List with Tabs */}
+      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "employee" | "product")}>
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="employee" className="flex items-center gap-2">
+            <ClipboardListIcon className="size-4" />
+            طلبات الموظفين
+          </TabsTrigger>
+          <TabsTrigger value="product" className="flex items-center gap-2">
+            <PackageIcon className="size-4" />
+            طلبات المنتجات
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Employee Requests Tab */}
+        <TabsContent value="employee">
+          <Card>
+            <CardHeader>
+              <CardTitle>طلبات الموظفين</CardTitle>
+              <CardDescription>إدارة طلبات الموظفين (سلفة، إجازة، إلخ)</CardDescription>
+            </CardHeader>
+            <CardContent>
           {requests.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               لا توجد طلبات حالياً
@@ -378,6 +417,197 @@ function ManageRequestsContent({ branchId, branchName }: { branchId: string; bra
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        {/* Product Orders Tab */}
+        <TabsContent value="product">
+          <Card>
+            <CardHeader>
+              <CardTitle>طلبات المنتجات</CardTitle>
+              <CardDescription>إدارة طلبات المنتجات من الموظفين</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {productOrders === undefined ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-20 w-full" />
+                </div>
+              ) : productOrders.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  لا توجد طلبات منتجات
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {productOrders.map((order) => (
+                    <Card key={order._id}>
+                      <CardContent className="pt-6">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-2 flex-1">
+                            <div className="flex items-center gap-2">
+                              <PackageIcon className="size-5 text-primary" />
+                              <p className="font-semibold">{order.employeeName}</p>
+                              <Badge variant={
+                                order.status === "pending" ? "secondary" :
+                                order.status === "approved" ? "default" :
+                                order.status === "rejected" ? "destructive" : "outline"
+                              }>
+                                {order.status === "pending" ? "قيد المراجعة" :
+                                 order.status === "approved" ? "موافق عليه" :
+                                 order.status === "rejected" ? "مرفوض" : order.status}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              <p>الفرع: {order.branchName}</p>
+                              <p>عدد المنتجات: {order.products.length}</p>
+                              <p>الإجمالي: {order.grandTotal.toLocaleString()} ر.س</p>
+                              <p>التاريخ: {format(order._creationTime, "dd/MM/yyyy HH:mm", { locale: ar })}</p>
+                              {order.notes && <p className="text-sm mt-1">ملاحظات: {order.notes}</p>}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedProductOrder(order);
+                                setShowProductOrderDialog(true);
+                              }}
+                            >
+                              <EyeIcon className="size-4 ml-1" />
+                              التفاصيل
+                            </Button>
+                            {order.status === "pending" && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={async () => {
+                                    try {
+                                      await updateProductOrderStatus({
+                                        orderId: order._id,
+                                        status: "approved",
+                                      });
+                                      toast.success("تم قبول الطلب");
+                                    } catch {
+                                      toast.error("فشل في تحديث الطلب");
+                                    }
+                                  }}
+                                >
+                                  <CheckCircleIcon className="size-4 ml-1" />
+                                  قبول
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={async () => {
+                                    try {
+                                      await updateProductOrderStatus({
+                                        orderId: order._id,
+                                        status: "rejected",
+                                      });
+                                      toast.success("تم رفض الطلب");
+                                    } catch {
+                                      toast.error("فشل في تحديث الطلب");
+                                    }
+                                  }}
+                                >
+                                  <XCircleIcon className="size-4 ml-1" />
+                                  رفض
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Product Order Details Dialog */}
+      <Dialog open={showProductOrderDialog} onOpenChange={setShowProductOrderDialog}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>تفاصيل طلب المنتجات</DialogTitle>
+            <DialogDescription>معلومات الطلب والمنتجات</DialogDescription>
+          </DialogHeader>
+          {selectedProductOrder && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>الموظف</Label>
+                  <p className="text-sm">{selectedProductOrder.employeeName}</p>
+                </div>
+                <div>
+                  <Label>الفرع</Label>
+                  <p className="text-sm">{selectedProductOrder.branchName}</p>
+                </div>
+                <div>
+                  <Label>الحالة</Label>
+                  <Badge variant={
+                    selectedProductOrder.status === "pending" ? "secondary" :
+                    selectedProductOrder.status === "approved" ? "default" :
+                    selectedProductOrder.status === "rejected" ? "destructive" : "outline"
+                  }>
+                    {selectedProductOrder.status === "pending" ? "قيد المراجعة" :
+                     selectedProductOrder.status === "approved" ? "موافق عليه" :
+                     selectedProductOrder.status === "rejected" ? "مرفوض" : selectedProductOrder.status}
+                  </Badge>
+                </div>
+                <div>
+                  <Label>التاريخ</Label>
+                  <p className="text-sm">{format(selectedProductOrder._creationTime, "dd/MM/yyyy HH:mm", { locale: ar })}</p>
+                </div>
+              </div>
+
+              {selectedProductOrder.notes && (
+                <div>
+                  <Label>ملاحظات</Label>
+                  <p className="text-sm rounded-md bg-muted p-3">{selectedProductOrder.notes}</p>
+                </div>
+              )}
+
+              <div>
+                <Label>قائمة المنتجات</Label>
+                <div className="mt-2 border rounded-md overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="text-right p-2">المنتج</th>
+                        <th className="text-center p-2">الكمية</th>
+                        <th className="text-right p-2">السعر</th>
+                        <th className="text-right p-2">الإجمالي</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedProductOrder.products.map((product, index) => (
+                        <tr key={index} className="border-t">
+                          <td className="p-2">{product.productName}</td>
+                          <td className="text-center p-2">{product.quantity}</td>
+                          <td className="p-2">{product.price.toLocaleString()} ر.س</td>
+                          <td className="p-2">{product.total.toLocaleString()} ر.س</td>
+                        </tr>
+                      ))}
+                      <tr className="border-t font-bold bg-muted">
+                        <td colSpan={3} className="p-2 text-right">الإجمالي الكلي</td>
+                        <td className="p-2">{selectedProductOrder.grandTotal.toLocaleString()} ر.س</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowProductOrderDialog(false)}>
+              إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Review Dialog */}
       <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
