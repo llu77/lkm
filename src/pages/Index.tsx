@@ -27,7 +27,7 @@ export default function Index() {
           <Card className="w-full max-w-5xl">
             <CardHeader className="text-center space-y-4 pb-8">
               <img 
-                src="https://cdn.hercules.app/file_5Wlam502ojObMt2ow9U1N42S" 
+                src="https://cdn.hercules.app/file_X3jdTiCKmUjHC4szRS5CixU4" 
                 alt="Logo" 
                 className="mx-auto h-40 w-40 object-contain"
                 style={{ backgroundColor: 'transparent' }} 
