@@ -11,9 +11,10 @@ import { Label } from "@/components/ui/label.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
-import { PlusIcon, TrashIcon, SaveIcon, SendIcon, PackageIcon } from "lucide-react";
+import { PlusIcon, TrashIcon, SaveIcon, SendIcon, PackageIcon, PrinterIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { Id } from "@/convex/_generated/dataModel";
+import { printProductOrderPDF } from "@/lib/pdf-export.ts";
 
 // قائمة المنتجات الكاملة مع الأسعار (SAR)
 const PRODUCTS_WITH_PRICES: Record<string, number> = {
@@ -140,6 +141,10 @@ function ProductOrdersContent({ branchId, branchName }: { branchId: string; bran
     api.productOrders.getDrafts,
     employeeName ? { branchId, employeeName } : "skip"
   );
+  const orders = useQuery(
+    api.productOrders.getOrders,
+    branchId ? { branchId } : "skip"
+  );
   const createOrder = useMutation(api.productOrders.createOrder);
   const updateOrder = useMutation(api.productOrders.updateOrder);
   const deleteDraft = useMutation(api.productOrders.deleteDraft);
@@ -265,6 +270,24 @@ function ProductOrdersContent({ branchId, branchName }: { branchId: string; bran
     setNotes("");
   };
 
+  const handlePrint = async (order: {
+    _id: Id<"productOrders">;
+    orderName?: string;
+    products: Array<{ productName: string; quantity: number; price: number; total: number }>;
+    grandTotal: number;
+    status: string;
+    employeeName: string;
+    branchName: string;
+    notes?: string;
+    _creationTime: number;
+  }) => {
+    try {
+      await printProductOrderPDF(order);
+    } catch (error) {
+      toast.error("فشل في طباعة الفاتورة");
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 space-y-6">
       {/* Header */}
@@ -331,6 +354,77 @@ function ProductOrdersContent({ branchId, branchName }: { branchId: string; bran
           </CardContent>
         </Card>
       )}
+
+      {/* Sent Orders List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>الطلبات المرسلة</CardTitle>
+          <CardDescription>
+            عرض جميع الطلبات المرسلة للفرع
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!orders && <Skeleton className="h-20 w-full" />}
+          {orders && orders.length === 0 && (
+            <p className="text-muted-foreground text-center py-4">
+              لا توجد طلبات مرسلة
+            </p>
+          )}
+          {orders && orders.length > 0 && (
+            <div className="space-y-3">
+              {orders.map((order) => (
+                <div
+                  key={order._id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-3">
+                      <p className="font-semibold">{order.employeeName}</p>
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          order.status === "pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : order.status === "approved"
+                              ? "bg-green-100 text-green-800"
+                              : order.status === "rejected"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-blue-100 text-blue-800"
+                        }`}
+                      >
+                        {order.status === "pending"
+                          ? "قيد الانتظار"
+                          : order.status === "approved"
+                            ? "معتمد"
+                            : order.status === "rejected"
+                              ? "مرفوض"
+                              : "مكتمل"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {order.products.length} منتج - الإجمالي: {order.grandTotal.toLocaleString()} ر.س
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(order._creationTime).toLocaleDateString("ar-SA", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePrint(order)}
+                  >
+                    <PrinterIcon className="size-4 ml-2" />
+                    طباعة
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Main Form */}
       <Card>

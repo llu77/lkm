@@ -30,6 +30,23 @@ export interface ExpenseData {
   description: string;
 }
 
+export interface ProductOrderData {
+  _id: string;
+  orderName?: string;
+  products: Array<{
+    productName: string;
+    quantity: number;
+    price: number;
+    total: number;
+  }>;
+  grandTotal: number;
+  status: string;
+  employeeName: string;
+  branchName: string;
+  notes?: string;
+  _creationTime: number;
+}
+
 export interface PDFConfig {
   companyName?: string;
   companyLogo?: string;
@@ -841,5 +858,329 @@ export async function printExpensesPDF(
     throw new Error(
       'فشل في طباعة تقرير المصروفات. يرجى المحاولة مرة أخرى.'
     );
+  }
+}
+
+// ================== Product Orders PDF ==================
+
+/**
+ * تصدير فاتورة طلب منتجات
+ */
+export async function generateProductOrderPDF(
+  order: ProductOrderData,
+  config: Partial<PDFConfig> = {}
+): Promise<void> {
+  const fullConfig = { ...DEFAULT_CONFIG, ...config };
+
+  try {
+    const doc = await setupPDF('portrait');
+
+    // Header
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 20;
+
+    // Logo
+    if (fullConfig.companyLogo) {
+      try {
+        const logo = await loadImage(fullConfig.companyLogo);
+        if (logo) {
+          doc.addImage(logo, 'PNG', pageWidth / 2 - 15, yPos, 30, 15);
+          yPos += 20;
+        }
+      } catch (error) {
+        console.warn('Logo loading failed:', error);
+        yPos += 5;
+      }
+    }
+
+    // Title
+    doc.setFontSize(20);
+    doc.setTextColor(100, 181, 246);
+    doc.text('فاتورة طلب منتجات', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 12;
+
+    // Order Info Box
+    const infoBoxY = yPos;
+    const infoBoxHeight = 35;
+    drawBlueGradient(doc, 15, infoBoxY, pageWidth - 30, infoBoxHeight);
+    doc.setDrawColor(33, 150, 243);
+    doc.setLineWidth(1);
+    doc.roundedRect(15, infoBoxY, pageWidth - 30, infoBoxHeight, 3, 3, 'D');
+
+    doc.setFontSize(11);
+    doc.setTextColor(255, 255, 255);
+    
+    const orderDate = new Date(order._creationTime);
+    const orderNumber = order._id.slice(-8).toUpperCase();
+    
+    doc.text(`رقم الطلب: ${orderNumber}`, 25, infoBoxY + 8);
+    doc.text(`التاريخ: ${formatArabicDate(orderDate)}`, 25, infoBoxY + 15);
+    doc.text(`الفرع: ${order.branchName}`, 25, infoBoxY + 22);
+    doc.text(`الموظف: ${order.employeeName}`, 25, infoBoxY + 29);
+
+    // Status Badge
+    const statusText = order.status === 'pending' ? 'قيد الانتظار' 
+      : order.status === 'approved' ? 'معتمد'
+      : order.status === 'rejected' ? 'مرفوض'
+      : order.status === 'completed' ? 'مكتمل'
+      : order.status;
+      
+    const statusColor: [number, number, number] = order.status === 'approved' ? [34, 197, 94]
+      : order.status === 'rejected' ? [239, 68, 68]
+      : order.status === 'completed' ? [59, 130, 246]
+      : [234, 179, 8];
+
+    doc.setFillColor(...statusColor);
+    doc.roundedRect(pageWidth - 55, infoBoxY + 8, 35, 8, 2, 2, 'F');
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text(statusText, pageWidth - 37.5, infoBoxY + 13, { align: 'center' });
+
+    yPos = infoBoxY + infoBoxHeight + 10;
+
+    // Products Table
+    const tableData = order.products.map((product) => [
+      product.productName,
+      product.quantity.toString(),
+      formatNumber(product.price),
+      formatNumber(product.total),
+    ]);
+
+    autoTable(doc, {
+      head: [['المنتج', 'الكمية', 'السعر', 'الإجمالي']],
+      body: tableData,
+      startY: yPos,
+      styles: {
+        font: 'Cairo',
+        fontSize: 10,
+        cellPadding: 4,
+        halign: 'center',
+        valign: 'middle',
+      },
+      headStyles: {
+        fillColor: [100, 181, 246],
+        textColor: [255, 255, 255],
+        fontSize: 11,
+        fontStyle: 'bold',
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      columnStyles: {
+        0: { halign: 'right', cellWidth: 80 },
+        1: { halign: 'center', cellWidth: 30 },
+        2: { halign: 'right', cellWidth: 35 },
+        3: { halign: 'right', cellWidth: 35, fontStyle: 'bold' },
+      },
+    });
+
+    // Grand Total Box
+    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    const totalBoxHeight = 15;
+    
+    drawBlueGradient(doc, 15, finalY, pageWidth - 30, totalBoxHeight);
+    doc.setDrawColor(33, 150, 243);
+    doc.setLineWidth(1.5);
+    doc.roundedRect(15, finalY, pageWidth - 30, totalBoxHeight, 4, 4, 'D');
+
+    doc.setFontSize(14);
+    doc.setTextColor(255, 255, 255);
+    doc.text(
+      `الإجمالي الكلي: ${formatNumber(order.grandTotal)} ريال`,
+      pageWidth / 2,
+      finalY + 10,
+      { align: 'center' }
+    );
+
+    // Notes Section
+    if (order.notes) {
+      const notesY = finalY + totalBoxHeight + 10;
+      doc.setFontSize(11);
+      doc.setTextColor(66, 66, 66);
+      doc.text('ملاحظات:', 20, notesY);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      const notesLines = doc.splitTextToSize(order.notes, pageWidth - 40);
+      doc.text(notesLines, 20, notesY + 7);
+    }
+
+    // Stamp
+    await addStampWithApproval(doc, fullConfig);
+
+    // Footer
+    const totalPages = (doc.internal as { pages: unknown[] }).pages.length - 1;
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      addFooter(doc, i, totalPages);
+    }
+
+    // Save PDF
+    const fileName = `order_${orderNumber}_${format(orderDate, 'yyyy-MM-dd')}.pdf`;
+    doc.save(fileName);
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    throw new Error('فشل في إنشاء فاتورة الطلب. يرجى المحاولة مرة أخرى.');
+  }
+}
+
+/**
+ * طباعة فاتورة طلب منتجات
+ */
+export async function printProductOrderPDF(
+  order: ProductOrderData,
+  config: Partial<PDFConfig> = {}
+): Promise<void> {
+  const fullConfig = { ...DEFAULT_CONFIG, ...config };
+
+  try {
+    const doc = await setupPDF('portrait');
+
+    // Header
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 20;
+
+    // Logo
+    if (fullConfig.companyLogo) {
+      try {
+        const logo = await loadImage(fullConfig.companyLogo);
+        if (logo) {
+          doc.addImage(logo, 'PNG', pageWidth / 2 - 15, yPos, 30, 15);
+          yPos += 20;
+        }
+      } catch (error) {
+        console.warn('Logo loading failed:', error);
+        yPos += 5;
+      }
+    }
+
+    // Title
+    doc.setFontSize(20);
+    doc.setTextColor(100, 181, 246);
+    doc.text('فاتورة طلب منتجات', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 12;
+
+    // Order Info Box
+    const infoBoxY = yPos;
+    const infoBoxHeight = 35;
+    drawBlueGradient(doc, 15, infoBoxY, pageWidth - 30, infoBoxHeight);
+    doc.setDrawColor(33, 150, 243);
+    doc.setLineWidth(1);
+    doc.roundedRect(15, infoBoxY, pageWidth - 30, infoBoxHeight, 3, 3, 'D');
+
+    doc.setFontSize(11);
+    doc.setTextColor(255, 255, 255);
+    
+    const orderDate = new Date(order._creationTime);
+    const orderNumber = order._id.slice(-8).toUpperCase();
+    
+    doc.text(`رقم الطلب: ${orderNumber}`, 25, infoBoxY + 8);
+    doc.text(`التاريخ: ${formatArabicDate(orderDate)}`, 25, infoBoxY + 15);
+    doc.text(`الفرع: ${order.branchName}`, 25, infoBoxY + 22);
+    doc.text(`الموظف: ${order.employeeName}`, 25, infoBoxY + 29);
+
+    // Status Badge
+    const statusText = order.status === 'pending' ? 'قيد الانتظار' 
+      : order.status === 'approved' ? 'معتمد'
+      : order.status === 'rejected' ? 'مرفوض'
+      : order.status === 'completed' ? 'مكتمل'
+      : order.status;
+      
+    const statusColor: [number, number, number] = order.status === 'approved' ? [34, 197, 94]
+      : order.status === 'rejected' ? [239, 68, 68]
+      : order.status === 'completed' ? [59, 130, 246]
+      : [234, 179, 8];
+
+    doc.setFillColor(...statusColor);
+    doc.roundedRect(pageWidth - 55, infoBoxY + 8, 35, 8, 2, 2, 'F');
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text(statusText, pageWidth - 37.5, infoBoxY + 13, { align: 'center' });
+
+    yPos = infoBoxY + infoBoxHeight + 10;
+
+    // Products Table
+    const tableData = order.products.map((product) => [
+      product.productName,
+      product.quantity.toString(),
+      formatNumber(product.price),
+      formatNumber(product.total),
+    ]);
+
+    autoTable(doc, {
+      head: [['المنتج', 'الكمية', 'السعر', 'الإجمالي']],
+      body: tableData,
+      startY: yPos,
+      styles: {
+        font: 'Cairo',
+        fontSize: 10,
+        cellPadding: 4,
+        halign: 'center',
+        valign: 'middle',
+      },
+      headStyles: {
+        fillColor: [100, 181, 246],
+        textColor: [255, 255, 255],
+        fontSize: 11,
+        fontStyle: 'bold',
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      columnStyles: {
+        0: { halign: 'right', cellWidth: 80 },
+        1: { halign: 'center', cellWidth: 30 },
+        2: { halign: 'right', cellWidth: 35 },
+        3: { halign: 'right', cellWidth: 35, fontStyle: 'bold' },
+      },
+    });
+
+    // Grand Total Box
+    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+    const totalBoxHeight = 15;
+    
+    drawBlueGradient(doc, 15, finalY, pageWidth - 30, totalBoxHeight);
+    doc.setDrawColor(33, 150, 243);
+    doc.setLineWidth(1.5);
+    doc.roundedRect(15, finalY, pageWidth - 30, totalBoxHeight, 4, 4, 'D');
+
+    doc.setFontSize(14);
+    doc.setTextColor(255, 255, 255);
+    doc.text(
+      `الإجمالي الكلي: ${formatNumber(order.grandTotal)} ريال`,
+      pageWidth / 2,
+      finalY + 10,
+      { align: 'center' }
+    );
+
+    // Notes Section
+    if (order.notes) {
+      const notesY = finalY + totalBoxHeight + 10;
+      doc.setFontSize(11);
+      doc.setTextColor(66, 66, 66);
+      doc.text('ملاحظات:', 20, notesY);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      const notesLines = doc.splitTextToSize(order.notes, pageWidth - 40);
+      doc.text(notesLines, 20, notesY + 7);
+    }
+
+    // Stamp
+    await addStampWithApproval(doc, fullConfig);
+
+    // Footer
+    const totalPages = (doc.internal as { pages: unknown[] }).pages.length - 1;
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      addFooter(doc, i, totalPages);
+    }
+
+    // Print
+    doc.autoPrint();
+    window.open(doc.output('bloburl'), '_blank');
+  } catch (error) {
+    console.error('Print error:', error);
+    throw new Error('فشل في طباعة فاتورة الطلب. يرجى المحاولة مرة أخرى.');
   }
 }
