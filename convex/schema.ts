@@ -2,6 +2,28 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  notifications: defineTable({
+    branchId: v.string(),
+    branchName: v.string(),
+    type: v.string(), // "warning", "info", "success", "error", "critical"
+    severity: v.string(), // "low", "medium", "high", "critical"
+    title: v.string(),
+    message: v.string(),
+    reasoning: v.optional(v.string()), // Claude's reasoning chain
+    aiGenerated: v.boolean(),
+    actionRequired: v.optional(v.boolean()),
+    relatedEntity: v.optional(v.object({
+      type: v.string(), // "revenue", "expense", "order", "request"
+      id: v.string(),
+    })),
+    isRead: v.boolean(),
+    isDismissed: v.boolean(),
+    expiresAt: v.optional(v.number()),
+  })
+    .index("by_branch", ["branchId"])
+    .index("by_branch_and_read", ["branchId", "isRead"])
+    .index("by_severity", ["severity"]),
+
   backups: defineTable({
     date: v.number(),
     backupDate: v.string(),

@@ -12,6 +12,7 @@ import ManageRequests from "./pages/manage-requests/page.tsx";
 import ProductOrders from "./pages/product-orders/page.tsx";
 import Migration from "./pages/migration.tsx";
 import BackupsPage from "./pages/backups/page.tsx";
+import AIAssistant from "./pages/ai-assistant/page.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="/product-orders" element={<ProductOrders />} />
           <Route path="/migration" element={<Migration />} />
           <Route path="/backups" element={<BackupsPage />} />
+          <Route path="/ai-assistant" element={<AIAssistant />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

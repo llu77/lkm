@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
@@ -32,6 +32,7 @@ import { useBranch } from "@/hooks/use-branch.ts";
 import { BranchSelector } from "@/components/branch-selector.tsx";
 import Navbar from "@/components/navbar.tsx";
 import { generateRevenuesPDF } from "@/lib/pdf-export.ts";
+import { NotificationBanner } from "@/components/notification-banner.tsx";
 import {
   Select,
   SelectContent,
@@ -118,6 +119,7 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
   
   const createRevenue = useMutation(api.revenues.create);
   const removeRevenue = useMutation(api.revenues.remove);
+  const validateData = useAction(api.ai.validateRevenueData);
 
   const [date, setDate] = useState<string>(
     new Date(currentYear, currentMonth, new Date().getDate()).toISOString().split("T")[0]
@@ -207,6 +209,41 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
 
       toast.success("تم إضافة الإيراد بنجاح");
       
+      // 🤖 AI Data Validator Agent - التحقق الذكي من البيانات
+      try {
+        const historicalData = (revenues || []).map((r: { date: number; total?: number; isMatched?: boolean }) => ({
+          date: r.date,
+          total: r.total || 0,
+          isMatched: r.isMatched || false,
+        }));
+
+        // Run validation in background (don't block user)
+        validateData({
+          revenue: {
+            date: new Date(date).getTime(),
+            cash: cashNum,
+            network: networkNum,
+            budget: budgetNum,
+            total: cashNum + networkNum,
+            calculatedTotal: cashNum + networkNum,
+            isMatched,
+            employees: validEmployees.length > 0 ? validEmployees : undefined,
+          },
+          branchId,
+          branchName,
+          historicalData,
+        }).then((result) => {
+          if (result.notification?.shouldCreate) {
+            toast.info("🤖 AI: تم إنشاء تنبيه ذكي", { duration: 3000 });
+          }
+        }).catch((err) => {
+          console.error("AI Validator error:", err);
+        });
+      } catch (aiError) {
+        // AI validation failed silently, don't affect user flow
+        console.error("AI validation error:", aiError);
+      }
+      
       // Reset form
       setCash("");
       setNetwork("");
@@ -261,6 +298,9 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
 
   return (
     <div className="space-y-6">
+      {/* AI Smart Notifications */}
+      <NotificationBanner branchId={branchId} />
+
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-5">
         <Card>
@@ -516,7 +556,7 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    const pdfData = revenues.map((rev) => ({
+                    const pdfData = revenues.map((rev: { date: number; cash?: number; network?: number; budget?: number; total?: number; calculatedTotal?: number; isMatched?: boolean }) => ({
                       date: new Date(rev.date),
                       cash: rev.cash || 0,
                       network: rev.network || 0,
@@ -526,10 +566,10 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                       isMatched: rev.isMatched ?? false,
                     }));
 
-                    const totalCash = revenues.reduce((sum, r) => sum + (r.cash || 0), 0);
-                    const totalNetwork = revenues.reduce((sum, r) => sum + (r.network || 0), 0);
-                    const totalBudget = revenues.reduce((sum, r) => sum + (r.budget || 0), 0);
-                    const grandTotal = revenues.reduce((sum, r) => sum + (r.total || 0), 0);
+                    const totalCash = revenues.reduce((sum: number, r: { cash?: number }) => sum + (r.cash || 0), 0);
+                    const totalNetwork = revenues.reduce((sum: number, r: { network?: number }) => sum + (r.network || 0), 0);
+                    const totalBudget = revenues.reduce((sum: number, r: { budget?: number }) => sum + (r.budget || 0), 0);
+                    const grandTotal = revenues.reduce((sum: number, r: { total?: number }) => sum + (r.total || 0), 0);
 
                     await generateRevenuesPDF(
                       pdfData,
@@ -549,7 +589,7 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    const pdfData = revenues.map((rev) => ({
+                    const pdfData = revenues.map((rev: { date: number; cash?: number; network?: number; budget?: number; total?: number; calculatedTotal?: number; isMatched?: boolean }) => ({
                       date: new Date(rev.date),
                       cash: rev.cash || 0,
                       network: rev.network || 0,
@@ -601,7 +641,7 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {revenues.map((revenue) => (
+                  {revenues.map((revenue: { _id: Id<"revenues">; date: number; cash?: number; network?: number; budget?: number; total?: number; employees?: { name: string; revenue: number }[]; isMatched?: boolean; mismatchReason?: string }) => (
                     <TableRow key={revenue._id}>
                       <TableCell className="font-medium">
                         {new Date(revenue.date).toLocaleDateString("en-GB", {
@@ -619,7 +659,7 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                       <TableCell>
                         {revenue.employees && revenue.employees.length > 0 ? (
                           <div className="space-y-1">
-                            {revenue.employees.map((emp, idx) => (
+                            {revenue.employees.map((emp: { name: string; revenue: number }, idx: number) => (
                               <div key={idx} className="text-sm">
                                 {emp.name}: {emp.revenue.toLocaleString()} ر.س
                               </div>
