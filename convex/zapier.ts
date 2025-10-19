@@ -5,19 +5,17 @@ import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 
 /**
- * إرسال event إلى Zapier webhook
+ * إرسال event إلى Zapier webhook (internal)
  */
-export const sendToZapier = action({
+export const sendToZapierInternal = internalAction({
   args: {
+    webhookUrl: v.string(),
     eventType: v.string(),
-    payload: v.optional(v.any()),
+    payload: v.any(),
   },
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     try {
-      // Default Zapier webhook URL
-      const webhookUrl = "https://hooks.zapier.com/hooks/catch/4045e58858fec2e48109352fcd71ead5/";
-      
-      const response = await fetch(webhookUrl, {
+      const response = await fetch(args.webhookUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,16 +43,36 @@ export const sendToZapier = action({
 });
 
 /**
+ * إرسال event إلى Zapier webhook (public للاختبار)
+ */
+export const sendToZapier = action({
+  args: {
+    eventType: v.string(),
+    payload: v.optional(v.any()),
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; status?: number; statusText?: string; error?: string }> => {
+    // Default Zapier webhook URL
+    const webhookUrl = "https://hooks.zapier.com/hooks/catch/4045e58858fec2e48109352fcd71ead5/";
+    
+    return await ctx.runAction(internal.zapier.sendToZapierInternal, {
+      webhookUrl,
+      eventType: args.eventType,
+      payload: args.payload,
+    });
+  },
+});
+
+/**
  * إطلاق event لجميع webhooks المسجلة
  */
-export const triggerWebhooksInternal = internalAction({
+export const triggerWebhooks = internalAction({
   args: {
     eventType: v.string(),
     payload: v.any(),
   },
   handler: async (ctx, args): Promise<{ triggered: number; successful: number; failed: number }> => {
     // Get active webhooks for this event type
-    const webhooks: Array<{_id: any; webhookUrl: string}> = await ctx.runQuery(internal.zapierQueries.getActiveWebhooks, {
+    const webhooks = await ctx.runQuery(internal.zapierQueries.getActiveWebhooks, {
       eventType: args.eventType,
     });
 
@@ -67,7 +85,7 @@ export const triggerWebhooksInternal = internalAction({
 
     // Send to all webhooks
     for (const webhook of webhooks) {
-      const result = await ctx.runAction(internal.zapier.sendToZapier, {
+      const result = await ctx.runAction(internal.zapier.sendToZapierInternal, {
         webhookUrl: webhook.webhookUrl,
         eventType: args.eventType,
         payload: args.payload,
