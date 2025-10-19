@@ -22,6 +22,26 @@ interface PDFData {
   [key: string]: string | number;
 }
 
+// 🎨 Color Palette - Light Blue Professional Theme
+const COLORS = {
+  // Primary Colors
+  lightBluePrimary: [100, 181, 246],      // #64B5F6
+  lightBlueSecondary: [144, 202, 249],    // #90CAF9
+  skyBlue: [187, 222, 251],               // #BBDEFB
+  deepBlue: [33, 150, 243],               // #2196F3
+  darkBlueAccent: [13, 71, 161],          // #0D47A1
+  
+  // Backgrounds
+  white: [255, 255, 255],                 // #FFFFFF
+  lightGrayBg: [250, 250, 250],           // #FAFAFA
+  tableStripe: [227, 242, 253],           // #E3F2FD
+  
+  // Text
+  textBlack: [33, 33, 33],                // #212121
+  textGray: [100, 100, 100],              // #646464
+  textLightGray: [150, 150, 150],         // #969696
+} as const;
+
 const LOGO_URL = "https://cdn.hercules.app/file_2EDW4ulZlmwarzzXHgYjO1Hv";
 const STAMP_URL = "https://cdn.hercules.app/file_KxtpKU0KZ8CJ5zEVgJRzSTOG";
 
@@ -47,7 +67,6 @@ function getSupervisorName(branchName: string): string {
 
 async function loadImage(url: string): Promise<string> {
   try {
-    // استخدام fetch لتحميل الصورة (أفضل لتجاوز CORS)
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -72,85 +91,146 @@ async function loadImage(url: string): Promise<string> {
   }
 }
 
+// 🎨 رسم تدرج أزرق محاكى (jsPDF لا يدعم التدرجات مباشرة)
+function drawGradientHeader(doc: jsPDF, y: number, height: number) {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const steps = 30; // عدد الطبقات للتدرج
+  const stepHeight = height / steps;
+  
+  for (let i = 0; i < steps; i++) {
+    const ratio = i / steps;
+    
+    // تدرج من deep blue → light blue primary → sky blue
+    let r: number, g: number, b: number;
+    
+    if (ratio < 0.5) {
+      // من deep blue إلى light blue primary
+      const localRatio = ratio * 2;
+      r = COLORS.deepBlue[0] + (COLORS.lightBluePrimary[0] - COLORS.deepBlue[0]) * localRatio;
+      g = COLORS.deepBlue[1] + (COLORS.lightBluePrimary[1] - COLORS.deepBlue[1]) * localRatio;
+      b = COLORS.deepBlue[2] + (COLORS.lightBluePrimary[2] - COLORS.deepBlue[2]) * localRatio;
+    } else {
+      // من light blue primary إلى sky blue
+      const localRatio = (ratio - 0.5) * 2;
+      r = COLORS.lightBluePrimary[0] + (COLORS.skyBlue[0] - COLORS.lightBluePrimary[0]) * localRatio;
+      g = COLORS.lightBluePrimary[1] + (COLORS.skyBlue[1] - COLORS.lightBluePrimary[1]) * localRatio;
+      b = COLORS.lightBluePrimary[2] + (COLORS.skyBlue[2] - COLORS.lightBluePrimary[2]) * localRatio;
+    }
+    
+    doc.setFillColor(Math.round(r), Math.round(g), Math.round(b));
+    doc.rect(0, y + i * stepHeight, pageWidth, stepHeight, "F");
+  }
+}
+
 async function addHeaderToDoc(doc: jsPDF, header: PDFHeader): Promise<number> {
   const pageWidth = doc.internal.pageSize.getWidth();
-  let currentY = 10;
+  let currentY = 0;
+
+  // 🎨 رسم هيدر بتدرج أزرق احترافي
+  const headerHeight = 50;
+  drawGradientHeader(doc, 0, headerHeight);
+  
+  // خط فاصل في الأسفل
+  doc.setDrawColor(...COLORS.deepBlue);
+  doc.setLineWidth(2);
+  doc.line(0, headerHeight, pageWidth, headerHeight);
+
+  currentY = 10;
 
   try {
     // تحميل وإضافة الشعار
     const logoData = await loadImage(LOGO_URL);
-    const logoSize = 35;
+    const logoSize = 30;
     doc.addImage(logoData, "PNG", (pageWidth - logoSize) / 2, currentY, logoSize, logoSize);
-    currentY += logoSize + 10;
+    currentY += logoSize + 5;
   } catch (error) {
     console.error("Failed to load logo:", error);
     currentY += 5;
   }
 
-  // العنوان الرئيسي
+  // العنوان الرئيسي مع ظل نصي
   doc.setFontSize(26);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(25, 77, 51); // أخضر داكن احترافي
+  
+  // ظل النص (محاكاة)
+  doc.setTextColor(...COLORS.darkBlueAccent);
+  doc.text(header.title, pageWidth / 2 + 0.5, currentY + 0.5, { align: "center" });
+  
+  // النص الرئيسي
+  doc.setTextColor(...COLORS.white);
   doc.text(header.title, pageWidth / 2, currentY, { align: "center" });
-  currentY += 8;
+  currentY += 7;
 
   // العنوان الفرعي
   if (header.subtitle) {
     doc.setFontSize(13);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(80, 80, 80);
+    doc.setTextColor(...COLORS.white);
     doc.text(header.subtitle, pageWidth / 2, currentY, { align: "center" });
-    currentY += 7;
+    currentY += 5;
   }
 
-  // صندوق معلومات الفرع والمشرف
+  // خط فاصل زخرفي
+  doc.setDrawColor(...COLORS.white);
+  doc.setLineWidth(1);
+  const lineWidth = 60;
+  doc.line((pageWidth - lineWidth) / 2, currentY, (pageWidth + lineWidth) / 2, currentY);
+
+  currentY = headerHeight + 8;
+
+  // 📋 صندوق معلومات الفرع والمشرف
   const boxY = currentY;
-  const boxHeight = 20;
+  const boxHeight = 22;
   
-  // رسم مستطيل بخلفية فاتحة
-  doc.setFillColor(245, 250, 247);
-  doc.setDrawColor(25, 77, 51);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(20, boxY, pageWidth - 40, boxHeight, 2, 2, "FD");
+  // خلفية بيضاء مع ظل
+  doc.setFillColor(...COLORS.white);
+  doc.setDrawColor(...COLORS.lightBluePrimary);
+  doc.setLineWidth(1.5);
+  doc.roundedRect(15, boxY, pageWidth - 30, boxHeight, 4, 4, "FD");
   
-  currentY = boxY + 7;
+  // ظل الصندوق (محاكاة)
+  doc.setFillColor(100, 181, 246, 50); // شفافية محاكاة
+  doc.setDrawColor(100, 181, 246, 0);
+  doc.roundedRect(15.5, boxY + 0.5, pageWidth - 30, boxHeight, 4, 4, "F");
+  
+  currentY = boxY + 8;
 
-  // اسم الفرع
-  doc.setFontSize(13);
+  // 📍 أيقونة + اسم الفرع
+  doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(25, 77, 51);
-  doc.text(`Branch: ${header.branchName}`, pageWidth / 2, currentY, { align: "center" });
-  currentY += 6;
+  doc.setTextColor(...COLORS.darkBlueAccent);
+  doc.text(`📍 Branch: ${header.branchName}`, pageWidth / 2, currentY, { align: "center" });
+  currentY += 7;
 
-  // اسم المشرف
+  // 👤 أيقونة + اسم المشرف
   const supervisorName = getSupervisorName(header.branchName);
   if (supervisorName) {
-    doc.setFontSize(11);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(60, 60, 60);
-    doc.text(`Supervisor: ${supervisorName}`, pageWidth / 2, currentY, { align: "center" });
+    doc.setTextColor(...COLORS.textBlack);
+    doc.text(`👤 Supervisor: ${supervisorName}`, pageWidth / 2, currentY, { align: "center" });
   }
 
-  currentY = boxY + boxHeight + 6;
+  currentY = boxY + boxHeight + 8;
 
-  // الفترة الزمنية
+  // 📅 الفترة الزمنية
   if (header.dateRange) {
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(...COLORS.textGray);
     doc.text(
-      `Report Period: ${header.dateRange.from} to ${header.dateRange.to}`,
+      `📅 Report Period: ${header.dateRange.from} to ${header.dateRange.to}`,
       pageWidth / 2,
       currentY,
       { align: "center" }
     );
-    currentY += 8;
+    currentY += 10;
   }
 
-  // خط فاصل احترافي
-  doc.setDrawColor(25, 77, 51);
-  doc.setLineWidth(1);
-  doc.line(20, currentY, pageWidth - 20, currentY);
+  // خط فاصل احترافي مع تدرج
+  doc.setDrawColor(...COLORS.lightBluePrimary);
+  doc.setLineWidth(0.5);
+  doc.line(15, currentY, pageWidth - 15, currentY);
   currentY += 8;
 
   return currentY;
@@ -162,16 +242,21 @@ async function addStampToDoc(doc: jsPDF) {
   
   try {
     const stampData = await loadImage(STAMP_URL);
-    const stampSize = 40;
-    const stampX = pageWidth - stampSize - 15;
-    const stampY = pageHeight - stampSize - 20;
+    const stampSize = 35; // حجم ممتاز حسب المواصفات
+    const stampX = pageWidth - stampSize - 20; // 20mm من اليمين
+    const stampY = pageHeight - stampSize - 25; // 25mm من الأسفل
+    
+    // ظل الختم (محاكاة)
+    doc.setFillColor(100, 181, 246, 30);
+    const shadowOffset = 1;
+    doc.ellipse(stampX + stampSize/2 + shadowOffset, stampY + stampSize/2 + shadowOffset, stampSize/2 + 1, stampSize/2 + 1, "F");
     
     // إضافة الختم
     doc.addImage(stampData, "PNG", stampX, stampY, stampSize, stampSize);
     
-    console.log("Stamp added successfully at:", { stampX, stampY, stampSize });
+    console.log("✅ Stamp added successfully at:", { stampX, stampY, stampSize });
   } catch (error) {
-    console.error("Failed to load stamp:", error);
+    console.error("❌ Failed to load stamp:", error);
   }
 }
 
@@ -197,10 +282,10 @@ export async function generatePDF({
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  // إضافة الهيدر
+  // إضافة الهيدر المتدرج
   const startY = await addHeaderToDoc(doc, header);
 
-  // إعداد أنماط الجدول الاحترافية
+  // إعداد أنماط الأعمدة
   const columnStyles: Record<number, { halign?: "left" | "center" | "right"; cellWidth?: number | "auto" | "wrap" }> = {};
   
   columns.forEach((col, index) => {
@@ -210,7 +295,7 @@ export async function generatePDF({
     };
   });
 
-  // الجدول مع تنسيق مالي احترافي
+  // 📊 الجدول المالي الاحترافي
   autoTable(doc, {
     startY: startY,
     head: [columns.map((col) => col.header)],
@@ -219,42 +304,57 @@ export async function generatePDF({
     theme: "grid",
     
     headStyles: {
-      fillColor: [25, 77, 51], // أخضر داكن
-      textColor: [255, 255, 255],
-      fontSize: 11,
+      fillColor: COLORS.lightBluePrimary as [number, number, number], // أزرق فاتح أساسي
+      textColor: COLORS.white as [number, number, number],
+      fontSize: 12,
       fontStyle: "bold",
       halign: "center",
       valign: "middle",
-      cellPadding: { top: 5, bottom: 5, left: 3, right: 3 },
+      cellPadding: { top: 6, bottom: 6, left: 4, right: 4 },
       lineWidth: 0.1,
-      lineColor: [200, 200, 200],
+      lineColor: COLORS.deepBlue as [number, number, number],
     },
     
     bodyStyles: {
-      fontSize: 10,
-      textColor: [40, 40, 40],
-      cellPadding: { top: 4, bottom: 4, left: 3, right: 3 },
+      fontSize: 11,
+      textColor: COLORS.textBlack as [number, number, number],
+      cellPadding: { top: 5, bottom: 5, left: 4, right: 4 },
       lineWidth: 0.1,
-      lineColor: [220, 220, 220],
+      lineColor: COLORS.lightBlueSecondary as [number, number, number],
     },
     
     alternateRowStyles: {
-      fillColor: [248, 252, 249], // أخضر فاتح جداً
+      fillColor: COLORS.tableStripe as [number, number, number], // أزرق فاتح جداً
     },
     
     columnStyles: columnStyles,
     
-    margin: { top: 10, left: 12, right: 12, bottom: 35 },
+    margin: { top: 10, left: 15, right: 15, bottom: 40 },
     
-    tableLineColor: [200, 200, 200],
-    tableLineWidth: 0.1,
+    tableLineColor: COLORS.lightBlueSecondary as [number, number, number],
+    tableLineWidth: 0.5,
     
     didDrawPage: (data) => {
-      // تذييل الصفحة
-      const footerY = pageHeight - 12;
-      doc.setFontSize(8);
+      // 🎨 تذييل احترافي مع تدرج
+      const footerY = pageHeight - 15;
+      
+      // خط فاصل مع تدرج (محاكاة)
+      for (let i = 0; i < 20; i++) {
+        const x = 15 + (i / 20) * (pageWidth - 30);
+        const width = (pageWidth - 30) / 20;
+        const ratio = i / 20;
+        
+        const r = COLORS.lightBlueSecondary[0] + (COLORS.skyBlue[0] - COLORS.lightBlueSecondary[0]) * ratio;
+        const g = COLORS.lightBlueSecondary[1] + (COLORS.skyBlue[1] - COLORS.lightBlueSecondary[1]) * ratio;
+        const b = COLORS.lightBlueSecondary[2] + (COLORS.skyBlue[2] - COLORS.lightBlueSecondary[2]) * ratio;
+        
+        doc.setFillColor(Math.round(r), Math.round(g), Math.round(b));
+        doc.rect(x, footerY - 3, width, 1, "F");
+      }
+      
+      doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(120, 120, 120);
+      doc.setTextColor(...COLORS.textGray);
       
       const now = new Date();
       const dateStr = now.toLocaleDateString("en-GB", {
@@ -278,39 +378,55 @@ export async function generatePDF({
     },
   });
 
-  // الإجماليات في صندوق احترافي
+  // 💰 صندوق الإجماليات مع تدرج
   if (totals && totals.length > 0) {
     const docWithTable = doc as typeof doc & { lastAutoTable?: { finalY: number } };
     const finalY = docWithTable.lastAutoTable?.finalY || startY;
-    let currentY = finalY + 12;
+    let currentY = finalY + 15;
 
-    const totalsHeight = totals.length * 8 + 14;
-    if (currentY + totalsHeight > pageHeight - 40) {
+    const totalsHeight = totals.length * 9 + 16;
+    if (currentY + totalsHeight > pageHeight - 45) {
       doc.addPage();
       currentY = 25;
     }
 
-    // صندوق الإجماليات
-    doc.setFillColor(25, 77, 51);
-    doc.setDrawColor(25, 77, 51);
-    doc.setLineWidth(0.5);
-    doc.roundedRect(12, currentY, pageWidth - 24, totalsHeight, 3, 3, "FD");
+    // رسم تدرج للصندوق
+    const steps = 20;
+    const stepHeight = totalsHeight / steps;
+    for (let i = 0; i < steps; i++) {
+      const ratio = i / steps;
+      const r = COLORS.lightBluePrimary[0] + (COLORS.lightBlueSecondary[0] - COLORS.lightBluePrimary[0]) * ratio;
+      const g = COLORS.lightBluePrimary[1] + (COLORS.lightBlueSecondary[1] - COLORS.lightBluePrimary[1]) * ratio;
+      const b = COLORS.lightBluePrimary[2] + (COLORS.lightBlueSecondary[2] - COLORS.lightBluePrimary[2]) * ratio;
+      
+      doc.setFillColor(Math.round(r), Math.round(g), Math.round(b));
+      doc.rect(15, currentY + i * stepHeight, pageWidth - 30, stepHeight, "F");
+    }
     
-    doc.setFontSize(12);
+    // إطار الصندوق
+    doc.setDrawColor(...COLORS.deepBlue);
+    doc.setLineWidth(1.5);
+    doc.roundedRect(15, currentY, pageWidth - 30, totalsHeight, 4, 4, "S");
+    
+    // ظل الصندوق
+    doc.setFillColor(100, 181, 246, 40);
+    doc.roundedRect(15.5, currentY + 0.5, pageWidth - 30, totalsHeight, 4, 4);
+    
+    doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(...COLORS.white);
     
     totals.forEach((total, index) => {
-      const y = currentY + 10 + index * 8;
-      doc.text(total.label, 18, y);
-      doc.text(String(total.value), pageWidth - 18, y, { align: "right" });
+      const y = currentY + 12 + index * 9;
+      doc.text(total.label, 20, y);
+      doc.text(String(total.value), pageWidth - 20, y, { align: "right" });
     });
   }
 
-  // إضافة الختم
+  // ✅ إضافة الختم الرسمي
   await addStampToDoc(doc);
 
-  // حفظ الملف
+  // 💾 حفظ الملف
   doc.save(`${fileName}.pdf`);
 }
 
@@ -348,41 +464,56 @@ export async function printPDF(pdfOptions: Parameters<typeof generatePDF>[0]) {
     theme: "grid",
     
     headStyles: {
-      fillColor: [25, 77, 51],
-      textColor: [255, 255, 255],
-      fontSize: 11,
+      fillColor: COLORS.lightBluePrimary as [number, number, number],
+      textColor: COLORS.white as [number, number, number],
+      fontSize: 12,
       fontStyle: "bold",
       halign: "center",
       valign: "middle",
-      cellPadding: { top: 5, bottom: 5, left: 3, right: 3 },
+      cellPadding: { top: 6, bottom: 6, left: 4, right: 4 },
       lineWidth: 0.1,
-      lineColor: [200, 200, 200],
+      lineColor: COLORS.deepBlue as [number, number, number],
     },
     
     bodyStyles: {
-      fontSize: 10,
-      textColor: [40, 40, 40],
-      cellPadding: { top: 4, bottom: 4, left: 3, right: 3 },
+      fontSize: 11,
+      textColor: COLORS.textBlack as [number, number, number],
+      cellPadding: { top: 5, bottom: 5, left: 4, right: 4 },
       lineWidth: 0.1,
-      lineColor: [220, 220, 220],
+      lineColor: COLORS.lightBlueSecondary as [number, number, number],
     },
     
     alternateRowStyles: {
-      fillColor: [248, 252, 249],
+      fillColor: COLORS.tableStripe as [number, number, number],
     },
     
     columnStyles: columnStyles,
     
-    margin: { top: 10, left: 12, right: 12, bottom: 35 },
+    margin: { top: 10, left: 15, right: 15, bottom: 40 },
     
-    tableLineColor: [200, 200, 200],
-    tableLineWidth: 0.1,
+    tableLineColor: COLORS.lightBlueSecondary as [number, number, number],
+    tableLineWidth: 0.5,
     
     didDrawPage: (data) => {
-      const footerY = pageHeight - 12;
-      doc.setFontSize(8);
+      const footerY = pageHeight - 15;
+      
+      // خط فاصل مع تدرج
+      for (let i = 0; i < 20; i++) {
+        const x = 15 + (i / 20) * (pageWidth - 30);
+        const width = (pageWidth - 30) / 20;
+        const ratio = i / 20;
+        
+        const r = COLORS.lightBlueSecondary[0] + (COLORS.skyBlue[0] - COLORS.lightBlueSecondary[0]) * ratio;
+        const g = COLORS.lightBlueSecondary[1] + (COLORS.skyBlue[1] - COLORS.lightBlueSecondary[1]) * ratio;
+        const b = COLORS.lightBlueSecondary[2] + (COLORS.skyBlue[2] - COLORS.lightBlueSecondary[2]) * ratio;
+        
+        doc.setFillColor(Math.round(r), Math.round(g), Math.round(b));
+        doc.rect(x, footerY - 3, width, 1, "F");
+      }
+      
+      doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(120, 120, 120);
+      doc.setTextColor(...COLORS.textGray);
       
       const now = new Date();
       const dateStr = now.toLocaleDateString("en-GB", {
@@ -410,27 +541,39 @@ export async function printPDF(pdfOptions: Parameters<typeof generatePDF>[0]) {
   if (pdfOptions.totals && pdfOptions.totals.length > 0) {
     const docWithTable = doc as typeof doc & { lastAutoTable?: { finalY: number } };
     const finalY = docWithTable.lastAutoTable?.finalY || startY;
-    let currentY = finalY + 12;
+    let currentY = finalY + 15;
 
-    const totalsHeight = pdfOptions.totals.length * 8 + 14;
-    if (currentY + totalsHeight > pageHeight - 40) {
+    const totalsHeight = pdfOptions.totals.length * 9 + 16;
+    if (currentY + totalsHeight > pageHeight - 45) {
       doc.addPage();
       currentY = 25;
     }
 
-    doc.setFillColor(25, 77, 51);
-    doc.setDrawColor(25, 77, 51);
-    doc.setLineWidth(0.5);
-    doc.roundedRect(12, currentY, pageWidth - 24, totalsHeight, 3, 3, "FD");
+    // رسم تدرج
+    const steps = 20;
+    const stepHeight = totalsHeight / steps;
+    for (let i = 0; i < steps; i++) {
+      const ratio = i / steps;
+      const r = COLORS.lightBluePrimary[0] + (COLORS.lightBlueSecondary[0] - COLORS.lightBluePrimary[0]) * ratio;
+      const g = COLORS.lightBluePrimary[1] + (COLORS.lightBlueSecondary[1] - COLORS.lightBluePrimary[1]) * ratio;
+      const b = COLORS.lightBluePrimary[2] + (COLORS.lightBlueSecondary[2] - COLORS.lightBluePrimary[2]) * ratio;
+      
+      doc.setFillColor(Math.round(r), Math.round(g), Math.round(b));
+      doc.rect(15, currentY + i * stepHeight, pageWidth - 30, stepHeight, "F");
+    }
     
-    doc.setFontSize(12);
+    doc.setDrawColor(...COLORS.deepBlue);
+    doc.setLineWidth(1.5);
+    doc.roundedRect(15, currentY, pageWidth - 30, totalsHeight, 4, 4, "S");
+    
+    doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(...COLORS.white);
     
     pdfOptions.totals.forEach((total, index) => {
-      const y = currentY + 10 + index * 8;
-      doc.text(total.label, 18, y);
-      doc.text(String(total.value), pageWidth - 18, y, { align: "right" });
+      const y = currentY + 12 + index * 9;
+      doc.text(total.label, 20, y);
+      doc.text(String(total.value), pageWidth - 20, y, { align: "right" });
     });
   }
 
