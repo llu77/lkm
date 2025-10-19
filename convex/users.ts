@@ -1,4 +1,5 @@
 import { ConvexError } from "convex/values";
+import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 export const updateCurrentUser = mutation({
@@ -71,6 +72,25 @@ export const getCurrentUser = query({
         q.eq("tokenIdentifier", identity.tokenIdentifier),
       )
       .unique();
+    return user;
+  },
+});
+
+export const getUserByUsername = query({
+  args: { username: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", args.username))
+      .unique();
+
+    if (!user) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "User not found",
+      });
+    }
+
     return user;
   },
 });
