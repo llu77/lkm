@@ -7,7 +7,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { 
   LayoutDashboardIcon,
   TrendingUpIcon, 
-  TrendingDownIcon, 
+  TrendingDownIcon,
+  CoinsIcon,
   MenuIcon,
   LogOutIcon
 } from "lucide-react";
@@ -22,6 +23,7 @@ export default function Navbar() {
     { path: "/dashboard", label: "لوحة التحكم", icon: LayoutDashboardIcon },
     { path: "/revenues", label: "الإيرادات", icon: TrendingUpIcon },
     { path: "/expenses", label: "المصروفات", icon: TrendingDownIcon },
+    { path: "/bonus", label: "البونص", icon: CoinsIcon },
   ];
 
   return (

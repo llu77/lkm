@@ -5,6 +5,7 @@ import Index from "./pages/Index.tsx";
 import Dashboard from "./pages/dashboard/page.tsx";
 import Revenues from "./pages/revenues/page.tsx";
 import Expenses from "./pages/expenses/page.tsx";
+import Bonus from "./pages/bonus/page.tsx";
 import Migration from "./pages/migration.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/revenues" element={<Revenues />} />
           <Route path="/expenses" element={<Expenses />} />
+          <Route path="/bonus" element={<Bonus />} />
           <Route path="/migration" element={<Migration />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

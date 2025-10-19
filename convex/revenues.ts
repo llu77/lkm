@@ -167,6 +167,22 @@ export const remove = mutation({
       });
     }
 
+    // التحقق من أن الإيراد غير معتمد في البونص (حماية من التلاعب)
+    const revenue = await ctx.db.get(args.id);
+    if (!revenue) {
+      throw new ConvexError({
+        message: "الإيراد غير موجود",
+        code: "NOT_FOUND",
+      });
+    }
+
+    if (revenue.isApprovedForBonus) {
+      throw new ConvexError({
+        message: "⚠️ لا يمكن حذف إيراد معتمد في البونص - للحماية من التلاعب بالبيانات المالية",
+        code: "FORBIDDEN",
+      });
+    }
+
     await ctx.db.delete(args.id);
   },
 });

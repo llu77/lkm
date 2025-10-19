@@ -33,6 +33,7 @@ export default defineSchema({
       name: v.string(),
       revenue: v.number(),
     }))), // موظفي الإيراد
+    isApprovedForBonus: v.optional(v.boolean()), // معتمد في البونص
     // Old fields for migration
     title: v.optional(v.string()),
     amount: v.optional(v.number()),
@@ -78,5 +79,32 @@ export default defineSchema({
     branchName: v.optional(v.string()), // اسم الفرع
   })
     .index("by_status", ["status"])
+    .index("by_branch", ["branchId"]),
+
+  bonusRecords: defineTable({
+    branchId: v.string(),
+    branchName: v.string(),
+    weekNumber: v.number(), // رقم الأسبوع (1-5)
+    weekLabel: v.string(), // "الأسبوع الأول" أو "أيام متبقية"
+    startDate: v.number(),
+    endDate: v.number(),
+    month: v.number(),
+    year: v.number(),
+    employeeBonuses: v.array(v.object({
+      employeeName: v.string(),
+      totalRevenue: v.number(),
+      bonusAmount: v.number(),
+      isEligible: v.boolean(),
+    })),
+    totalBonusPaid: v.number(),
+    approvedBy: v.id("users"),
+    approvedAt: v.number(),
+    revenueSnapshot: v.array(v.object({
+      date: v.number(),
+      employeeName: v.string(),
+      revenue: v.number(),
+    })),
+  })
+    .index("by_branch_and_date", ["branchId", "year", "month", "weekNumber"])
     .index("by_branch", ["branchId"]),
 });
