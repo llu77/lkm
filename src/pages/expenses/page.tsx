@@ -110,7 +110,9 @@ function ExpensesContent() {
       setIsCreateDialogOpen(false);
       resetForm();
     } catch (error) {
-      toast.error("حدث خطأ أثناء إضافة المصروف");
+      const errorMessage = error instanceof Error ? error.message : "حدث خطأ أثناء إضافة المصروف";
+      toast.error(errorMessage, { duration: 6000 });
+      console.error("Create expense error:", error);
     }
   };
 
@@ -119,7 +121,9 @@ function ExpensesContent() {
       await removeExpense({ id });
       toast.success("تم حذف المصروف بنجاح");
     } catch (error) {
-      toast.error("حدث خطأ أثناء حذف المصروف");
+      const errorMessage = error instanceof Error ? error.message : "حدث خطأ أثناء حذف المصروف";
+      toast.error(errorMessage, { duration: 6000 });
+      console.error("Delete expense error:", error);
     }
   };
 

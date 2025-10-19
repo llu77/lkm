@@ -195,8 +195,9 @@ export default function EmployeeRequests() {
       setObjectionDetails("");
       setNationalId("");
     } catch (error) {
-      toast.error("فشل إرسال الطلب");
-      console.error(error);
+      const errorMessage = error instanceof Error ? error.message : "فشل إرسال الطلب";
+      toast.error(errorMessage, { duration: 6000 });
+      console.error("Create request error:", error);
     }
   };
 

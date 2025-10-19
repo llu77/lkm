@@ -207,7 +207,9 @@ function ManageRequestsContent({ branchId, branchName }: { branchId: string; bra
       setSelectedRequest(null);
       setAdminResponse("");
     } catch (error) {
-      toast.error("فشل في تحديث الطلب");
+      const errorMessage = error instanceof Error ? error.message : "فشل في تحديث الطلب";
+      toast.error(errorMessage, { duration: 6000 });
+      console.error("Update request error:", error);
     }
   };
 

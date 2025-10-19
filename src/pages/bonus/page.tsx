@@ -44,8 +44,9 @@ function BonusPageInner() {
       await approveBonus({ branchId, branchName });
       toast.success("تم اعتماد البونص بنجاح");
     } catch (error) {
-      toast.error("حدث خطأ أثناء اعتماد البونص");
-      console.error(error);
+      const errorMessage = error instanceof Error ? error.message : "حدث خطأ أثناء اعتماد البونص";
+      toast.error(errorMessage, { duration: 6000 });
+      console.error("Approve bonus error:", error);
     } finally {
       setIsApproving(false);
     }

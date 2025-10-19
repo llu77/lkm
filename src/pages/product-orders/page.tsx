@@ -216,7 +216,9 @@ function ProductOrdersContent({ branchId, branchName }: { branchId: string; bran
       toast.success("تم حفظ الطلب كمسودة بنجاح");
       resetForm();
     } catch (error) {
-      toast.error("فشل حفظ المسودة");
+      const errorMessage = error instanceof Error ? error.message : "فشل حفظ المسودة";
+      toast.error(errorMessage, { duration: 6000 });
+      console.error("Save draft error:", error);
     }
   };
 
@@ -244,7 +246,9 @@ function ProductOrdersContent({ branchId, branchName }: { branchId: string; bran
       toast.success("تم إرسال الطلب بنجاح");
       resetForm();
     } catch (error) {
-      toast.error("فشل إرسال الطلب");
+      const errorMessage = error instanceof Error ? error.message : "فشل إرسال الطلب";
+      toast.error(errorMessage, { duration: 6000 });
+      console.error("Send order error:", error);
     }
   };
 
@@ -261,7 +265,9 @@ function ProductOrdersContent({ branchId, branchName }: { branchId: string; bran
       await deleteDraft({ orderId: draftId });
       toast.success("تم حذف المسودة");
     } catch (error) {
-      toast.error("فشل حذف المسودة");
+      const errorMessage = error instanceof Error ? error.message : "فشل حذف المسودة";
+      toast.error(errorMessage, { duration: 6000 });
+      console.error("Delete draft error:", error);
     }
   };
 
