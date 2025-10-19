@@ -263,11 +263,9 @@ function ExpensesContent() {
                         }).filter(item => item.total > 0);
 
                         await generatePDF({
-                          header: {
-                            title: "Expenses Report",
-                            subtitle: "Financial Management System",
-                            branchName: branchName || "",
-                          },
+                          title: "Expenses Report",
+                          subtitle: "Financial Management System",
+                          branchName: branchName || "",
                           columns: [
                             { header: "Title", dataKey: "title", align: "left", width: 40 },
                             { header: "Category", dataKey: "category", align: "center", width: 30 },
@@ -276,15 +274,14 @@ function ExpensesContent() {
                             { header: "Description", dataKey: "description", align: "left", width: 60 },
                           ],
                           data: pdfData,
-                          totals: [
+                          summaries: [
                             { label: "Total Expenses:", value: `${totalExpenses.toFixed(2)} SAR` },
-                            { label: "Total Transactions:", value: expenses.length },
+                            { label: "Total Transactions:", value: String(expenses.length) },
                             ...categoryBreakdown.map(item => ({
                               label: `${item.category}:`,
                               value: `${item.total.toFixed(2)} SAR`
                             })),
                           ],
-                          fileName: `Expenses_${branchName}_${format(new Date(), "yyyy-MM-dd")}`,
                         });
                         
                         toast.success("تم تصدير PDF بنجاح");
@@ -315,11 +312,9 @@ function ExpensesContent() {
                         }).filter(item => item.total > 0);
 
                         await printPDF({
-                          header: {
-                            title: "Expenses Report",
-                            subtitle: "Financial Management System",
-                            branchName: branchName || "",
-                          },
+                          title: "Expenses Report",
+                          subtitle: "Financial Management System",
+                          branchName: branchName || "",
                           columns: [
                             { header: "Title", dataKey: "title", align: "left", width: 40 },
                             { header: "Category", dataKey: "category", align: "center", width: 30 },
@@ -328,15 +323,14 @@ function ExpensesContent() {
                             { header: "Description", dataKey: "description", align: "left", width: 60 },
                           ],
                           data: pdfData,
-                          totals: [
+                          summaries: [
                             { label: "Total Expenses:", value: `${totalExpenses.toFixed(2)} SAR` },
-                            { label: "Total Transactions:", value: expenses.length },
+                            { label: "Total Transactions:", value: String(expenses.length) },
                             ...categoryBreakdown.map(item => ({
                               label: `${item.category}:`,
                               value: `${item.total.toFixed(2)} SAR`
                             })),
                           ],
-                          fileName: `Expenses_${branchName}_${format(new Date(), "yyyy-MM-dd")}`,
                         });
                       }}
                     >

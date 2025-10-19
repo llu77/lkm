@@ -531,14 +531,12 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                     const grandTotal = revenues.reduce((sum, r) => sum + (r.total || 0), 0);
 
                     await generatePDF({
-                      header: {
-                        title: "Revenue Report",
-                        subtitle: "Financial Management System",
-                        branchName: branchName,
-                        dateRange: {
-                          from: new Date(currentYear, currentMonth, 1).toLocaleDateString("en-GB"),
-                          to: new Date(currentYear, currentMonth + 1, 0).toLocaleDateString("en-GB"),
-                        },
+                      title: "Revenue Report",
+                      subtitle: "Financial Management System",
+                      branchName: branchName,
+                      dateRange: {
+                        from: new Date(currentYear, currentMonth, 1).toLocaleDateString("en-GB"),
+                        to: new Date(currentYear, currentMonth + 1, 0).toLocaleDateString("en-GB"),
                       },
                       columns: [
                         { header: "Date", dataKey: "date", align: "center", width: 30 },
@@ -549,13 +547,12 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                         { header: "Status", dataKey: "status", align: "center", width: 25 },
                       ],
                       data: pdfData,
-                      totals: [
+                      summaries: [
                         { label: "Total Cash:", value: `${totalCash.toLocaleString()} SAR` },
                         { label: "Total Network:", value: `${totalNetwork.toLocaleString()} SAR` },
                         { label: "Total Budget:", value: `${totalBudget.toLocaleString()} SAR` },
                         { label: "Grand Total:", value: `${grandTotal.toLocaleString()} SAR` },
                       ],
-                      fileName: `Revenues_${branchName}_${monthName.replace(/\s+/g, "_")}`,
                     });
                     
                     toast.success("تم تصدير PDF بنجاح");
@@ -584,14 +581,12 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                     const grandTotal = revenues.reduce((sum, r) => sum + (r.total || 0), 0);
 
                     await printPDF({
-                      header: {
-                        title: "Revenue Report",
-                        subtitle: "Financial Management System",
-                        branchName: branchName,
-                        dateRange: {
-                          from: new Date(currentYear, currentMonth, 1).toLocaleDateString("en-GB"),
-                          to: new Date(currentYear, currentMonth + 1, 0).toLocaleDateString("en-GB"),
-                        },
+                      title: "Revenue Report",
+                      subtitle: "Financial Management System",
+                      branchName: branchName,
+                      dateRange: {
+                        from: new Date(currentYear, currentMonth, 1).toLocaleDateString("en-GB"),
+                        to: new Date(currentYear, currentMonth + 1, 0).toLocaleDateString("en-GB"),
                       },
                       columns: [
                         { header: "Date", dataKey: "date", align: "center", width: 30 },
@@ -602,13 +597,12 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                         { header: "Status", dataKey: "status", align: "center", width: 25 },
                       ],
                       data: pdfData,
-                      totals: [
+                      summaries: [
                         { label: "Total Cash:", value: `${totalCash.toLocaleString()} SAR` },
                         { label: "Total Network:", value: `${totalNetwork.toLocaleString()} SAR` },
                         { label: "Total Budget:", value: `${totalBudget.toLocaleString()} SAR` },
                         { label: "Grand Total:", value: `${grandTotal.toLocaleString()} SAR` },
                       ],
-                      fileName: `Revenues_${branchName}_${monthName.replace(/\s+/g, "_")}`,
                     });
                   }}
                 >
