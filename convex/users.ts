@@ -50,8 +50,7 @@ export const updateCurrentUser = mutation({
       tokenIdentifier: identity.tokenIdentifier,
       username,
       avatar: identity.profileUrl,
-      followerCount: 0,
-      followingCount: 0,
+      role: "employee",
     });
   },
 });

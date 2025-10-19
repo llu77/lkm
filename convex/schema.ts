@@ -9,33 +9,43 @@ export default defineSchema({
     username: v.string(),
     bio: v.optional(v.string()),
     avatar: v.optional(v.string()),
-    followerCount: v.number(),
-    followingCount: v.number(),
+    role: v.optional(v.string()), // "admin", "employee", "manager"
   })
     .index("by_token", ["tokenIdentifier"])
     .index("by_username", ["username"]),
 
-  posts: defineTable({
+  revenues: defineTable({
+    title: v.string(),
+    amount: v.number(),
+    category: v.string(),
+    description: v.optional(v.string()),
+    date: v.number(),
     userId: v.id("users"),
-    imageUrl: v.string(),
-    storageId: v.id("_storage"),
-    caption: v.optional(v.string()),
-    likeCount: v.number(),
-  }).index("by_user", ["userId"]),
+  }).index("by_date", ["date"]),
 
-  follows: defineTable({
-    followerId: v.id("users"),
-    followingId: v.id("users"),
-  })
-    .index("by_follower", ["followerId"])
-    .index("by_following", ["followingId"])
-    .index("by_follower_and_following", ["followerId", "followingId"]),
-
-  likes: defineTable({
+  expenses: defineTable({
+    title: v.string(),
+    amount: v.number(),
+    category: v.string(),
+    description: v.optional(v.string()),
+    date: v.number(),
     userId: v.id("users"),
-    postId: v.id("posts"),
-  })
-    .index("by_user", ["userId"])
-    .index("by_post", ["postId"])
-    .index("by_user_and_post", ["userId", "postId"]),
+  }).index("by_date", ["date"]),
+
+  productOrders: defineTable({
+    productName: v.string(),
+    quantity: v.number(),
+    price: v.number(),
+    status: v.string(), // "pending", "approved", "rejected", "completed"
+    requestedBy: v.id("users"),
+    notes: v.optional(v.string()),
+  }).index("by_status", ["status"]),
+
+  employeeOrders: defineTable({
+    requestType: v.string(),
+    description: v.string(),
+    status: v.string(), // "pending", "approved", "rejected", "completed"
+    priority: v.string(), // "low", "medium", "high"
+    requestedBy: v.id("users"),
+  }).index("by_status", ["status"]),
 });
