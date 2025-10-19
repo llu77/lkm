@@ -1,6 +1,7 @@
 "use node";
 
 import { action } from "./_generated/server";
+import { api } from "./_generated/api";
 import { v } from "convex/values";
 
 /**
@@ -93,7 +94,7 @@ export const generatePDFFromHTML = action({
 /**
  * Generate Revenue Report PDF using PDF.co
  */
-export const generateRevenueReportPDF = action({
+export const generateRevenueReportPDF: ReturnType<typeof action> = action({
   args: {
     branchId: v.string(),
     branchName: v.string(),
@@ -114,7 +115,7 @@ export const generateRevenueReportPDF = action({
     const html = generateRevenueHTML(args);
     
     // Use PDF.co to generate PDF
-    const result = await ctx.runAction(generatePDFFromHTML, {
+    const result: { success: boolean; pdfUrl?: string; error?: string } = await ctx.runAction(api.pdfAgent.generatePDFFromHTML, {
       html,
       documentName: `revenue_report_${args.branchId}_${new Date().toISOString()}.pdf`,
       pageSize: "A4",
@@ -128,7 +129,7 @@ export const generateRevenueReportPDF = action({
 /**
  * Generate Expense Report PDF using PDF.co
  */
-export const generateExpenseReportPDF = action({
+export const generateExpenseReportPDF: ReturnType<typeof action> = action({
   args: {
     branchId: v.string(),
     branchName: v.string(),
@@ -147,7 +148,7 @@ export const generateExpenseReportPDF = action({
     const html = generateExpenseHTML(args);
     
     // Use PDF.co to generate PDF
-    const result = await ctx.runAction(generatePDFFromHTML, {
+    const result: { success: boolean; pdfUrl?: string; error?: string } = await ctx.runAction(api.pdfAgent.generatePDFFromHTML, {
       html,
       documentName: `expense_report_${args.branchId}_${new Date().toISOString()}.pdf`,
       pageSize: "A4",
@@ -161,7 +162,7 @@ export const generateExpenseReportPDF = action({
 /**
  * Generate Product Order Invoice PDF using PDF.co
  */
-export const generateProductOrderPDF = action({
+export const generateProductOrderPDF: ReturnType<typeof action> = action({
   args: {
     orderId: v.string(),
     orderName: v.string(),
@@ -182,7 +183,7 @@ export const generateProductOrderPDF = action({
     const html = generateProductOrderHTML(args);
     
     // Use PDF.co to generate PDF
-    const result = await ctx.runAction(generatePDFFromHTML, {
+    const result: { success: boolean; pdfUrl?: string; error?: string } = await ctx.runAction(api.pdfAgent.generatePDFFromHTML, {
       html,
       documentName: `product_order_${args.orderId}.pdf`,
       pageSize: "A4",
