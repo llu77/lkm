@@ -66,10 +66,10 @@ const BRANCH_EMPLOYEES: Record<string, string[]> = {
 };
 
 export default function Revenues() {
-  const { branchId, branchName } = useBranch();
+  const { branchId, branchName, selectBranch } = useBranch();
 
   if (!branchId) {
-    return <BranchSelector onBranchSelected={() => {}} />;
+    return <BranchSelector onBranchSelected={selectBranch} />;
   }
 
   return (

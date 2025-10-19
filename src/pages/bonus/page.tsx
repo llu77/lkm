@@ -16,7 +16,7 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
 function BonusPageInner() {
-  const { branchId, branchName } = useBranch();
+  const { branchId, branchName, selectBranch } = useBranch();
   const [isApproving, setIsApproving] = useState(false);
 
   const currentWeekData = useQuery(api.bonus.getCurrentWeekRevenues, 
@@ -28,7 +28,7 @@ function BonusPageInner() {
   const approveBonus = useMutation(api.bonus.approveBonus);
 
   if (!branchId || !branchName) {
-    return <BranchSelector onBranchSelected={() => {}} />;
+    return <BranchSelector onBranchSelected={selectBranch} />;
   }
 
   const handleApprove = async () => {
