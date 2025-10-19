@@ -8,6 +8,7 @@ export const create = mutation({
     cash: v.number(),
     network: v.number(),
     budget: v.number(),
+    mismatchReason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -31,6 +32,18 @@ export const create = mutation({
     }
 
     const total = args.cash + args.network + args.budget;
+    
+    // التحقق من المطابقة: المجموع = الكاش + الشبكة
+    const expectedTotal = args.cash + args.network;
+    const isMatched = total === expectedTotal;
+
+    // إذا لم تكن مطابقة ولم يتم إدخال سبب، نرمي خطأ
+    if (!isMatched && !args.mismatchReason) {
+      throw new ConvexError({
+        code: "BAD_REQUEST",
+        message: "يجب إدخال سبب عدم المطابقة",
+      });
+    }
 
     const revenueId = await ctx.db.insert("revenues", {
       date: args.date,
@@ -38,6 +51,8 @@ export const create = mutation({
       network: args.network,
       budget: args.budget,
       total,
+      isMatched,
+      mismatchReason: args.mismatchReason,
       userId: user._id,
     });
 
@@ -211,6 +226,7 @@ export const getStats = query({
       currentMonthCash,
       currentMonthNetwork,
       currentMonthBudget,
+      currentMonthRevenue: currentMonthTotal,
       totalCount: allRevenues.length,
       currentMonthCount: currentMonthRevenues.length,
       averageRevenue,

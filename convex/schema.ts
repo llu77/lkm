@@ -23,6 +23,8 @@ export default defineSchema({
     network: v.optional(v.number()),
     budget: v.optional(v.number()),
     total: v.optional(v.number()),
+    isMatched: v.optional(v.boolean()), // حالة المطابقة
+    mismatchReason: v.optional(v.string()), // سبب عدم المطابقة
     userId: v.id("users"),
     // Old fields for migration
     title: v.optional(v.string()),
