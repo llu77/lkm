@@ -7,15 +7,17 @@ import { internal } from "./_generated/api";
 /**
  * إرسال event إلى Zapier webhook
  */
-export const sendToZapier = internalAction({
+export const sendToZapier = action({
   args: {
-    webhookUrl: v.string(),
     eventType: v.string(),
-    payload: v.any(),
+    payload: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     try {
-      const response = await fetch(args.webhookUrl, {
+      // Default Zapier webhook URL
+      const webhookUrl = "https://hooks.zapier.com/hooks/catch/4045e58858fec2e48109352fcd71ead5/";
+      
+      const response = await fetch(webhookUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,7 +47,7 @@ export const sendToZapier = internalAction({
 /**
  * إطلاق event لجميع webhooks المسجلة
  */
-export const triggerWebhooks = internalAction({
+export const triggerWebhooksInternal = internalAction({
   args: {
     eventType: v.string(),
     payload: v.any(),

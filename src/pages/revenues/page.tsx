@@ -120,6 +120,7 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
   const createRevenue = useMutation(api.revenues.create);
   const removeRevenue = useMutation(api.revenues.remove);
   const validateData = useAction(api.ai.validateRevenueData);
+  const triggerPdfGenerated = useAction(api.zapier.sendToZapier);
 
   const [date, setDate] = useState<string>(
     new Date(currentYear, currentMonth, new Date().getDate()).toISOString().split("T")[0]
@@ -578,6 +579,26 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                       new Date(currentYear, currentMonth + 1, 0)
                     );
                     
+                    // Trigger Zapier webhook
+                    try {
+                      await triggerPdfGenerated({
+                        eventType: "pdf_generated",
+                        payload: {
+                          type: "revenue_report_export",
+                          branchName,
+                          month: currentMonth + 1,
+                          year: currentYear,
+                          totalCash,
+                          totalNetwork,
+                          totalBudget,
+                          grandTotal,
+                          recordCount: revenues.length,
+                        },
+                      });
+                    } catch (error) {
+                      console.error("Zapier trigger error:", error);
+                    }
+                    
                     toast.success("تم تصدير PDF بنجاح");
                   }}
                 >
@@ -599,12 +620,39 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                       isMatched: rev.isMatched ?? false,
                     }));
 
+                    const totalCash = revenues.reduce((sum: number, r: { cash?: number }) => sum + (r.cash || 0), 0);
+                    const totalNetwork = revenues.reduce((sum: number, r: { network?: number }) => sum + (r.network || 0), 0);
+                    const totalBudget = revenues.reduce((sum: number, r: { budget?: number }) => sum + (r.budget || 0), 0);
+                    const grandTotal = revenues.reduce((sum: number, r: { total?: number }) => sum + (r.total || 0), 0);
+
                     await generateRevenuesPDF(
                       pdfData,
                       branchName,
                       new Date(currentYear, currentMonth, 1),
                       new Date(currentYear, currentMonth + 1, 0)
                     );
+                    
+                    // Trigger Zapier webhook
+                    try {
+                      await triggerPdfGenerated({
+                        eventType: "pdf_generated",
+                        payload: {
+                          type: "revenue_report_print",
+                          branchName,
+                          month: currentMonth + 1,
+                          year: currentYear,
+                          totalCash,
+                          totalNetwork,
+                          totalBudget,
+                          grandTotal,
+                          recordCount: revenues.length,
+                        },
+                      });
+                    } catch (error) {
+                      console.error("Zapier trigger error:", error);
+                    }
+                    
+                    toast.success("تم فتح نافذة الطباعة");
                   }}
                 >
                   <PrinterIcon className="ml-2 size-4" />
