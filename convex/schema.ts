@@ -107,4 +107,47 @@ export default defineSchema({
   })
     .index("by_branch_and_date", ["branchId", "year", "month", "weekNumber"])
     .index("by_branch", ["branchId"]),
+
+  employeeRequests: defineTable({
+    branchId: v.string(),
+    branchName: v.string(),
+    employeeName: v.string(),
+    requestType: v.string(), // "سلفة", "إجازة", "صرف متأخرات", "استئذان", "اعتراض على مخالفة", "استقالة"
+    status: v.string(), // "تحت الإجراء", "مقبول", "مرفوض"
+    requestDate: v.number(),
+    
+    // تفاصيل السلفة
+    advanceAmount: v.optional(v.number()),
+    
+    // تفاصيل الإجازة
+    vacationDate: v.optional(v.number()),
+    
+    // تفاصيل صرف المتأخرات
+    duesAmount: v.optional(v.number()),
+    
+    // تفاصيل الاستئذان
+    permissionDate: v.optional(v.number()),
+    permissionStartTime: v.optional(v.string()),
+    permissionEndTime: v.optional(v.string()),
+    permissionHours: v.optional(v.number()),
+    
+    // تفاصيل الاعتراض على المخالفة
+    violationDate: v.optional(v.number()),
+    objectionReason: v.optional(v.string()),
+    objectionDetails: v.optional(v.string()),
+    
+    // تفاصيل الاستقالة
+    nationalId: v.optional(v.string()),
+    resignationText: v.optional(v.string()),
+    
+    // رد الإدارة
+    adminResponse: v.optional(v.string()),
+    responseDate: v.optional(v.number()),
+    
+    userId: v.id("users"),
+  })
+    .index("by_branch", ["branchId"])
+    .index("by_status", ["status"])
+    .index("by_employee", ["employeeName"])
+    .index("by_user", ["userId"]),
 });

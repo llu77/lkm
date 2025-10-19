@@ -16,6 +16,7 @@ import type {
 import type * as bonus from "../bonus.js";
 import type * as clearRevenues from "../clearRevenues.js";
 import type * as dashboard from "../dashboard.js";
+import type * as employeeRequests from "../employeeRequests.js";
 import type * as expenses from "../expenses.js";
 import type * as migration from "../migration.js";
 import type * as revenues from "../revenues.js";
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   bonus: typeof bonus;
   clearRevenues: typeof clearRevenues;
   dashboard: typeof dashboard;
+  employeeRequests: typeof employeeRequests;
   expenses: typeof expenses;
   migration: typeof migration;
   revenues: typeof revenues;
