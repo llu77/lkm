@@ -39,7 +39,7 @@ export default function EmployeeRequests() {
   const { branchId, branchName } = useBranch();
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [requestType, setRequestType] = useState("");
-  const [requestDate, setRequestDate] = useState(format(new Date(), "yyyy-MM-dd"));
+
   
   // Advance fields
   const [advanceAmount, setAdvanceAmount] = useState("");
@@ -101,7 +101,7 @@ export default function EmployeeRequests() {
         branchName: branchName || "",
         employeeName: selectedEmployee,
         requestType,
-        requestDate: new Date(requestDate).getTime(),
+
       };
 
       let specificData: Record<string, unknown> = {};
@@ -244,16 +244,6 @@ export default function EmployeeRequests() {
                     <SelectItem value="استقالة">استقالة</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              {/* Request Date */}
-              <div className="space-y-2">
-                <Label>تاريخ الطلب *</Label>
-                <Input
-                  type="date"
-                  value={requestDate}
-                  onChange={(e) => setRequestDate(e.target.value)}
-                />
               </div>
 
               {/* Conditional Fields Based on Request Type */}
