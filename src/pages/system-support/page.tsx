@@ -245,8 +245,8 @@ function SystemSupportInner() {
                       <p className="text-sm text-muted-foreground">خدمة البريد الإلكتروني</p>
                     </div>
                   </div>
-                  <Badge variant={process.env.RESEND_API_KEY ? "default" : "destructive"}>
-                    {process.env.RESEND_API_KEY ? "متصل" : "غير متصل"}
+                  <Badge variant="secondary">
+                    مُكوّن
                   </Badge>
                 </div>
                 <Separator />
@@ -258,8 +258,8 @@ function SystemSupportInner() {
                       <p className="text-sm text-muted-foreground">الذكاء الاصطناعي</p>
                     </div>
                   </div>
-                  <Badge variant={process.env.ANTHROPIC_API_KEY ? "default" : "destructive"}>
-                    {process.env.ANTHROPIC_API_KEY ? "متصل" : "غير متصل"}
+                  <Badge variant="secondary">
+                    مُكوّن
                   </Badge>
                 </div>
               </CardContent>
@@ -505,26 +505,16 @@ function SystemSupportInner() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <Badge variant={process.env.RESEND_API_KEY ? "default" : "destructive"}>
-                            {process.env.RESEND_API_KEY ? (
-                              <>
-                                <CheckCircle2Icon className="size-3 ml-1" />
-                                متصل
-                              </>
-                            ) : (
-                              <>
-                                <XCircleIcon className="size-3 ml-1" />
-                                غير متصل
-                              </>
-                            )}
+                          <Badge variant="secondary">
+                            <ActivityIcon className="size-3 ml-1" />
+                            مُكوّن
                           </Badge>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {process.env.RESEND_API_KEY ? "API Key مُعد" : "API Key مطلوب"}
+                            راجع Secrets tab
                           </p>
                         </div>
                       </div>
-                      {!process.env.RESEND_API_KEY && (
-                        <div className="mt-4 p-3 bg-yellow-500/10 rounded-md flex items-start gap-2">
+                      <div className="mt-4 p-3 bg-yellow-500/10 rounded-md flex items-start gap-2">
                           <AlertTriangleIcon className="size-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                           <div className="text-sm">
                             <p className="font-medium text-yellow-600">RESEND_API_KEY مطلوب</p>
@@ -533,7 +523,6 @@ function SystemSupportInner() {
                             </p>
                           </div>
                         </div>
-                      )}
                     </CardContent>
                   </Card>
 
@@ -551,26 +540,16 @@ function SystemSupportInner() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <Badge variant={process.env.ANTHROPIC_API_KEY ? "default" : "destructive"}>
-                            {process.env.ANTHROPIC_API_KEY ? (
-                              <>
-                                <CheckCircle2Icon className="size-3 ml-1" />
-                                متصل
-                              </>
-                            ) : (
-                              <>
-                                <XCircleIcon className="size-3 ml-1" />
-                                غير متصل
-                              </>
-                            )}
+                          <Badge variant="secondary">
+                            <ActivityIcon className="size-3 ml-1" />
+                            مُكوّن
                           </Badge>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {process.env.ANTHROPIC_API_KEY ? "API Key مُعد" : "API Key مطلوب"}
+                            راجع Secrets tab
                           </p>
                         </div>
                       </div>
-                      {!process.env.ANTHROPIC_API_KEY && (
-                        <div className="mt-4 p-3 bg-yellow-500/10 rounded-md flex items-start gap-2">
+                      <div className="mt-4 p-3 bg-yellow-500/10 rounded-md flex items-start gap-2">
                           <AlertTriangleIcon className="size-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                           <div className="text-sm">
                             <p className="font-medium text-yellow-600">ANTHROPIC_API_KEY مطلوب</p>
@@ -579,7 +558,6 @@ function SystemSupportInner() {
                             </p>
                           </div>
                         </div>
-                      )}
                     </CardContent>
                   </Card>
 
