@@ -121,6 +121,7 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
   const removeRevenue = useMutation(api.revenues.remove);
   const validateData = useAction(api.ai.validateRevenueData);
   const triggerPdfGenerated = useAction(api.zapier.sendToZapier);
+  const generatePDFco = useAction(api.pdfAgent.generateRevenueReportPDF);
 
   const [date, setDate] = useState<string>(
     new Date(currentYear, currentMonth, new Date().getDate()).toISOString().split("T")[0]
@@ -572,34 +573,60 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                     const totalBudget = revenues.reduce((sum: number, r: { budget?: number }) => sum + (r.budget || 0), 0);
                     const grandTotal = revenues.reduce((sum: number, r: { total?: number }) => sum + (r.total || 0), 0);
 
-                    await generateRevenuesPDF(
-                      pdfData,
-                      branchName,
-                      new Date(currentYear, currentMonth, 1),
-                      new Date(currentYear, currentMonth + 1, 0)
-                    );
-                    
-                    // Trigger Zapier webhook
+                    // Generate PDF with PDF.co
                     try {
-                      await triggerPdfGenerated({
-                        eventType: "pdf_generated",
-                        payload: {
-                          type: "revenue_report_export",
-                          branchName,
-                          month: currentMonth + 1,
-                          year: currentYear,
-                          totalCash,
-                          totalNetwork,
-                          totalBudget,
-                          grandTotal,
-                          recordCount: revenues.length,
-                        },
+                      toast.info("🔄 جاري إنشاء التقرير عبر PDF.co...");
+                      
+                      const result = await generatePDFco({
+                        branchId: branchId,
+                        branchName: branchName,
+                        startDate: new Date(currentYear, currentMonth, 1).getTime(),
+                        endDate: new Date(currentYear, currentMonth + 1, 0).getTime(),
+                        revenues: revenues.map((rev: { date: number; cash?: number; network?: number; budget?: number; total?: number; calculatedTotal?: number; isMatched?: boolean }) => ({
+                          date: rev.date,
+                          cash: rev.cash || 0,
+                          network: rev.network || 0,
+                          budget: rev.budget || 0,
+                          total: rev.total || 0,
+                          calculatedTotal: rev.calculatedTotal || 0,
+                          isMatched: rev.isMatched ?? false,
+                        })),
                       });
+
+                      if (result.success && result.pdfUrl) {
+                        // Open PDF in new tab
+                        window.open(result.pdfUrl, '_blank');
+                        toast.success("✅ تم إنشاء التقرير بنجاح! (PDF.co)");
+                        
+                        // Trigger Zapier webhook
+                        try {
+                          await triggerPdfGenerated({
+                            eventType: "pdf_generated",
+                            payload: {
+                              type: "revenue_report_export",
+                              pdfUrl: result.pdfUrl,
+                              fileName: result.fileName,
+                              branchName,
+                              month: currentMonth + 1,
+                              year: currentYear,
+                              totalCash,
+                              totalNetwork,
+                              totalBudget,
+                              grandTotal,
+                              recordCount: revenues.length,
+                            },
+                          });
+                        } catch (zapierError) {
+                          console.error("Zapier webhook failed:", zapierError);
+                        }
+                      } else {
+                        throw new Error(result.error || "Failed to generate PDF");
+                      }
                     } catch (error) {
-                      console.error("Zapier trigger error:", error);
+                      const errorMessage = error instanceof Error ? error.message : "فشل إنشاء التقرير";
+                      toast.error(`⚠️ ${errorMessage}`, { duration: 6000 });
+                      console.error("PDF.co error:", error);
                     }
-                    
-                    toast.success("تم تصدير PDF بنجاح");
                   }}
                 >
                   <FileDownIcon className="ml-2 size-4" />
@@ -625,34 +652,71 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                     const totalBudget = revenues.reduce((sum: number, r: { budget?: number }) => sum + (r.budget || 0), 0);
                     const grandTotal = revenues.reduce((sum: number, r: { total?: number }) => sum + (r.total || 0), 0);
 
-                    await generateRevenuesPDF(
-                      pdfData,
-                      branchName,
-                      new Date(currentYear, currentMonth, 1),
-                      new Date(currentYear, currentMonth + 1, 0)
-                    );
-                    
-                    // Trigger Zapier webhook
+                    // Generate PDF with PDF.co for printing
                     try {
-                      await triggerPdfGenerated({
-                        eventType: "pdf_generated",
-                        payload: {
-                          type: "revenue_report_print",
-                          branchName,
-                          month: currentMonth + 1,
-                          year: currentYear,
-                          totalCash,
-                          totalNetwork,
-                          totalBudget,
-                          grandTotal,
-                          recordCount: revenues.length,
-                        },
+                      toast.info("🔄 جاري إنشاء التقرير للطباعة...");
+                      
+                      const result = await generatePDFco({
+                        branchId: branchId,
+                        branchName: branchName,
+                        startDate: new Date(currentYear, currentMonth, 1).getTime(),
+                        endDate: new Date(currentYear, currentMonth + 1, 0).getTime(),
+                        revenues: revenues.map((rev: { date: number; cash?: number; network?: number; budget?: number; total?: number; calculatedTotal?: number; isMatched?: boolean }) => ({
+                          date: rev.date,
+                          cash: rev.cash || 0,
+                          network: rev.network || 0,
+                          budget: rev.budget || 0,
+                          total: rev.total || 0,
+                          calculatedTotal: rev.calculatedTotal || 0,
+                          isMatched: rev.isMatched ?? false,
+                        })),
                       });
+
+                      if (result.success && result.pdfUrl) {
+                        // Open in new tab for printing
+                        const printWindow = window.open(result.pdfUrl, '_blank');
+                        if (printWindow) {
+                          printWindow.focus();
+                          // Wait a bit then trigger print dialog
+                          setTimeout(() => {
+                            try {
+                              printWindow.print();
+                            } catch (e) {
+                              console.log("Print dialog could not be triggered automatically");
+                            }
+                          }, 1000);
+                        }
+                        toast.success("✅ تم فتح التقرير للطباعة!");
+                        
+                        // Trigger Zapier webhook
+                        try {
+                          await triggerPdfGenerated({
+                            eventType: "pdf_generated",
+                            payload: {
+                              type: "revenue_report_print",
+                              pdfUrl: result.pdfUrl,
+                              fileName: result.fileName,
+                              branchName,
+                              month: currentMonth + 1,
+                              year: currentYear,
+                              totalCash,
+                              totalNetwork,
+                              totalBudget,
+                              grandTotal,
+                              recordCount: revenues.length,
+                            },
+                          });
+                        } catch (zapierError) {
+                          console.error("Zapier webhook failed:", zapierError);
+                        }
+                      } else {
+                        throw new Error(result.error || "Failed to generate PDF");
+                      }
                     } catch (error) {
-                      console.error("Zapier trigger error:", error);
+                      const errorMessage = error instanceof Error ? error.message : "فشل إنشاء التقرير";
+                      toast.error(`⚠️ ${errorMessage}`, { duration: 6000 });
+                      console.error("PDF.co error:", error);
                     }
-                    
-                    toast.success("تم فتح نافذة الطباعة");
                   }}
                 >
                   <PrinterIcon className="ml-2 size-4" />
