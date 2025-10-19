@@ -285,4 +285,21 @@ export default defineSchema({
   })
     .index("by_webhook", ["webhookId"])
     .index("by_status", ["status"]),
+
+  emailSettings: defineTable({
+    settingKey: v.string(), // "sender_name", "sender_email", "default_recipients", "daily_schedule", "monthly_schedule"
+    settingValue: v.union(
+      v.string(),
+      v.object({
+        enabled: v.boolean(),
+        time: v.optional(v.string()),
+        day: v.optional(v.number()),
+        templateId: v.optional(v.string()),
+        customContent: v.optional(v.string()),
+        recipients: v.optional(v.array(v.string())),
+      }),
+      v.array(v.string()),
+    ),
+    updatedAt: v.number(),
+  }).index("by_key", ["settingKey"]),
 });

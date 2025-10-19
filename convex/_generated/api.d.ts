@@ -20,6 +20,7 @@ import type * as bonus from "../bonus.js";
 import type * as clearRevenues from "../clearRevenues.js";
 import type * as dashboard from "../dashboard.js";
 import type * as emailLogs from "../emailLogs.js";
+import type * as emailSettings from "../emailSettings.js";
 import type * as emailSystem from "../emailSystem.js";
 import type * as employeeRequests from "../employeeRequests.js";
 import type * as expenses from "../expenses.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   clearRevenues: typeof clearRevenues;
   dashboard: typeof dashboard;
   emailLogs: typeof emailLogs;
+  emailSettings: typeof emailSettings;
   emailSystem: typeof emailSystem;
   employeeRequests: typeof employeeRequests;
   expenses: typeof expenses;

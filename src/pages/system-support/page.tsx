@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useAction, useQuery } from "convex/react";
+import { useState, useEffect } from "react";
+import { useAction, useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Authenticated, Unauthenticated } from "convex/react";
 import { SignInButton } from "@/components/ui/signin.tsx";
@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Separator } from "@/components/ui/separator.tsx";
+import { Switch } from "@/components/ui/switch.tsx";
 import { toast } from "sonner";
 import {
   MailIcon,
@@ -27,7 +28,515 @@ import {
   AlertTriangleIcon,
   RefreshCwIcon,
   EyeIcon,
+  UserIcon,
+  UsersIcon,
+  CalendarIcon,
+  Trash2Icon,
+  PlusIcon,
 } from "lucide-react";
+
+function SettingsTabContent() {
+  const settings = useQuery(api.emailSettings.getAllSettings);
+  const updateSenderSettings = useMutation(api.emailSettings.updateSenderSettings);
+  const updateDefaultRecipients = useMutation(api.emailSettings.updateDefaultRecipients);
+  const updateDailySchedule = useMutation(api.emailSettings.updateDailySchedule);
+  const updateMonthlySchedule = useMutation(api.emailSettings.updateMonthlySchedule);
+
+  const [senderName, setSenderName] = useState("");
+  const [senderEmail, setSenderEmail] = useState("");
+  const [newRecipient, setNewRecipient] = useState("");
+  const [recipients, setRecipients] = useState<string[]>([]);
+  
+  // Daily Schedule
+  const [dailyEnabled, setDailyEnabled] = useState(false);
+  const [dailyTime, setDailyTime] = useState("03:00");
+  const [dailyTemplate, setDailyTemplate] = useState("report");
+  const [dailyCustomContent, setDailyCustomContent] = useState("");
+  const [dailyRecipients, setDailyRecipients] = useState<string[]>([]);
+  
+  // Monthly Schedule
+  const [monthlyEnabled, setMonthlyEnabled] = useState(false);
+  const [monthlyDay, setMonthlyDay] = useState(1);
+  const [monthlyTime, setMonthlyTime] = useState("12:00");
+  const [monthlyTemplate, setMonthlyTemplate] = useState("report");
+  const [monthlyCustomContent, setMonthlyCustomContent] = useState("");
+  const [monthlyRecipients, setMonthlyRecipients] = useState<string[]>([]);
+
+  const [saving, setSaving] = useState(false);
+
+  // Load settings
+  useEffect(() => {
+    if (settings) {
+      setSenderName(settings.senderName as string);
+      setSenderEmail(settings.senderEmail as string);
+      setRecipients((settings.defaultRecipients as string[]) || []);
+      
+      const daily = settings.dailySchedule as {
+        enabled: boolean;
+        time: string;
+        templateId?: string;
+        customContent?: string;
+        recipients?: string[];
+      };
+      setDailyEnabled(daily.enabled);
+      setDailyTime(daily.time || "03:00");
+      setDailyTemplate(daily.templateId || "report");
+      setDailyCustomContent(daily.customContent || "");
+      setDailyRecipients(daily.recipients || []);
+      
+      const monthly = settings.monthlySchedule as {
+        enabled: boolean;
+        day: number;
+        time: string;
+        templateId?: string;
+        customContent?: string;
+        recipients?: string[];
+      };
+      setMonthlyEnabled(monthly.enabled);
+      setMonthlyDay(monthly.day || 1);
+      setMonthlyTime(monthly.time || "12:00");
+      setMonthlyTemplate(monthly.templateId || "report");
+      setMonthlyCustomContent(monthly.customContent || "");
+      setMonthlyRecipients(monthly.recipients || []);
+    }
+  }, [settings]);
+
+  const handleSaveSender = async () => {
+    if (!senderName || !senderEmail) {
+      toast.error("جميع الحقول مطلوبة");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await updateSenderSettings({ senderName, senderEmail });
+      toast.success("✅ تم حفظ إعدادات المرسل");
+    } catch (error) {
+      toast.error("فشل حفظ الإعدادات");
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddRecipient = () => {
+    if (!newRecipient || !newRecipient.includes("@")) {
+      toast.error("أدخل بريد إلكتروني صحيح");
+      return;
+    }
+    if (recipients.includes(newRecipient)) {
+      toast.error("هذا البريد موجود مسبقاً");
+      return;
+    }
+    setRecipients([...recipients, newRecipient]);
+    setNewRecipient("");
+  };
+
+  const handleRemoveRecipient = (email: string) => {
+    setRecipients(recipients.filter(r => r !== email));
+  };
+
+  const handleSaveRecipients = async () => {
+    setSaving(true);
+    try {
+      await updateDefaultRecipients({ recipients });
+      toast.success("✅ تم حفظ المستلمين الافتراضيين");
+    } catch (error) {
+      toast.error("فشل حفظ المستلمين");
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveDailySchedule = async () => {
+    if (dailyEnabled && dailyRecipients.length === 0) {
+      toast.error("أضف مستلم واحد على الأقل");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await updateDailySchedule({
+        enabled: dailyEnabled,
+        time: dailyTime,
+        templateId: dailyTemplate,
+        customContent: dailyCustomContent,
+        recipients: dailyRecipients,
+      });
+      toast.success("✅ تم حفظ إعدادات الجدولة اليومية");
+    } catch (error) {
+      toast.error("فشل حفظ الجدولة");
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveMonthlySchedule = async () => {
+    if (monthlyEnabled && monthlyRecipients.length === 0) {
+      toast.error("أضف مستلم واحد على الأقل");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await updateMonthlySchedule({
+        enabled: monthlyEnabled,
+        day: monthlyDay,
+        time: monthlyTime,
+        templateId: monthlyTemplate,
+        customContent: monthlyCustomContent,
+        recipients: monthlyRecipients,
+      });
+      toast.success("✅ تم حفظ إعدادات الجدولة الشهرية");
+    } catch (error) {
+      toast.error("فشل حفظ الجدولة");
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Sender Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserIcon className="size-5" />
+            إعدادات المرسل
+          </CardTitle>
+          <CardDescription>ضبط اسم وبريد المرسل الافتراضي</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>اسم المرسل</Label>
+            <Input
+              placeholder="نظام الإدارة المالية"
+              value={senderName}
+              onChange={(e) => setSenderName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>البريد الإلكتروني</Label>
+            <Input
+              type="email"
+              placeholder="onboarding@resend.dev"
+              value={senderEmail}
+              onChange={(e) => setSenderEmail(e.target.value)}
+            />
+          </div>
+          <Button onClick={handleSaveSender} disabled={saving}>
+            {saving ? <RefreshCwIcon className="size-4 ml-2 animate-spin" /> : <CheckCircle2Icon className="size-4 ml-2" />}
+            حفظ المرسل
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Default Recipients */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UsersIcon className="size-5" />
+            المستلمون الافتراضيون
+          </CardTitle>
+          <CardDescription>إضافة قائمة بالمستلمين الافتراضيين للاستخدام السريع</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              placeholder="user@example.com"
+              value={newRecipient}
+              onChange={(e) => setNewRecipient(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddRecipient();
+                }
+              }}
+            />
+            <Button onClick={handleAddRecipient} size="icon">
+              <PlusIcon className="size-4" />
+            </Button>
+          </div>
+          
+          {recipients.length > 0 && (
+            <div className="space-y-2">
+              <Label>القائمة ({recipients.length})</Label>
+              <div className="space-y-2">
+                {recipients.map((email) => (
+                  <div key={email} className="flex items-center justify-between rounded-lg border p-3">
+                    <span className="text-sm">{email}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveRecipient(email)}
+                    >
+                      <Trash2Icon className="size-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <Button onClick={handleSaveRecipients} disabled={saving}>
+            {saving ? <RefreshCwIcon className="size-4 ml-2 animate-spin" /> : <CheckCircle2Icon className="size-4 ml-2" />}
+            حفظ المستلمين
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Daily Schedule */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ClockIcon className="size-5" />
+            الجدولة اليومية (3:00 AM)
+          </CardTitle>
+          <CardDescription>إرسال تقرير يومي تلقائياً</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label>تفعيل الجدولة</Label>
+            <Switch checked={dailyEnabled} onCheckedChange={setDailyEnabled} />
+          </div>
+
+          {dailyEnabled && (
+            <>
+              <div className="space-y-2">
+                <Label>الوقت</Label>
+                <Input
+                  type="time"
+                  value={dailyTime}
+                  onChange={(e) => setDailyTime(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>القالب أو نص مفتوح</Label>
+                <Select value={dailyTemplate} onValueChange={setDailyTemplate}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="report">تقرير دوري</SelectItem>
+                    <SelectItem value="notification">إشعار عام</SelectItem>
+                    <SelectItem value="custom">نص مفتوح</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {dailyTemplate === "custom" && (
+                <div className="space-y-2">
+                  <Label>المحتوى المخصص (HTML)</Label>
+                  <Textarea
+                    placeholder="<h1>تقرير يومي</h1><p>محتوى التقرير...</p>"
+                    rows={6}
+                    value={dailyCustomContent}
+                    onChange={(e) => setDailyCustomContent(e.target.value)}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>المستلمون</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="user@example.com"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const input = e.currentTarget;
+                        if (input.value && !dailyRecipients.includes(input.value)) {
+                          setDailyRecipients([...dailyRecipients, input.value]);
+                          input.value = "";
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDailyRecipients(recipients);
+                    }}
+                  >
+                    استخدام الافتراضي
+                  </Button>
+                </div>
+                {dailyRecipients.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {dailyRecipients.map((email) => (
+                      <Badge key={email} variant="secondary">
+                        {email}
+                        <button
+                          className="mr-1 hover:text-destructive"
+                          onClick={() => setDailyRecipients(dailyRecipients.filter(r => r !== email))}
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          <Button onClick={handleSaveDailySchedule} disabled={saving}>
+            {saving ? <RefreshCwIcon className="size-4 ml-2 animate-spin" /> : <CheckCircle2Icon className="size-4 ml-2" />}
+            حفظ الجدولة اليومية
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Monthly Schedule */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CalendarIcon className="size-5" />
+            الجدولة الشهرية (1 من كل شهر - 12:00 PM)
+          </CardTitle>
+          <CardDescription>إرسال تقرير شهري تلقائياً</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label>تفعيل الجدولة</Label>
+            <Switch checked={monthlyEnabled} onCheckedChange={setMonthlyEnabled} />
+          </div>
+
+          {monthlyEnabled && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>اليوم من الشهر</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="28"
+                    value={monthlyDay}
+                    onChange={(e) => setMonthlyDay(parseInt(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>الوقت</Label>
+                  <Input
+                    type="time"
+                    value={monthlyTime}
+                    onChange={(e) => setMonthlyTime(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>القالب أو نص مفتوح</Label>
+                <Select value={monthlyTemplate} onValueChange={setMonthlyTemplate}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="report">تقرير دوري</SelectItem>
+                    <SelectItem value="notification">إشعار عام</SelectItem>
+                    <SelectItem value="custom">نص مفتوح</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {monthlyTemplate === "custom" && (
+                <div className="space-y-2">
+                  <Label>المحتوى المخصص (HTML)</Label>
+                  <Textarea
+                    placeholder="<h1>تقرير شهري</h1><p>محتوى التقرير...</p>"
+                    rows={6}
+                    value={monthlyCustomContent}
+                    onChange={(e) => setMonthlyCustomContent(e.target.value)}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>المستلمون</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="user@example.com"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const input = e.currentTarget;
+                        if (input.value && !monthlyRecipients.includes(input.value)) {
+                          setMonthlyRecipients([...monthlyRecipients, input.value]);
+                          input.value = "";
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setMonthlyRecipients(recipients);
+                    }}
+                  >
+                    استخدام الافتراضي
+                  </Button>
+                </div>
+                {monthlyRecipients.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {monthlyRecipients.map((email) => (
+                      <Badge key={email} variant="secondary">
+                        {email}
+                        <button
+                          className="mr-1 hover:text-destructive"
+                          onClick={() => setMonthlyRecipients(monthlyRecipients.filter(r => r !== email))}
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          <Button onClick={handleSaveMonthlySchedule} disabled={saving}>
+            {saving ? <RefreshCwIcon className="size-4 ml-2 animate-spin" /> : <CheckCircle2Icon className="size-4 ml-2" />}
+            حفظ الجدولة الشهرية
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Zapier Integration Info */}
+      <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-900">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-3">
+            <svg className="size-8 flex-shrink-0" viewBox="0 0 256 256" fill="currentColor"><path d="M154.8 10H101.2c-3.6 0-6.5 2.9-6.5 6.5v31.8c0 20.3-16.5 36.8-36.8 36.8H26.1c-3.6 0-6.5 2.9-6.5 6.5v53.6c0 3.6 2.9 6.5 6.5 6.5h31.8c20.3 0 36.8 16.5 36.8 36.8v31.8c0 3.6 2.9 6.5 6.5 6.5h53.6c3.6 0 6.5-2.9 6.5-6.5v-31.8c0-20.3 16.5-36.8 36.8-36.8h31.8c3.6 0 6.5-2.9 6.5-6.5V91.6c0-3.6-2.9-6.5-6.5-6.5h-31.8c-20.3 0-36.8-16.5-36.8-36.8V16.5c0-3.6-2.9-6.5-6.5-6.5z"/></svg>
+            <div className="text-sm space-y-2">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-100">🔗 ربط مع Zapier Schedule</h4>
+              <p className="text-blue-800 dark:text-blue-200">
+                للجدولة التلقائية، استخدم "Schedule by Zapier" في Zapier:
+              </p>
+              <ol className="list-decimal list-inside space-y-1 text-blue-800 dark:text-blue-200">
+                <li>أنشئ Zap جديد → Schedule by Zapier</li>
+                <li>اختر الوقت (يومي 3:00 AM أو شهري 1 @ 12:00 PM)</li>
+                <li>Action: Webhooks → POST إلى webhook URL في تاب Zapier</li>
+                <li>الـ Schedule سيُنفذ تلقائياً وسيرسل البريد حسب الإعدادات</li>
+              </ol>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                راجع ملف ZAPIER_SCHEDULER_SETUP.md للتفاصيل الكاملة
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
 
 function SystemSupportInner() {
   const emailStats = useQuery(api.emailLogs.getEmailStats);
@@ -152,7 +661,7 @@ function SystemSupportInner() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid grid-cols-7 w-full">
+          <TabsList className="grid grid-cols-8 w-full">
             <TabsTrigger value="overview">
               <ActivityIcon className="size-4 ml-2" />
               نظرة عامة
@@ -164,6 +673,10 @@ function SystemSupportInner() {
             <TabsTrigger value="templates">
               <FileTextIcon className="size-4 ml-2" />
               القوالب
+            </TabsTrigger>
+            <TabsTrigger value="settings">
+              <svg className="size-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+              إعدادات
             </TabsTrigger>
             <TabsTrigger value="zapier">
               <svg className="size-4 ml-2" viewBox="0 0 256 256" fill="currentColor"><path d="M154.8 10H101.2c-3.6 0-6.5 2.9-6.5 6.5v31.8c0 20.3-16.5 36.8-36.8 36.8H26.1c-3.6 0-6.5 2.9-6.5 6.5v53.6c0 3.6 2.9 6.5 6.5 6.5h31.8c20.3 0 36.8 16.5 36.8 36.8v31.8c0 3.6 2.9 6.5 6.5 6.5h53.6c3.6 0 6.5-2.9 6.5-6.5v-31.8c0-20.3 16.5-36.8 36.8-36.8h31.8c3.6 0 6.5-2.9 6.5-6.5V91.6c0-3.6-2.9-6.5-6.5-6.5h-31.8c-20.3 0-36.8-16.5-36.8-36.8V16.5c0-3.6-2.9-6.5-6.5-6.5z"/></svg>
@@ -865,6 +1378,11 @@ function SystemSupportInner() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="space-y-6">
+            <SettingsTabContent />
           </TabsContent>
 
           {/* Integrations Tab */}
