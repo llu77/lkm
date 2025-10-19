@@ -278,7 +278,7 @@ function ExpensesContent() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {Object.keys(stats.categoryTotals).length}
+                  {stats.categoryTotals.length}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   تصنيف نشط

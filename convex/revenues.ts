@@ -209,10 +209,15 @@ export const getStats = query({
     const averageRevenue = allRevenues.length > 0 ? totalRevenue / allRevenues.length : 0;
 
     // Get category breakdown
-    const categoryTotals: Record<string, number> = {};
+    const categoryMap = new Map<string, number>();
     allRevenues.forEach((r) => {
-      categoryTotals[r.category] = (categoryTotals[r.category] || 0) + r.amount;
+      categoryMap.set(r.category, (categoryMap.get(r.category) || 0) + r.amount);
     });
+
+    const categoryTotals = Array.from(categoryMap.entries()).map(([category, total]) => ({
+      category,
+      total,
+    }));
 
     return {
       totalRevenue,

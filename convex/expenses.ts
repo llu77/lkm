@@ -209,10 +209,15 @@ export const getStats = query({
     const averageExpense = allExpenses.length > 0 ? totalExpenses / allExpenses.length : 0;
 
     // Get category breakdown
-    const categoryTotals: Record<string, number> = {};
+    const categoryMap = new Map<string, number>();
     allExpenses.forEach((e) => {
-      categoryTotals[e.category] = (categoryTotals[e.category] || 0) + e.amount;
+      categoryMap.set(e.category, (categoryMap.get(e.category) || 0) + e.amount);
     });
+
+    const categoryTotals = Array.from(categoryMap.entries()).map(([category, total]) => ({
+      category,
+      total,
+    }));
 
     return {
       totalExpenses,
