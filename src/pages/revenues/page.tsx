@@ -238,7 +238,7 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
     }
   };
 
-  const monthName = new Date(currentYear, currentMonth).toLocaleDateString("ar-SA", { month: "long", year: "numeric" });
+  const monthName = new Date(currentYear, currentMonth).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   return (
     <div className="space-y-6">
@@ -535,7 +535,7 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                   {revenues.map((revenue) => (
                     <TableRow key={revenue._id}>
                       <TableCell className="font-medium">
-                        {new Date(revenue.date).toLocaleDateString("ar-SA", {
+                        {new Date(revenue.date).toLocaleDateString("en-GB", {
                           year: "numeric",
                           month: "long",
                           day: "numeric",

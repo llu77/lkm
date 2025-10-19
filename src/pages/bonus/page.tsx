@@ -233,17 +233,7 @@ function BonusPageInner() {
               </table>
             </div>
 
-            {/* شرح حساب البونص */}
-            <div className="mt-6 p-4 bg-muted rounded-lg">
-              <h3 className="font-semibold mb-2">معايير البونص:</h3>
-              <ul className="space-y-1 text-sm text-muted-foreground">
-                <li>• إيرادات 1300 ر.س أو أكثر = بونص 50 ر.س</li>
-                <li>• إيرادات 1800 ر.س أو أكثر = بونص 100 ر.س</li>
-                <li>• إيرادات 2400 ر.س أو أكثر = بونص 175 ر.س</li>
-                <li>• إيرادات 2900 ر.س أو أكثر = بونص 240 ر.س</li>
-                <li>• أقل من 1300 ر.س = غير مستحق للبونص</li>
-              </ul>
-            </div>
+
           </CardContent>
         </Card>
 
