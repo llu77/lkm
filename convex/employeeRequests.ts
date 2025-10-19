@@ -120,7 +120,7 @@ export const updateStatus = mutation({
   args: {
     requestId: v.id("employeeRequests"),
     status: v.string(), // "مقبول" أو "مرفوض"
-    adminResponse: v.string(),
+    adminResponse: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -133,7 +133,7 @@ export const updateStatus = mutation({
 
     await ctx.db.patch(args.requestId, {
       status: args.status,
-      adminResponse: args.adminResponse,
+      ...(args.adminResponse ? { adminResponse: args.adminResponse } : {}),
       responseDate: Date.now(),
     });
 

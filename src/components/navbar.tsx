@@ -10,6 +10,8 @@ import {
   TrendingDownIcon,
   CoinsIcon,
   FileTextIcon,
+  ClipboardListIcon,
+  ShieldCheckIcon,
   MenuIcon,
   LogOutIcon
 } from "lucide-react";
@@ -28,6 +30,8 @@ export default function Navbar() {
     { path: "/expenses", label: "المصروفات", icon: TrendingDownIcon },
     { path: "/bonus", label: "البونص", icon: CoinsIcon },
     { path: "/employee-requests", label: "طلبات الموظفين", icon: FileTextIcon },
+    { path: "/my-requests", label: "طلباتي", icon: ClipboardListIcon },
+    { path: "/manage-requests", label: "إدارة الطلبات", icon: ShieldCheckIcon },
   ];
 
   return (
