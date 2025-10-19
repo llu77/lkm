@@ -132,13 +132,11 @@ export function BranchSelector({ onBranchSelected }: BranchSelectorProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center space-y-4">
-          <div className={`mx-auto flex size-16 items-center justify-center rounded-full ${isLocked ? 'bg-red-100' : 'bg-primary/10'}`}>
-            {isLocked ? (
-              <LockIcon className="size-8 text-red-600" />
-            ) : (
-              <BuildingIcon className="size-8 text-primary" />
-            )}
-          </div>
+          <img 
+            src="https://cdn.hercules.app/file_vQl30LwwutdTJK2LlWgX0FdU" 
+            alt="Logo" 
+            className="mx-auto h-28 w-28 object-contain" 
+          />
           <CardTitle className="text-2xl">
             {isLocked ? "الخانة مقفلة" : "اختيار الفرع"}
           </CardTitle>

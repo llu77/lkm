@@ -98,6 +98,13 @@ function MyRequestsContent({ branchId, branchName }: { branchId: string; branchN
           <h1 className="text-3xl font-bold">طلباتي</h1>
           <p className="text-muted-foreground">متابعة حالة طلباتك</p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.history.back()}
+        >
+          عودة
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

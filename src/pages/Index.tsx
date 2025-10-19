@@ -26,9 +26,11 @@ export default function Index() {
         <div className="flex min-h-screen items-center justify-center p-4">
           <Card className="w-full max-w-5xl">
             <CardHeader className="text-center space-y-4 pb-8">
-              <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-primary/10">
-                <LayoutDashboardIcon className="size-10 text-primary" />
-              </div>
+              <img 
+                src="https://cdn.hercules.app/file_vQl30LwwutdTJK2LlWgX0FdU" 
+                alt="Logo" 
+                className="mx-auto h-32 w-32 object-contain" 
+              />
               <CardTitle className="text-4xl font-bold">نظام الإدارة المالية</CardTitle>
               <CardDescription className="text-lg">
                 منصة متكاملة لإدارة الإيرادات والمصروفات والطلبات
