@@ -13,12 +13,14 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as advances from "../advances.js";
 import type * as ai from "../ai.js";
 import type * as backup_index from "../backup/index.js";
 import type * as backup_public from "../backup/public.js";
 import type * as bonus from "../bonus.js";
 import type * as clearRevenues from "../clearRevenues.js";
 import type * as dashboard from "../dashboard.js";
+import type * as deductions from "../deductions.js";
 import type * as emailLogs from "../emailLogs.js";
 import type * as emailSettings from "../emailSettings.js";
 import type * as emailSystem from "../emailSystem.js";
@@ -44,12 +46,14 @@ import type * as zapierQueries from "../zapierQueries.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  advances: typeof advances;
   ai: typeof ai;
   "backup/index": typeof backup_index;
   "backup/public": typeof backup_public;
   bonus: typeof bonus;
   clearRevenues: typeof clearRevenues;
   dashboard: typeof dashboard;
+  deductions: typeof deductions;
   emailLogs: typeof emailLogs;
   emailSettings: typeof emailSettings;
   emailSystem: typeof emailSystem;

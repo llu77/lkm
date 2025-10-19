@@ -15,6 +15,7 @@ import BackupsPage from "./pages/backups/page.tsx";
 import AIAssistant from "./pages/ai-assistant/page.tsx";
 import SystemSupport from "./pages/system-support/page.tsx";
 import Employees from "./pages/employees/page.tsx";
+import AdvancesDeductions from "./pages/advances-deductions/page.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 export default function App() {
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="/ai-assistant" element={<AIAssistant />} />
           <Route path="/system-support" element={<SystemSupport />} />
           <Route path="/employees" element={<Employees />} />
+          <Route path="/advances-deductions" element={<AdvancesDeductions />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

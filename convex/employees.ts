@@ -36,7 +36,7 @@ export const listEmployees = query({
 });
 
 export const getActiveEmployees = query({
-  args: { branchId: v.string() },
+  args: { branchId: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
@@ -46,13 +46,23 @@ export const getActiveEmployees = query({
       });
     }
 
-    const employees = await ctx.db
-      .query("employees")
-      .withIndex("by_branch_and_active", (q) =>
-        q.eq("branchId", args.branchId).eq("isActive", true)
-      )
-      .order("desc")
-      .collect();
+    let employees;
+    if (args.branchId) {
+      const branchId = args.branchId;
+      employees = await ctx.db
+        .query("employees")
+        .withIndex("by_branch_and_active", (q) =>
+          q.eq("branchId", branchId).eq("isActive", true)
+        )
+        .order("desc")
+        .collect();
+    } else {
+      // If no branch selected, show all active employees
+      const allEmployees = await ctx.db
+        .query("employees")
+        .collect();
+      employees = allEmployees.filter((e) => e.isActive);
+    }
 
     return employees;
   },
