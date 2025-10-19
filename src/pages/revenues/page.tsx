@@ -58,6 +58,25 @@ function RevenuesPageContent() {
     }
   }, [cash, network, budget, isMatched]);
 
+  // Handle loading state
+  if (!stats || !revenues) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Navbar />
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full" />
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -126,7 +145,10 @@ function RevenuesPageContent() {
             <h1 className="text-3xl font-bold">الإيرادات</h1>
             <p className="text-muted-foreground">إدارة وتتبع جميع الإيرادات</p>
           </div>
-          <Button onClick={() => setIsAddingRevenue(!isAddingRevenue)}>
+          <Button 
+            type="button"
+            onClick={() => setIsAddingRevenue(!isAddingRevenue)}
+          >
             <PlusIcon className="size-4" />
             إضافة إيراد
           </Button>
