@@ -23,10 +23,34 @@ export const updateCurrentUser = mutation({
       return user._id;
     }
     // If it's a new identity, create a new User.
+    // Generate a username from name or email
+    const baseName = identity.name || identity.email?.split("@")[0] || "user";
+    const baseUsername = baseName
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "")
+      .substring(0, 20);
+    
+    // Ensure unique username
+    let username = baseUsername;
+    let counter = 1;
+    while (
+      (await ctx.db
+        .query("users")
+        .withIndex("by_username", (q) => q.eq("username", username))
+        .first()) !== null
+    ) {
+      username = `${baseUsername}${counter}`;
+      counter++;
+    }
+
     return await ctx.db.insert("users", {
       name: identity.name,
       email: identity.email,
       tokenIdentifier: identity.tokenIdentifier,
+      username,
+      avatar: identity.profileUrl,
+      followerCount: 0,
+      followingCount: 0,
     });
   },
 });
