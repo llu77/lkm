@@ -515,7 +515,7 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
+                  onClick={async () => {
                     const pdfData = revenues.map((rev) => ({
                       date: new Date(rev.date).toLocaleDateString("ar-SA"),
                       cash: `${rev.cash?.toLocaleString() || 0} SAR`,
@@ -530,7 +530,7 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                     const totalBudget = revenues.reduce((sum, r) => sum + (r.budget || 0), 0);
                     const grandTotal = revenues.reduce((sum, r) => sum + (r.total || 0), 0);
 
-                    generatePDF({
+                    await generatePDF({
                       header: {
                         title: "Revenue Report",
                         subtitle: "Financial Management System",
@@ -568,7 +568,7 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
+                  onClick={async () => {
                     const pdfData = revenues.map((rev) => ({
                       date: new Date(rev.date).toLocaleDateString("ar-SA"),
                       cash: `${rev.cash?.toLocaleString() || 0} SAR`,
@@ -583,7 +583,7 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
                     const totalBudget = revenues.reduce((sum, r) => sum + (r.budget || 0), 0);
                     const grandTotal = revenues.reduce((sum, r) => sum + (r.total || 0), 0);
 
-                    printPDF({
+                    await printPDF({
                       header: {
                         title: "Revenue Report",
                         subtitle: "Financial Management System",

@@ -1,9 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
-// تحميل الخط العربي
-const arabicFont = "amiri";
-
 interface PDFHeader {
   title: string;
   subtitle?: string;
@@ -23,7 +20,30 @@ interface PDFData {
   [key: string]: string | number;
 }
 
-export function generatePDF({
+const LOGO_URL = "https://cdn.hercules.app/file_2EDW4ulZlmwarzzXHgYjO1Hv";
+
+async function loadImage(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      } else {
+        reject(new Error("Failed to get canvas context"));
+      }
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+export async function generatePDF({
   header,
   columns,
   data,
@@ -45,15 +65,23 @@ export function generatePDF({
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   
-  // إضافة الشعار في الأعلى (إذا كان متوفراً)
-  // يمكن استبدال هذا بشعار الشركة الفعلي
-  const logoUrl = "https://cdn.hercules.app/file_X3jdTiCKmUjHC4szRS5CixU4";
-  
-  let currentY = 20;
+  let currentY = 15;
+
+  try {
+    // إضافة الشعار
+    const logoData = await loadImage(LOGO_URL);
+    const logoSize = 30;
+    doc.addImage(logoData, "PNG", (pageWidth - logoSize) / 2, currentY, logoSize, logoSize);
+    currentY += logoSize + 8;
+  } catch (error) {
+    console.error("Failed to load logo:", error);
+    currentY += 5;
+  }
 
   // العنوان الرئيسي
-  doc.setFontSize(22);
+  doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
+  doc.setTextColor(56, 115, 76);
   doc.text(header.title, pageWidth / 2, currentY, { align: "center" });
   currentY += 10;
 
@@ -61,96 +89,120 @@ export function generatePDF({
   if (header.subtitle) {
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
     doc.text(header.subtitle, pageWidth / 2, currentY, { align: "center" });
     currentY += 8;
   }
 
-  // اسم الفرع
-  doc.setFontSize(12);
+  // معلومات الفرع والتاريخ
+  doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text(`Branch: ${header.branchName}`, pageWidth / 2, currentY, {
-    align: "center",
-  });
-  currentY += 8;
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Branch: ${header.branchName}`, pageWidth / 2, currentY, { align: "center" });
+  currentY += 6;
 
-  // الفترة الزمنية
   if (header.dateRange) {
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
     doc.text(
-      `Period: ${header.dateRange.from} to ${header.dateRange.to}`,
+      `Period: ${header.dateRange.from} - ${header.dateRange.to}`,
       pageWidth / 2,
       currentY,
       { align: "center" }
     );
-    currentY += 10;
+    currentY += 8;
   }
 
-  // خط فاصل
-  doc.setLineWidth(0.5);
-  doc.line(15, currentY, pageWidth - 15, currentY);
-  currentY += 5;
+  // خط فاصل زخرفي
+  doc.setDrawColor(56, 115, 76);
+  doc.setLineWidth(0.8);
+  doc.line(20, currentY, pageWidth - 20, currentY);
+  currentY += 8;
 
-  // الجدول
+  // الجدول مع تنسيق محسّن
   autoTable(doc, {
     startY: currentY,
     head: [columns.map((col) => col.header)],
-    body: data.map((row) => columns.map((col) => row[col.dataKey])),
-    theme: "grid",
+    body: data.map((row) => columns.map((col) => String(row[col.dataKey] || "-"))),
+    theme: "striped",
     headStyles: {
-      fillColor: [86, 115, 76], // لون أخضر داكن
+      fillColor: [56, 115, 76],
       textColor: [255, 255, 255],
       fontSize: 11,
       fontStyle: "bold",
       halign: "center",
+      valign: "middle",
+      cellPadding: 5,
     },
     bodyStyles: {
       fontSize: 10,
       halign: "center",
+      valign: "middle",
+      cellPadding: 4,
+      textColor: [40, 40, 40],
     },
     alternateRowStyles: {
-      fillColor: [245, 245, 245],
+      fillColor: [248, 250, 252],
     },
-    margin: { top: 10, left: 15, right: 15 },
+    columnStyles: {
+      0: { cellWidth: "auto" },
+    },
+    margin: { top: 10, left: 15, right: 15, bottom: 30 },
+    didDrawPage: (data) => {
+      // تذييل الصفحة
+      const footerY = pageHeight - 15;
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(150);
+      
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+      const timeStr = now.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      
+      doc.text(`Generated: ${dateStr} ${timeStr}`, 15, footerY);
+      
+      const docInternal = doc.internal as typeof doc.internal & { getCurrentPageInfo(): { pageNumber: number } };
+      const pageInfo = docInternal.getCurrentPageInfo();
+      const pageNum = pageInfo.pageNumber;
+      const totalPages = (doc.internal as typeof doc.internal & { getNumberOfPages(): number }).getNumberOfPages();
+      
+      doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - 15, footerY, { align: "right" });
+    },
   });
 
-  // الإجماليات
+  // الإجماليات في صندوق مميز
   if (totals && totals.length > 0) {
     const docWithTable = doc as typeof doc & { lastAutoTable?: { finalY: number } };
     const finalY = docWithTable.lastAutoTable?.finalY || currentY;
     currentY = finalY + 10;
 
-    // مستطيل للإجماليات
-    doc.setFillColor(240, 240, 240);
-    doc.rect(15, currentY, pageWidth - 30, totals.length * 8 + 5, "F");
+    // التأكد من أن الإجماليات لا تتجاوز الصفحة
+    const totalsHeight = totals.length * 7 + 12;
+    if (currentY + totalsHeight > pageHeight - 30) {
+      doc.addPage();
+      currentY = 20;
+    }
 
+    // صندوق الإجماليات
+    doc.setFillColor(56, 115, 76);
+    doc.roundedRect(15, currentY, pageWidth - 30, totalsHeight, 3, 3, "F");
+    
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
     
     totals.forEach((total, index) => {
-      const y = currentY + 5 + index * 8;
+      const y = currentY + 8 + index * 7;
       doc.text(total.label, 20, y);
       doc.text(String(total.value), pageWidth - 20, y, { align: "right" });
-    });
-  }
-
-  // تذييل الصفحة
-  const docInternal = doc.internal as typeof doc.internal & { getNumberOfPages(): number };
-  const pageCount = docInternal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(150);
-    
-    // التاريخ والوقت
-    const now = new Date();
-    const dateStr = now.toLocaleDateString("ar-SA");
-    const timeStr = now.toLocaleTimeString("ar-SA");
-    
-    doc.text(`Generated: ${dateStr} ${timeStr}`, 15, pageHeight - 10);
-    doc.text(`Page ${i} of ${pageCount}`, pageWidth - 15, pageHeight - 10, {
-      align: "right",
     });
   }
 
@@ -158,7 +210,7 @@ export function generatePDF({
   doc.save(`${fileName}.pdf`);
 }
 
-export function printPDF(pdfOptions: Parameters<typeof generatePDF>[0]) {
+export async function printPDF(pdfOptions: Parameters<typeof generatePDF>[0]) {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -168,11 +220,23 @@ export function printPDF(pdfOptions: Parameters<typeof generatePDF>[0]) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   
-  let currentY = 20;
+  let currentY = 15;
+
+  try {
+    // إضافة الشعار
+    const logoData = await loadImage(LOGO_URL);
+    const logoSize = 30;
+    doc.addImage(logoData, "PNG", (pageWidth - logoSize) / 2, currentY, logoSize, logoSize);
+    currentY += logoSize + 8;
+  } catch (error) {
+    console.error("Failed to load logo:", error);
+    currentY += 5;
+  }
 
   // العنوان الرئيسي
-  doc.setFontSize(22);
+  doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
+  doc.setTextColor(56, 115, 76);
   doc.text(pdfOptions.header.title, pageWidth / 2, currentY, { align: "center" });
   currentY += 10;
 
@@ -180,59 +244,95 @@ export function printPDF(pdfOptions: Parameters<typeof generatePDF>[0]) {
   if (pdfOptions.header.subtitle) {
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
     doc.text(pdfOptions.header.subtitle, pageWidth / 2, currentY, { align: "center" });
     currentY += 8;
   }
 
-  // اسم الفرع
-  doc.setFontSize(12);
+  // معلومات الفرع والتاريخ
+  doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text(`Branch: ${pdfOptions.header.branchName}`, pageWidth / 2, currentY, {
-    align: "center",
-  });
-  currentY += 8;
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Branch: ${pdfOptions.header.branchName}`, pageWidth / 2, currentY, { align: "center" });
+  currentY += 6;
 
-  // الفترة الزمنية
   if (pdfOptions.header.dateRange) {
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
     doc.text(
-      `Period: ${pdfOptions.header.dateRange.from} to ${pdfOptions.header.dateRange.to}`,
+      `Period: ${pdfOptions.header.dateRange.from} - ${pdfOptions.header.dateRange.to}`,
       pageWidth / 2,
       currentY,
       { align: "center" }
     );
-    currentY += 10;
+    currentY += 8;
   }
 
-  // خط فاصل
-  doc.setLineWidth(0.5);
-  doc.line(15, currentY, pageWidth - 15, currentY);
-  currentY += 5;
+  // خط فاصل زخرفي
+  doc.setDrawColor(56, 115, 76);
+  doc.setLineWidth(0.8);
+  doc.line(20, currentY, pageWidth - 20, currentY);
+  currentY += 8;
 
   // الجدول
   autoTable(doc, {
     startY: currentY,
     head: [pdfOptions.columns.map((col) => col.header)],
     body: pdfOptions.data.map((row) =>
-      pdfOptions.columns.map((col) => row[col.dataKey])
+      pdfOptions.columns.map((col) => String(row[col.dataKey] || "-"))
     ),
-    theme: "grid",
+    theme: "striped",
     headStyles: {
-      fillColor: [86, 115, 76],
+      fillColor: [56, 115, 76],
       textColor: [255, 255, 255],
       fontSize: 11,
       fontStyle: "bold",
       halign: "center",
+      valign: "middle",
+      cellPadding: 5,
     },
     bodyStyles: {
       fontSize: 10,
       halign: "center",
+      valign: "middle",
+      cellPadding: 4,
+      textColor: [40, 40, 40],
     },
     alternateRowStyles: {
-      fillColor: [245, 245, 245],
+      fillColor: [248, 250, 252],
     },
-    margin: { top: 10, left: 15, right: 15 },
+    columnStyles: {
+      0: { cellWidth: "auto" },
+    },
+    margin: { top: 10, left: 15, right: 15, bottom: 30 },
+    didDrawPage: (data) => {
+      // تذييل الصفحة
+      const footerY = pageHeight - 15;
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(150);
+      
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+      const timeStr = now.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      
+      doc.text(`Generated: ${dateStr} ${timeStr}`, 15, footerY);
+      
+      const docInternal = doc.internal as typeof doc.internal & { getCurrentPageInfo(): { pageNumber: number } };
+      const pageInfo = docInternal.getCurrentPageInfo();
+      const pageNum = pageInfo.pageNumber;
+      const totalPages = (doc.internal as typeof doc.internal & { getNumberOfPages(): number }).getNumberOfPages();
+      
+      doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - 15, footerY, { align: "right" });
+    },
   });
 
   // الإجماليات
@@ -241,35 +341,25 @@ export function printPDF(pdfOptions: Parameters<typeof generatePDF>[0]) {
     const finalY = docWithTable.lastAutoTable?.finalY || currentY;
     currentY = finalY + 10;
 
-    doc.setFillColor(240, 240, 240);
-    doc.rect(15, currentY, pageWidth - 30, pdfOptions.totals.length * 8 + 5, "F");
+    // التأكد من أن الإجماليات لا تتجاوز الصفحة
+    const totalsHeight = pdfOptions.totals.length * 7 + 12;
+    if (currentY + totalsHeight > pageHeight - 30) {
+      doc.addPage();
+      currentY = 20;
+    }
 
+    // صندوق الإجماليات
+    doc.setFillColor(56, 115, 76);
+    doc.roundedRect(15, currentY, pageWidth - 30, totalsHeight, 3, 3, "F");
+    
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
     
     pdfOptions.totals.forEach((total, index) => {
-      const y = currentY + 5 + index * 8;
+      const y = currentY + 8 + index * 7;
       doc.text(total.label, 20, y);
       doc.text(String(total.value), pageWidth - 20, y, { align: "right" });
-    });
-  }
-
-  // تذييل الصفحة
-  const docInternal = doc.internal as typeof doc.internal & { getNumberOfPages(): number };
-  const pageCount = docInternal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(150);
-    
-    const now = new Date();
-    const dateStr = now.toLocaleDateString("ar-SA");
-    const timeStr = now.toLocaleTimeString("ar-SA");
-    
-    doc.text(`Generated: ${dateStr} ${timeStr}`, 15, pageHeight - 10);
-    doc.text(`Page ${i} of ${pageCount}`, pageWidth - 15, pageHeight - 10, {
-      align: "right",
     });
   }
 

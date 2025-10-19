@@ -245,7 +245,7 @@ function ExpensesContent() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
                         const pdfData = expenses.map((exp) => ({
                           title: exp.title,
                           category: exp.category,
@@ -262,7 +262,7 @@ function ExpensesContent() {
                           return { category: cat, total: catTotal };
                         }).filter(item => item.total > 0);
 
-                        generatePDF({
+                        await generatePDF({
                           header: {
                             title: "Expenses Report",
                             subtitle: "Financial Management System",
@@ -297,7 +297,7 @@ function ExpensesContent() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
                         const pdfData = expenses.map((exp) => ({
                           title: exp.title,
                           category: exp.category,
@@ -314,7 +314,7 @@ function ExpensesContent() {
                           return { category: cat, total: catTotal };
                         }).filter(item => item.total > 0);
 
-                        printPDF({
+                        await printPDF({
                           header: {
                             title: "Expenses Report",
                             subtitle: "Financial Management System",
