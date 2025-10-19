@@ -43,6 +43,7 @@ export default function Navbar() {
             src="https://cdn.hercules.app/file_vQl30LwwutdTJK2LlWgX0FdU" 
             alt="Logo"
             className="h-20 w-20 object-contain"
+            style={{ backgroundColor: 'transparent' }}
           />
           <div className="flex flex-col gap-1">
             <span className="text-2xl hidden sm:block">نظام الإدارة المالية</span>
@@ -116,6 +117,7 @@ export default function Navbar() {
                       src="https://cdn.hercules.app/file_vQl30LwwutdTJK2LlWgX0FdU" 
                       alt="Logo"
                       className="h-14 w-14 object-contain"
+                      style={{ backgroundColor: 'transparent' }}
                     />
                     القائمة الرئيسية
                   </SheetTitle>
