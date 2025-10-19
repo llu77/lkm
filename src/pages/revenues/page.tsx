@@ -131,10 +131,10 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
   const networkNum = parseFloat(network) || 0;
   const budgetNum = parseFloat(budget) || 0;
   const calculatedTotal = cashNum + networkNum;
-  const total = cashNum + networkNum + budgetNum;
+  const total = cashNum + networkNum; // المجموع = كاش + شبكة فقط (بدون موازنة)
 
   // شروط المطابقة
-  const condition1 = total === calculatedTotal; // المجموع = كاش + شبكة (بدون موازنة)
+  const condition1 = true; // المجموع دائماً = كاش + شبكة (لأننا نحسبه كذلك)
   const condition2 = budgetNum === networkNum; // الموازنة = الشبكة
   const isMatched = condition1 && condition2;
 

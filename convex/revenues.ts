@@ -108,13 +108,13 @@ export const create = mutation({
       });
     }
 
-    // المجموع المحسوب = كاش + شبكة فقط
+    // المجموع = كاش + شبكة فقط (بدون موازنة)
+    const total = args.cash + args.network;
     const calculatedTotal = args.cash + args.network;
-    const total = args.cash + args.network + args.budget;
     
     // شروط المطابقة المنفصلة:
-    // الشرط الأول: المجموع = كاش + شبكة (يعني budget = 0)
-    const condition1 = total === calculatedTotal;
+    // الشرط الأول: المجموع = كاش + شبكة (هذا دائماً صحيح لأننا نحسبه كذلك)
+    const condition1 = true;
     // الشرط الثاني: الموازنة = الشبكة
     const condition2 = args.budget === args.network;
     
