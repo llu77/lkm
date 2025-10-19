@@ -11,6 +11,10 @@ export const create = mutation({
     mismatchReason: v.optional(v.string()),
     branchId: v.string(),
     branchName: v.string(),
+    employees: v.optional(v.array(v.object({
+      name: v.string(),
+      revenue: v.number(),
+    }))),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -61,6 +65,7 @@ export const create = mutation({
       userId: user._id,
       branchId: args.branchId,
       branchName: args.branchName,
+      employees: args.employees,
     });
 
     return revenueId;

@@ -28,6 +28,10 @@ export default defineSchema({
     userId: v.id("users"),
     branchId: v.optional(v.string()), // معرف الفرع
     branchName: v.optional(v.string()), // اسم الفرع
+    employees: v.optional(v.array(v.object({
+      name: v.string(),
+      revenue: v.number(),
+    }))), // موظفي الإيراد
     // Old fields for migration
     title: v.optional(v.string()),
     amount: v.optional(v.number()),
