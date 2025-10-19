@@ -28,8 +28,12 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 w-full border-b bg-primary shadow-md">
       <div className="container flex h-16 items-center justify-between">
         {/* Logo and Brand */}
-        <Link to="/dashboard" className="flex items-center gap-2 text-primary-foreground font-bold text-xl hover:opacity-90 transition-opacity">
-          <LayoutDashboardIcon className="size-7" />
+        <Link to="/dashboard" className="flex items-center gap-3 text-primary-foreground font-bold text-xl hover:opacity-90 transition-opacity">
+          <img 
+            src="https://cdn.hercules.app/file_vQl30LwwutdTJK2LlWgX0FdU" 
+            alt="Logo"
+            className="size-10 object-contain"
+          />
           <span className="hidden sm:inline">نظام الإدارة المالية</span>
           <span className="sm:hidden">الإدارة المالية</span>
         </Link>
@@ -88,8 +92,12 @@ export default function Navbar() {
               </SheetTrigger>
               <SheetContent side="right" className="w-72">
                 <SheetHeader>
-                  <SheetTitle className="flex items-center gap-2 text-right">
-                    <LayoutDashboardIcon className="size-6" />
+                  <SheetTitle className="flex items-center gap-3 text-right">
+                    <img 
+                      src="https://cdn.hercules.app/file_vQl30LwwutdTJK2LlWgX0FdU" 
+                      alt="Logo"
+                      className="size-8 object-contain"
+                    />
                     القائمة الرئيسية
                   </SheetTitle>
                 </SheetHeader>
