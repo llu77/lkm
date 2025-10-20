@@ -126,7 +126,7 @@ ${revenue.employees && revenue.employees.length > 0 ? `- الموظفون: ${rev
 
     try {
       const message = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-sonnet-4-5-20250929", // Claude Sonnet 4.5 (Sep 2025)
         max_tokens: 4096,
         system: "أنت Data Validator Agent خبير في التحقق من صحة البيانات المالية. ردودك دائماً بصيغة JSON صارمة.",
         messages: [
@@ -275,7 +275,7 @@ export const generateSmartContent = action({
 
     try {
       const message = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-sonnet-4-5-20250929", // Claude Sonnet 4.5 (Sep 2025)
         max_tokens: 4096,
         system: "أنت Content Writer Agent خبير. ردودك دائماً بصيغة JSON.",
         messages: [
@@ -454,7 +454,7 @@ ${JSON.stringify(dataSummary, null, 2)}
 
     try {
       const message = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-sonnet-4-5-20250929", // Claude Sonnet 4.5 (Sep 2025)
         max_tokens: 4096,
         system: "أنت Pattern Detection Agent خبير. ردودك بصيغة JSON.",
         messages: [{ role: "user", content: prompt }],
