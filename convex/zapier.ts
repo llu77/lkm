@@ -122,6 +122,37 @@ export const triggerWebhooks = internalAction({
 });
 
 /**
+ * إرسال email webhook إلى Zapier (internal)
+ * يسمح لـ Zapier بإرسال الإيميل عبر Gmail أو أي خدمة بريد أخرى
+ */
+export const triggerEmailWebhook = internalAction({
+  args: {
+    to: v.array(v.string()),
+    subject: v.string(),
+    html: v.string(),
+    from: v.optional(v.string()),
+    timestamp: v.number(),
+  },
+  handler: async (ctx, args): Promise<{ triggered: number; successful: number; failed: number }> => {
+    const payload = {
+      type: "email_request",
+      to: args.to,
+      subject: args.subject,
+      html: args.html,
+      from: args.from || "Symbol AI <noreply@symbolai.com>",
+      timestamp: new Date(args.timestamp).toISOString(),
+      source: "Email System",
+    };
+
+    // إرسال إلى جميع webhooks المسجلة لـ email_request
+    return await ctx.runAction(internal.zapier.triggerWebhooks, {
+      eventType: "email_request",
+      payload,
+    });
+  },
+});
+
+/**
  * إرسال test event إلى Zapier
  */
 export const testWebhook = action({

@@ -169,6 +169,19 @@ export const sendEmail = action({
     from: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // إرسال webhook إلى Zapier أولاً (non-blocking)
+    try {
+      await ctx.runAction(internal.zapier.triggerEmailWebhook, {
+        to: args.to,
+        subject: args.subject,
+        html: args.html,
+        from: args.from,
+        timestamp: Date.now(),
+      });
+    } catch (error) {
+      console.error("Zapier webhook error (non-blocking):", error);
+    }
+
     const resendApiKey = process.env.RESEND_API_KEY;
     
     if (!resendApiKey) {
@@ -217,6 +230,19 @@ export const sendTemplateEmail = action({
   },
   handler: async (ctx, args): Promise<{ success: boolean; emailId?: string }> => {
     const { subject, html } = renderTemplate(args.templateId, args.variables);
+
+    // إرسال webhook إلى Zapier (non-blocking)
+    try {
+      await ctx.runAction(internal.zapier.triggerEmailWebhook, {
+        to: args.to,
+        subject,
+        html,
+        from: args.from,
+        timestamp: Date.now(),
+      });
+    } catch (error) {
+      console.error("Zapier webhook error (non-blocking):", error);
+    }
 
     const resendApiKey = process.env.RESEND_API_KEY;
     
