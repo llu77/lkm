@@ -215,3 +215,19 @@ export const markEmailSent = mutation({
     });
   },
 });
+
+// Update payroll email status with PDF URL
+export const updatePayrollEmailStatus = mutation({
+  args: {
+    payrollId: v.id("payrollRecords"),
+    emailSent: v.boolean(),
+    pdfUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.payrollId, {
+      emailSent: args.emailSent,
+      emailSentAt: args.emailSent ? Date.now() : undefined,
+      pdfUrl: args.pdfUrl,
+    });
+  },
+});
