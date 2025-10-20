@@ -29,6 +29,7 @@ import type * as employees from "../employees.js";
 import type * as expenses from "../expenses.js";
 import type * as migration from "../migration.js";
 import type * as notifications from "../notifications.js";
+import type * as payroll from "../payroll.js";
 import type * as pdfAgent from "../pdfAgent.js";
 import type * as productOrders from "../productOrders.js";
 import type * as revenues from "../revenues.js";
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   expenses: typeof expenses;
   migration: typeof migration;
   notifications: typeof notifications;
+  payroll: typeof payroll;
   pdfAgent: typeof pdfAgent;
   productOrders: typeof productOrders;
   revenues: typeof revenues;

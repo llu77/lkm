@@ -18,7 +18,8 @@ import {
   LogOutIcon,
   BrainIcon,
   SettingsIcon,
-  DollarSignIcon
+  DollarSignIcon,
+  ReceiptIcon
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth.ts";
 import { useBranch } from "@/hooks/use-branch.ts";
@@ -36,6 +37,7 @@ export default function Navbar() {
     { path: "/bonus", label: "البونص", icon: CoinsIcon },
     { path: "/employees", label: "الموظفين", icon: UsersIcon },
     { path: "/advances-deductions", label: "السلف والخصومات", icon: DollarSignIcon },
+    { path: "/payroll", label: "مسير الرواتب", icon: ReceiptIcon },
     { path: "/product-orders", label: "طلبات المنتجات", icon: PackageIcon },
     { path: "/employee-requests", label: "طلبات الموظفين", icon: FileTextIcon },
     { path: "/my-requests", label: "طلباتي", icon: ClipboardListIcon },

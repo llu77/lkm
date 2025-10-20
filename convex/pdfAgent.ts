@@ -621,3 +621,322 @@ function generateProductOrderHTML(args: {
     </html>
   `;
 }
+
+/**
+ * Generate Payroll PDF Template
+ */
+export const generatePayrollPDF = action({
+  args: {
+    payrollId: v.id("payrollRecords"),
+  },
+  handler: async (ctx, args): Promise<{
+    success: boolean;
+    url?: string;
+    message?: string;
+  }> => {
+    // Get payroll record
+    const payroll: Array<{
+      _id: string;
+      branchName: string;
+      month: number;
+      year: number;
+      employees: Array<{
+        employeeName: string;
+        nationalId?: string;
+        baseSalary: number;
+        supervisorAllowance: number;
+        incentives: number;
+        totalAdvances: number;
+        totalDeductions: number;
+        netSalary: number;
+      }>;
+      totalNetSalary: number;
+      supervisorName?: string;
+    }> = await ctx.runQuery(
+      api.payroll.listPayrollRecords,
+      {}
+    );
+    const record = payroll.find((p) => p._id === args.payrollId);
+
+    if (!record) {
+      throw new Error("Payroll record not found");
+    }
+
+    const monthNames = [
+      "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+      "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+    ];
+
+    const html = createPayrollHTML(record, monthNames);
+
+    // Generate PDF using PDF.co
+    return await ctx.runAction(api.pdfAgent.generatePDFFromHTML, {
+      html,
+      documentName: `payroll_${record.branchName}_${record.year}_${record.month}.pdf`,
+      margins: { top: 10, right: 10, bottom: 10, left: 10 },
+      pageSize: "A4",
+      orientation: "portrait",
+    });
+  },
+});
+
+function createPayrollHTML(
+  record: {
+    branchName: string;
+    month: number;
+    year: number;
+    employees: Array<{
+      employeeName: string;
+      nationalId?: string;
+      baseSalary: number;
+      supervisorAllowance: number;
+      incentives: number;
+      totalAdvances: number;
+      totalDeductions: number;
+      netSalary: number;
+    }>;
+    totalNetSalary: number;
+    supervisorName?: string;
+  },
+  monthNames: string[]
+) {
+  return `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: 'Cairo', sans-serif;
+          direction: rtl;
+          padding: 20px;
+          background: white;
+          color: #1a1a1a;
+        }
+
+        .header {
+          text-align: center;
+          margin-bottom: 30px;
+          border-bottom: 3px solid #2563eb;
+          padding-bottom: 20px;
+        }
+
+        .logo {
+          font-size: 32px;
+          font-weight: 700;
+          color: #2563eb;
+          margin-bottom: 10px;
+        }
+
+        .company-name {
+          font-size: 28px;
+          font-weight: 600;
+          color: #1a1a1a;
+          margin-bottom: 5px;
+        }
+
+        .document-title {
+          font-size: 24px;
+          font-weight: 600;
+          color: #1a1a1a;
+          margin-top: 15px;
+        }
+
+        .info-section {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 30px;
+          background: #f8fafc;
+          padding: 20px;
+          border-radius: 8px;
+        }
+
+        .info-item {
+          font-size: 14px;
+          margin-bottom: 8px;
+        }
+
+        .info-label {
+          font-weight: 600;
+          color: #475569;
+        }
+
+        .info-value {
+          font-weight: 700;
+          color: #1a1a1a;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 30px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        thead {
+          background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+          color: white;
+        }
+
+        th {
+          padding: 14px 8px;
+          text-align: center;
+          font-weight: 600;
+          font-size: 13px;
+          border: 1px solid #1d4ed8;
+        }
+
+        td {
+          padding: 12px 8px;
+          text-align: center;
+          border: 1px solid #e2e8f0;
+          font-size: 12px;
+        }
+
+        tbody tr:nth-child(even) {
+          background: #f8fafc;
+        }
+
+        tbody tr:hover {
+          background: #f1f5f9;
+        }
+
+        .total-row {
+          background: #fef3c7 !important;
+          font-weight: 700;
+          font-size: 14px;
+          border-top: 3px solid #f59e0b;
+        }
+
+        .amount {
+          font-weight: 600;
+          color: #059669;
+        }
+
+        .deduction {
+          color: #dc2626;
+        }
+
+        .footer {
+          margin-top: 40px;
+          padding-top: 20px;
+          border-top: 2px solid #e2e8f0;
+        }
+
+        .supervisor-section {
+          text-align: center;
+          margin-top: 30px;
+        }
+
+        .supervisor-label {
+          font-size: 14px;
+          color: #475569;
+          margin-bottom: 10px;
+        }
+
+        .supervisor-name {
+          font-size: 18px;
+          font-weight: 600;
+          color: #1a1a1a;
+          padding: 10px 20px;
+          border: 2px solid #2563eb;
+          border-radius: 8px;
+          display: inline-block;
+        }
+
+        .generated-info {
+          text-align: center;
+          font-size: 12px;
+          color: #64748b;
+          margin-top: 20px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div class="logo">⚡ Symbol AI</div>
+        <div class="company-name">نظام الإدارة المالية</div>
+        <div class="document-title">مسير رواتب الموظفين</div>
+      </div>
+
+      <div class="info-section">
+        <div>
+          <div class="info-item">
+            <span class="info-label">الفرع:</span>
+            <span class="info-value">${record.branchName}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">الشهر:</span>
+            <span class="info-value">${monthNames[record.month - 1]} ${record.year}</span>
+          </div>
+        </div>
+        <div>
+          <div class="info-item">
+            <span class="info-label">عدد الموظفين:</span>
+            <span class="info-value">${record.employees.length} موظف</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">إجمالي الرواتب:</span>
+            <span class="info-value amount">${record.totalNetSalary.toLocaleString()} ر.س</span>
+          </div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>اسم الموظف</th>
+            <th>رقم الهوية</th>
+            <th>الراتب الأساسي</th>
+            <th>بدل الإشراف</th>
+            <th>حوافز</th>
+            <th>السلف</th>
+            <th>الخصومات</th>
+            <th>الصافي</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${record.employees.map((emp, index) => `
+            <tr>
+              <td>${index + 1}</td>
+              <td style="text-align: right; font-weight: 600;">${emp.employeeName}</td>
+              <td>${emp.nationalId || "-"}</td>
+              <td class="amount">${emp.baseSalary.toLocaleString()}</td>
+              <td class="amount">${emp.supervisorAllowance.toLocaleString()}</td>
+              <td class="amount">${emp.incentives.toLocaleString()}</td>
+              <td class="deduction">${emp.totalAdvances > 0 ? "-" : ""}${emp.totalAdvances.toLocaleString()}</td>
+              <td class="deduction">${emp.totalDeductions > 0 ? "-" : ""}${emp.totalDeductions.toLocaleString()}</td>
+              <td style="font-weight: 700; font-size: 13px;" class="amount">${emp.netSalary.toLocaleString()} ر.س</td>
+            </tr>
+          `).join('')}
+          <tr class="total-row">
+            <td colspan="8" style="text-align: center; font-size: 15px;">الإجمالي الكلي</td>
+            <td style="font-size: 15px;">${record.totalNetSalary.toLocaleString()} ر.س</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="footer">
+        ${record.supervisorName ? `
+          <div class="supervisor-section">
+            <div class="supervisor-label">المشرف المسؤول</div>
+            <div class="supervisor-name">${record.supervisorName}</div>
+          </div>
+        ` : ''}
+
+        <div class="generated-info">
+          تم الإنشاء بواسطة Symbol AI - ${new Date().toLocaleDateString('ar-EG')} ${new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
