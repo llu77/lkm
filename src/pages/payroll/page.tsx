@@ -191,6 +191,27 @@ function PayrollPageContent() {
           <BranchSelector onBranchSelected={selectBranch} />
         </div>
 
+        {!branchId && (
+          <Card>
+            <CardContent className="py-12">
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <ReceiptIcon />
+                  </EmptyMedia>
+                  <EmptyTitle>اختر الفرع</EmptyTitle>
+                  <EmptyDescription>
+                    يرجى اختيار الفرع من الأعلى لعرض سجلات مسير الرواتب
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            </CardContent>
+          </Card>
+        )}
+
+        {branchId && (
+          <>
+
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -354,6 +375,8 @@ function PayrollPageContent() {
             )}
           </CardContent>
         </Card>
+        </>
+        )}
       </div>
     </div>
   );
