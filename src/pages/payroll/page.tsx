@@ -49,7 +49,7 @@ export default function PayrollPage() {
 }
 
 function PayrollPageContent() {
-  const { branchId, branchName } = useBranch();
+  const { branchId, branchName, selectBranch } = useBranch();
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -110,7 +110,7 @@ function PayrollPageContent() {
             <h1 className="text-3xl font-bold">مسير الرواتب</h1>
             <p className="text-muted-foreground">إدارة رواتب الموظفين الشهرية</p>
           </div>
-          <BranchSelector />
+          <BranchSelector onBranchSelected={selectBranch} />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
