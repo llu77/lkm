@@ -1,9 +1,10 @@
 "use node";
 
 import { v } from "convex/values";
-import { action, internalMutation, internalAction, ActionCtx } from "./_generated/server";
+import { action, internalMutation, internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import Anthropic from "@anthropic-ai/sdk";
+import { Resend } from "resend";
 
 // Type definitions for better type safety
 interface RevenueData {
@@ -319,7 +320,7 @@ export const validateRevenueData = action({
     historicalData: v.array(v.object({
       date: v.number(),
       total: v.number(),
-      isMatched: v.boolean,
+      isMatched: v.boolean(),
     })),
   },
   handler: async (ctx, { revenue, branchId, branchName, historicalData }) => {
@@ -374,11 +375,6 @@ export const validateRevenueData = action({
               type: "revenue",
               id: revenue.date.toString(),
             },
-            metadata: {
-              confidence: analysisResult.confidence,
-              issues: analysisResult.issues,
-              recommendations: analysisResult.recommendations
-            }
           });
         } catch (notificationError) {
           logger.error('Failed to create notification', notificationError);
@@ -506,7 +502,7 @@ function buildValidationPrompt(revenue: any, branchId: string, branchName: strin
 - المجموع المحسوب: ${revenue.calculatedTotal.toLocaleString()} ر.س
 - الفرق: ${(revenue.total - revenue.calculatedTotal).toLocaleString()} ر.س
 - الحالة: ${revenue.isMatched ? "✅ مطابق" : "❌ غير مطابق"}
-${revenue.employees && revenue.employees.length > 0 ? `- الموظفون: ${revenue.employees.map(e => `${e.name} (${e.revenue.toLocaleString()} ر.س)`).join(", ")}` : ""}
+${revenue.employees && revenue.employees.length > 0 ? `- الموظفون: ${revenue.employees.map((e: { name: string; revenue: number }) => `${e.name} (${e.revenue.toLocaleString()} ر.س)`).join(", ")}` : ""}
 
 📈 **التحليل الإحصائي:**
 - متوسط الإيرادات (آخر ${stats.dataPoints} يوم): ${stats.avgRevenue.toLocaleString()} ر.س
@@ -994,11 +990,6 @@ export const analyzeRevenuePatterns = action({
               type: "revenue",
               id: "pattern-analysis",
             },
-            metadata: {
-              patternCount: highImpactPatterns.length,
-              dataPoints: revenues.length,
-              analysisPeriod: daysBack
-            }
           });
         } catch (notificationError) {
           logger.error('Failed to create pattern notification', notificationError);
@@ -1273,7 +1264,7 @@ function parseAIResponse(responseText: string, type: string): any {
     // Validate response structure based on type
     return validateResponseStructure(parsed, type);
   } catch (error) {
-    logger.warn(`Failed to parse ${type} response`, { error: error.message });
+    logger.warn(`Failed to parse ${type} response`, { error: error instanceof Error ? error.message : String(error) });
 
     // Return appropriate fallback
     return getFallbackResponse(type);

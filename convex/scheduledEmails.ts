@@ -209,17 +209,23 @@ export const sendWeeklyBonusEmails = internalAction({
 // ================== Internal Queries للبيانات ==================
 
 /**
- * الحصول على جميع الفروع مع معلومات الاتصال
+ * الحصول على جميع الفروع النشطة من قاعدة البيانات
  */
 export const getAllBranches = internalQuery({
   args: {},
   handler: async (ctx) => {
-    // TODO: استبدال بمصدر البيانات الفعلي للفروع
-    // هذا مثال - يجب تعديله حسب schema الفعلي
-    return [
-      { id: "1010", name: "لبن", supervisorEmail: "supervisor1@example.com" },
-      { id: "2020", name: "طويق", supervisorEmail: "supervisor2@example.com" },
-    ];
+    // قراءة جميع الفروع النشطة من قاعدة البيانات
+    const branches = await ctx.db
+      .query("branches")
+      .withIndex("by_active", (q) => q.eq("isActive", true))
+      .collect();
+
+    // تحويل الصيغة لتوافق الكود الحالي
+    return branches.map((branch) => ({
+      id: branch.branchId,
+      name: branch.branchName,
+      supervisorEmail: branch.supervisorEmail,
+    }));
   },
 });
 
@@ -541,13 +547,251 @@ function generateDailyReportHTML(data: any, branchName: string, date: Date): str
 }
 
 function generateMonthlyReportHTML(data: any, branchName: string, year: number, month: number): string {
-  return `<!DOCTYPE html><html dir="rtl"><body><h1>التقرير الشهري - ${branchName}</h1><p>قريباً...</p></body></html>`;
+  const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+  const profitMargin = data.totalRevenue > 0 ? ((data.netProfit / data.totalRevenue) * 100) : 0;
+
+  return `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>التقرير الشهري</title>
+    </head>
+    <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; padding: 20px; margin: 0;">
+      <div style="max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 12px rgba(0,0,0,0.15);">
+
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">📊 التقرير الشهري</h1>
+          <p style="color: #e0e7ff; margin: 10px 0 0 0; font-size: 18px;">${branchName}</p>
+          <p style="color: #c7d2fe; margin: 5px 0 0 0; font-size: 14px;">${monthNames[month]} ${year}</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div style="padding: 30px; background: #f8fafc;">
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+
+            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 20px; border-radius: 8px; color: white;">
+              <div style="font-size: 13px; opacity: 0.9; margin-bottom: 5px;">💰 إجمالي الإيرادات</div>
+              <div style="font-size: 24px; font-weight: bold;">${data.totalRevenue.toLocaleString('ar-SA')} ر.س</div>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 20px; border-radius: 8px; color: white;">
+              <div style="font-size: 13px; opacity: 0.9; margin-bottom: 5px;">💸 إجمالي المصروفات</div>
+              <div style="font-size: 24px; font-weight: bold;">${data.totalExpenses.toLocaleString('ar-SA')} ر.س</div>
+            </div>
+
+            <div style="background: ${data.netProfit >= 0 ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}; padding: 20px; border-radius: 8px; color: white; grid-column: span 2;">
+              <div style="font-size: 13px; opacity: 0.9; margin-bottom: 5px;">${data.netProfit >= 0 ? '📈' : '📉'} صافي الربح</div>
+              <div style="font-size: 28px; font-weight: bold;">${data.netProfit.toLocaleString('ar-SA')} ر.س</div>
+              <div style="font-size: 12px; opacity: 0.85; margin-top: 5px;">هامش الربح: ${profitMargin.toFixed(1)}%</div>
+            </div>
+
+          </div>
+
+          <!-- Performance Highlights -->
+          ${data.bestDay || data.worstDay ? `
+          <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+            <h3 style="margin: 0 0 15px 0; color: #1f2937; font-size: 16px;">📌 أبرز الأيام</h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+              ${data.bestDay ? `
+              <div style="padding: 12px; background: #f0fdf4; border-radius: 6px; border-right: 3px solid #10b981;">
+                <div style="font-size: 12px; color: #059669; margin-bottom: 3px;">🏆 أفضل يوم</div>
+                <div style="font-size: 16px; font-weight: bold; color: #065f46;">${data.bestDay.date}</div>
+                <div style="font-size: 14px; color: #047857; margin-top: 2px;">${data.bestDay.revenue.toLocaleString('ar-SA')} ر.س</div>
+              </div>
+              ` : ''}
+              ${data.worstDay ? `
+              <div style="padding: 12px; background: #fef2f2; border-radius: 6px; border-right: 3px solid #ef4444;">
+                <div style="font-size: 12px; color: #dc2626; margin-bottom: 3px;">⚠️ أقل يوم</div>
+                <div style="font-size: 16px; font-weight: bold; color: #991b1b;">${data.worstDay.date}</div>
+                <div style="font-size: 14px; color: #b91c1c; margin-top: 2px;">${data.worstDay.revenue.toLocaleString('ar-SA')} ر.س</div>
+              </div>
+              ` : ''}
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Expense Breakdown -->
+          ${data.expensesByCategory && Object.keys(data.expensesByCategory).length > 0 ? `
+          <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb;">
+            <h3 style="margin: 0 0 15px 0; color: #1f2937; font-size: 16px;">🔖 توزيع المصروفات</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              ${Object.entries(data.expensesByCategory).map(([category, amount]: [string, any]) => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9fafb; border-radius: 6px;">
+                  <span style="color: #374151; font-size: 14px;">${category}</span>
+                  <span style="color: #111827; font-weight: bold; font-size: 14px;">${amount.toLocaleString('ar-SA')} ر.س</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
+        </div>
+
+        <!-- Footer -->
+        <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; font-size: 12px; margin: 0;">
+            تم إنشاء هذا التقرير تلقائياً • ${new Date().toLocaleDateString('ar-SA')}
+          </p>
+        </div>
+
+      </div>
+    </body>
+    </html>
+  `;
 }
 
 function generateWeeklyBonusSupervisorHTML(data: any, branchName: string, year: number, month: number): string {
-  return `<!DOCTYPE html><html dir="rtl"><body><h1>تقرير البونص - ${branchName}</h1><p>قريباً...</p></body></html>`;
+  const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+  return `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>تقرير البونص الأسبوعي</title>
+    </head>
+    <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; padding: 20px; margin: 0;">
+      <div style="max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 12px rgba(0,0,0,0.15);">
+
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">🎁 تقرير البونص الأسبوعي</h1>
+          <p style="color: #fef3c7; margin: 10px 0 0 0; font-size: 18px;">${branchName}</p>
+          <p style="color: #fde68a; margin: 5px 0 0 0; font-size: 14px;">${data.weekLabel} - ${monthNames[month]} ${year}</p>
+        </div>
+
+        <!-- Summary -->
+        <div style="padding: 30px; background: #f8fafc;">
+          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 20px; border-radius: 8px; color: white; margin-bottom: 25px;">
+            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">💰 إجمالي البونص المستحق</div>
+            <div style="font-size: 32px; font-weight: bold;">${data.totalBonus.toLocaleString('ar-SA')} ر.س</div>
+            <div style="font-size: 13px; opacity: 0.85; margin-top: 5px;">عدد الموظفين: ${data.employees.length}</div>
+          </div>
+
+          <!-- Employees Table -->
+          <div style="background: white; border-radius: 8px; border: 1px solid #e5e7eb; overflow: hidden;">
+            <div style="background: #f9fafb; padding: 15px; border-bottom: 2px solid #e5e7eb;">
+              <h3 style="margin: 0; color: #1f2937; font-size: 16px;">📋 تفاصيل البونص للموظفين</h3>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+                  <th style="padding: 12px; text-align: right; font-size: 13px; color: #6b7280; font-weight: 600;">اسم الموظف</th>
+                  <th style="padding: 12px; text-align: center; font-size: 13px; color: #6b7280; font-weight: 600;">الإيراد الإجمالي</th>
+                  <th style="padding: 12px; text-align: center; font-size: 13px; color: #6b7280; font-weight: 600;">نسبة البونص</th>
+                  <th style="padding: 12px; text-align: center; font-size: 13px; color: #6b7280; font-weight: 600;">البونص المستحق</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.employees.map((emp: any, index: number) => `
+                  <tr style="border-bottom: 1px solid #f3f4f6; ${index % 2 === 0 ? 'background: white;' : 'background: #f9fafb;'}">
+                    <td style="padding: 14px; font-size: 14px; color: #111827; font-weight: 500;">${emp.employeeName}</td>
+                    <td style="padding: 14px; text-align: center; font-size: 14px; color: #374151;">${emp.totalRevenue.toLocaleString('ar-SA')} ر.س</td>
+                    <td style="padding: 14px; text-align: center; font-size: 14px; color: #059669; font-weight: 600;">${emp.bonusPercentage}%</td>
+                    <td style="padding: 14px; text-align: center;">
+                      <span style="background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 6px; font-size: 14px; font-weight: bold;">
+                        ${emp.bonusAmount.toLocaleString('ar-SA')} ر.س
+                      </span>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+              <tfoot>
+                <tr style="background: #f0fdf4; border-top: 2px solid #10b981;">
+                  <td style="padding: 16px; font-size: 15px; color: #065f46; font-weight: bold;">الإجمالي</td>
+                  <td style="padding: 16px; text-align: center; font-size: 15px; color: #047857; font-weight: bold;">${data.totalRevenue.toLocaleString('ar-SA')} ر.س</td>
+                  <td style="padding: 16px;"></td>
+                  <td style="padding: 16px; text-align: center; font-size: 16px; color: #065f46; font-weight: bold;">${data.totalBonus.toLocaleString('ar-SA')} ر.س</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; font-size: 12px; margin: 0;">
+            تم إنشاء هذا التقرير تلقائياً • ${new Date().toLocaleDateString('ar-SA')}
+          </p>
+        </div>
+
+      </div>
+    </body>
+    </html>
+  `;
 }
 
 function generateEmployeeBonusHTML(employee: any, branchName: string, weekLabel: string, year: number, month: number): string {
-  return `<!DOCTYPE html><html dir="rtl"><body><h1>تهانينا ${employee.employeeName}!</h1><p>قريباً...</p></body></html>`;
+  const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+  return `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>إشعار البونص</title>
+    </head>
+    <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; padding: 20px; margin: 0;">
+      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 12px rgba(0,0,0,0.15);">
+
+        <!-- Header with Celebration -->
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 30px; text-align: center; position: relative;">
+          <div style="font-size: 48px; margin-bottom: 10px;">🎉</div>
+          <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">مبروك يا ${employee.employeeName}!</h1>
+          <p style="color: #d1fae5; margin: 10px 0 0 0; font-size: 16px;">لقد حصلت على بونص هذا الأسبوع</p>
+        </div>
+
+        <!-- Bonus Amount Card -->
+        <div style="padding: 30px; background: #f0fdf4; text-align: center;">
+          <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid #10b981;">
+            <div style="font-size: 14px; color: #059669; margin-bottom: 10px; font-weight: 600;">💰 البونص المستحق</div>
+            <div style="font-size: 42px; font-weight: bold; color: #065f46; margin-bottom: 8px;">
+              ${employee.bonusAmount.toLocaleString('ar-SA')} ر.س
+            </div>
+            <div style="font-size: 12px; color: #047857;">من إجمالي إيراد ${employee.totalRevenue.toLocaleString('ar-SA')} ر.س</div>
+          </div>
+        </div>
+
+        <!-- Details Section -->
+        <div style="padding: 0 30px 30px 30px;">
+          <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb;">
+            <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+              <span style="color: #6b7280; font-size: 14px;">الفرع</span>
+              <span style="color: #111827; font-weight: 600; font-size: 14px;">${branchName}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+              <span style="color: #6b7280; font-size: 14px;">الفترة</span>
+              <span style="color: #111827; font-weight: 600; font-size: 14px;">${weekLabel} - ${monthNames[month]} ${year}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 12px 0;">
+              <span style="color: #6b7280; font-size: 14px;">نسبة البونص</span>
+              <span style="color: #059669; font-weight: bold; font-size: 14px;">${employee.bonusPercentage}%</span>
+            </div>
+          </div>
+
+          <!-- Motivational Message -->
+          <div style="margin-top: 25px; padding: 20px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 8px; text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 10px;">⭐</div>
+            <p style="color: #78350f; margin: 0; font-size: 14px; line-height: 1.6;">
+              عمل رائع! استمر في تقديم الأداء المتميز
+            </p>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; font-size: 12px; margin: 0;">
+            تم إرسال هذا الإشعار تلقائياً • ${new Date().toLocaleDateString('ar-SA')}
+          </p>
+        </div>
+
+      </div>
+    </body>
+    </html>
+  `;
 }

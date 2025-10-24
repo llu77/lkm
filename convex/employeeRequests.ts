@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { ConvexError } from "convex/values";
+import { triggerEmployeeRequestCreated } from "./zapierHelper";
 
 // قائمة الموظفين حسب الفرع
 export const BRANCH_EMPLOYEES = {
@@ -67,7 +68,7 @@ export const create = mutation({
       status: "تحت الإجراء",
       requestDate: Date.now(),
       userId: user._id,
-      
+
       advanceAmount: args.advanceAmount,
       vacationDate: args.vacationDate,
       duesAmount: args.duesAmount,
@@ -81,6 +82,19 @@ export const create = mutation({
       nationalId: args.nationalId,
       resignationText: args.resignationText,
     });
+
+    // Trigger Zapier webhook for employee request creation
+    const request = await ctx.db.get(requestId);
+    if (request) {
+      await triggerEmployeeRequestCreated(ctx, {
+        _id: request._id,
+        employeeName: request.employeeName,
+        requestType: request.requestType,
+        status: request.status,
+        branchId: request.branchId,
+        branchName: request.branchName,
+      });
+    }
 
     return requestId;
   },
@@ -127,6 +141,26 @@ export const updateStatus = mutation({
       throw new ConvexError({
         message: "يجب تسجيل الدخول أولاً",
         code: "UNAUTHENTICATED",
+      });
+    }
+
+    // التحقق من صلاحيات المستخدم (admin only)
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!user) {
+      throw new ConvexError({
+        message: "المستخدم غير موجود",
+        code: "NOT_FOUND",
+      });
+    }
+
+    if (user.role !== "admin") {
+      throw new ConvexError({
+        message: "⚠️ غير مصرح لك بإدارة الطلبات - صلاحيات أدمن فقط",
+        code: "FORBIDDEN",
       });
     }
 

@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { triggerRevenueCreated } from "./zapierHelper";
 
 export const getStats = query({
   args: { branchId: v.string() },
@@ -166,7 +167,7 @@ export const create = mutation({
       }
     }
 
-    await ctx.db.insert("revenues", {
+    const revenueId = await ctx.db.insert("revenues", {
       date: args.date,
       cash: args.cash,
       network: args.network,
@@ -180,13 +181,29 @@ export const create = mutation({
       branchName: args.branchName,
       employees: args.employees,
     });
+
+    // Trigger Zapier webhook for revenue creation
+    const revenue = await ctx.db.get(revenueId);
+    if (revenue) {
+      await triggerRevenueCreated(ctx, {
+        _id: revenue._id,
+        date: revenue.date,
+        cash: revenue.cash,
+        network: revenue.network,
+        budget: revenue.budget,
+        total: revenue.total,
+        branchId: revenue.branchId,
+        branchName: revenue.branchName,
+      });
+    }
+
+    return revenueId;
   },
 });
 
 export const remove = mutation({
-  args: { 
+  args: {
     id: v.id("revenues"),
-    password: v.string(),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -197,10 +214,22 @@ export const remove = mutation({
       });
     }
 
-    // التحقق من كلمة المرور
-    if (args.password !== "Omar101010#") {
+    // التحقق من صلاحيات المستخدم (admin only)
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!user) {
       throw new ConvexError({
-        message: "كلمة المرور غير صحيحة",
+        message: "المستخدم غير موجود",
+        code: "NOT_FOUND",
+      });
+    }
+
+    if (user.role !== "admin") {
+      throw new ConvexError({
+        message: "⚠️ غير مصرح لك بحذف الإيرادات - صلاحيات أدمن فقط",
         code: "FORBIDDEN",
       });
     }
