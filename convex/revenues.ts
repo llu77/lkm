@@ -184,9 +184,8 @@ export const create = mutation({
 });
 
 export const remove = mutation({
-  args: { 
+  args: {
     id: v.id("revenues"),
-    password: v.string(),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -197,10 +196,22 @@ export const remove = mutation({
       });
     }
 
-    // التحقق من كلمة المرور
-    if (args.password !== "Omar101010#") {
+    // التحقق من صلاحيات المستخدم (admin only)
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!user) {
       throw new ConvexError({
-        message: "كلمة المرور غير صحيحة",
+        message: "المستخدم غير موجود",
+        code: "NOT_FOUND",
+      });
+    }
+
+    if (user.role !== "admin") {
+      throw new ConvexError({
+        message: "⚠️ غير مصرح لك بحذف الإيرادات - صلاحيات أدمن فقط",
         code: "FORBIDDEN",
       });
     }

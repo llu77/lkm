@@ -5,8 +5,20 @@ import { api } from "./_generated/api";
 import { v } from "convex/values";
 
 /**
+ * ⚠️ NOTICE: This PDF.co integration is currently NOT USED in the application
+ *
+ * The application currently uses jsPDF (client-side) for PDF generation:
+ * - Location: src/lib/pdf-export.ts
+ * - Used in: revenues, expenses, product-orders pages
+ * - Advantages: No API key needed, works offline, faster
+ *
+ * This PDF.co agent is kept for future use if server-side PDF generation is needed.
+ * Potential use cases: bulk generation, complex layouts, advanced features (merge, watermark)
+ */
+
+/**
  * PDF.co Agent - Advanced PDF Generation
- * 
+ *
  * Capabilities:
  * - Generate PDFs from HTML
  * - Generate PDFs from templates

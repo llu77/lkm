@@ -132,7 +132,6 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
   const [mismatchReason, setMismatchReason] = useState<string>("");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [deleteId, setDeleteId] = useState<Id<"revenues"> | null>(null);
-  const [deletePassword, setDeletePassword] = useState("");
 
   const cashNum = parseFloat(cash) || 0;
   const networkNum = parseFloat(network) || 0;
@@ -262,19 +261,19 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    
-    if (!deletePassword) {
-      toast.error("يرجى إدخال كلمة المرور");
-      return;
-    }
 
     try {
-      await removeRevenue({ id: deleteId, password: deletePassword });
+      await removeRevenue({ id: deleteId });
       toast.success("تم حذف الإيراد بنجاح");
       setDeleteId(null);
-      setDeletePassword("");
-    } catch (error) {
-      toast.error("كلمة المرور غير صحيحة");
+    } catch (error: any) {
+      if (error?.message?.includes("صلاحيات")) {
+        toast.error("⚠️ غير مصرح لك بحذف الإيرادات - صلاحيات أدمن فقط");
+      } else if (error?.message?.includes("معتمد في البونص")) {
+        toast.error("⚠️ لا يمكن حذف إيراد معتمد في البونص");
+      } else {
+        toast.error("فشل حذف الإيراد");
+      }
     }
   };
 
@@ -828,21 +827,11 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
               تأكيد الحذف
             </AlertDialogTitle>
             <AlertDialogDescription>
-              لحذف هذا الإيراد، يرجى إدخال كلمة المرور
+              هل أنت متأكد من حذف هذا الإيراد؟ لا يمكن التراجع عن هذا الإجراء.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="deletePassword">كلمة المرور</Label>
-            <Input
-              id="deletePassword"
-              type="password"
-              placeholder="أدخل كلمة المرور"
-              value={deletePassword}
-              onChange={(e) => setDeletePassword(e.target.value)}
-            />
-          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeletePassword("")}>إلغاء</AlertDialogCancel>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
               حذف
             </AlertDialogAction>
