@@ -1,6 +1,6 @@
 "use node";
 
-import { action } from "./_generated/server";
+import { action, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { Resend } from "resend";
 import { internal } from "./_generated/api";
@@ -184,6 +184,70 @@ export const sendEmail = action({
 
     const resendApiKey = process.env.RESEND_API_KEY;
     
+    if (!resendApiKey) {
+      throw new Error("RESEND_API_KEY not configured");
+    }
+
+    const resend = new Resend(resendApiKey);
+
+    try {
+      const result = await resend.emails.send({
+        from: args.from || "نظام الإدارة المالية <onboarding@resend.dev>",
+        to: args.to,
+        subject: args.subject,
+        html: args.html,
+      });
+
+      // Log the email
+      await ctx.runMutation(internal.emailLogs.logEmail, {
+        to: args.to,
+        subject: args.subject,
+        status: "sent",
+        emailId: result.data?.id || "unknown",
+      });
+
+      return { success: true, emailId: result.data?.id };
+    } catch (error) {
+      // Log failed email
+      await ctx.runMutation(internal.emailLogs.logEmail, {
+        to: args.to,
+        subject: args.subject,
+        status: "failed",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+
+      throw error;
+    }
+  },
+});
+
+/**
+ * Internal version of sendEmail for use in scheduled tasks
+ * Can be called from cron jobs and other internal actions
+ */
+export const sendEmailInternal = internalAction({
+  args: {
+    to: v.array(v.string()),
+    subject: v.string(),
+    html: v.string(),
+    from: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // إرسال webhook إلى Zapier أولاً (non-blocking)
+    try {
+      await ctx.runAction(internal.zapier.triggerEmailWebhook, {
+        to: args.to,
+        subject: args.subject,
+        html: args.html,
+        from: args.from,
+        timestamp: Date.now(),
+      });
+    } catch (error) {
+      console.error("Zapier webhook error (non-blocking):", error);
+    }
+
+    const resendApiKey = process.env.RESEND_API_KEY;
+
     if (!resendApiKey) {
       throw new Error("RESEND_API_KEY not configured");
     }

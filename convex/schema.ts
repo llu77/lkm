@@ -307,6 +307,8 @@ export default defineSchema({
     branchId: v.string(),
     branchName: v.string(),
     employeeName: v.string(),
+    email: v.optional(v.string()), // بريد إلكتروني للموظف
+    phone: v.optional(v.string()), // رقم الهاتف
     nationalId: v.optional(v.string()), // رقم الهوية
     idExpiryDate: v.optional(v.number()), // تاريخ انتهاء الهوية
     baseSalary: v.number(), // الراتب الأساسي

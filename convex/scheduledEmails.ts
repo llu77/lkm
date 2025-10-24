@@ -46,7 +46,7 @@ export const sendDailyFinancialReport = internalAction({
 
         // إرسال الإيميل
         if (branch.supervisorEmail) {
-          await ctx.runAction(internal.emailSystem.sendEmail, {
+          await ctx.runAction(internal.emailSystem.sendEmailInternal, {
             to: [branch.supervisorEmail],
             subject: `📊 التقرير المالي اليومي - ${branch.name} - ${formatArabicDate(yesterday)}`,
             html: emailHtml,
@@ -109,7 +109,7 @@ export const sendMonthlyFinancialReport = internalAction({
 
         // إرسال الإيميل
         if (branch.supervisorEmail) {
-          await ctx.runAction(internal.emailSystem.sendEmail, {
+          await ctx.runAction(internal.emailSystem.sendEmailInternal, {
             to: [branch.supervisorEmail],
             subject: `📈 التقرير المالي الشهري - ${branch.name} - ${getArabicMonth(month)} ${year}`,
             html: emailHtml,
@@ -170,7 +170,7 @@ export const sendWeeklyBonusEmails = internalAction({
             month
           );
 
-          await ctx.runAction(internal.emailSystem.sendEmail, {
+          await ctx.runAction(internal.emailSystem.sendEmailInternal, {
             to: [branch.supervisorEmail],
             subject: `🎁 تقرير البونص الأسبوعي - ${branch.name} - ${bonusData.weekLabel}`,
             html: supervisorEmailHtml,
@@ -189,7 +189,7 @@ export const sendWeeklyBonusEmails = internalAction({
               month
             );
 
-            await ctx.runAction(internal.emailSystem.sendEmail, {
+            await ctx.runAction(internal.emailSystem.sendEmailInternal, {
               to: [employee.email],
               subject: `🎉 تهانينا! لقد حصلت على بونص ${employee.bonusAmount} ريال`,
               html: employeeEmailHtml,
@@ -214,14 +214,45 @@ export const sendWeeklyBonusEmails = internalAction({
 export const getAllBranches = internalQuery({
   args: {},
   handler: async (ctx) => {
-    // TODO: استبدال بمصدر البيانات الفعلي للفروع
-    // هذا مثال - يجب تعديله حسب schema الفعلي
-    return [
-      { id: "1010", name: "لبن", supervisorEmail: "supervisor1@example.com" },
-      { id: "2020", name: "طويق", supervisorEmail: "supervisor2@example.com" },
-    ];
+    // استخراج الفروع من جدول revenues
+    const revenues = await ctx.db.query("revenues").collect();
+
+    // تجميع الفروع الفريدة
+    const branchesMap = new Map<string, { id: string; name: string }>();
+
+    for (const revenue of revenues) {
+      if (revenue.branchId && revenue.branchName) {
+        if (!branchesMap.has(revenue.branchId)) {
+          branchesMap.set(revenue.branchId, {
+            id: revenue.branchId,
+            name: revenue.branchName,
+          });
+        }
+      }
+    }
+
+    // تحويل إلى array مع إضافة supervisor emails
+    // TODO: يجب إضافة supervisorEmail من جدول منفصل أو من employees
+    const branches = Array.from(branchesMap.values()).map((branch) => ({
+      ...branch,
+      supervisorEmail: getSupervisorEmail(branch.id), // دالة مساعدة
+    }));
+
+    return branches;
   },
 });
+
+/**
+ * دالة مساعدة للحصول على email المشرف حسب الفرع
+ * TODO: استبدال بجدول branches أو employees
+ */
+function getSupervisorEmail(branchId: string): string {
+  const supervisorEmails: Record<string, string> = {
+    "1010": "supervisor.labn@example.com",
+    "2020": "supervisor.tuwaiq@example.com",
+  };
+  return supervisorEmails[branchId] || "admin@example.com";
+}
 
 /**
  * الحصول على البيانات المالية اليومية
@@ -380,11 +411,28 @@ export const getWeeklyBonusData = internalQuery({
       return null;
     }
 
-    // TODO: إضافة emails الموظفين من جدول employees
-    const employees = bonusRecord.employees.map((emp) => ({
-      ...emp,
-      email: undefined, // يجب جلب الإيميل من جدول employees
-    }));
+    // جلب emails الموظفين من جدول employees
+    const employeesWithEmails = await Promise.all(
+      bonusRecord.employees.map(async (emp) => {
+        // البحث عن الموظف في جدول employees
+        const employeeRecord = await ctx.db
+          .query("employees")
+          .filter((q) =>
+            q.and(
+              q.eq(q.field("employeeName"), emp.employeeName),
+              q.eq(q.field("branchId"), args.branchId)
+            )
+          )
+          .first();
+
+        return {
+          ...emp,
+          email: employeeRecord?.email, // إضافة email من جدول employees
+        };
+      })
+    );
+
+    const employees = employeesWithEmails;
 
     return {
       weekNumber: args.weekNumber,

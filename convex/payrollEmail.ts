@@ -1,6 +1,6 @@
 "use node";
 
-import { action } from "./_generated/server";
+import { action, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
@@ -170,7 +170,7 @@ export const sendPayrollEmail = action({
 
     // إرسال الإيميل
     try {
-      const result = await ctx.runAction(internal.emailSystem.sendEmail, {
+      const result = await ctx.runAction(internal.emailSystem.sendEmailInternal, {
         to: [args.supervisorEmail],
         subject: `💼 مسير رواتب ${monthName} ${payroll.year} - ${payroll.branchName}`,
         html: emailHtml,
@@ -178,7 +178,7 @@ export const sendPayrollEmail = action({
       });
 
       // تحديث حالة الإيميل في payroll record
-      await ctx.runMutation(internal.payroll.markEmailSent, {
+      await ctx.runMutation(internal.payroll.markEmailSentInternal, {
         payrollId: args.payrollId,
       });
 
@@ -197,7 +197,7 @@ export const sendPayrollEmail = action({
 /**
  * استرجاع بيانات مسير الرواتب (internal query)
  */
-export const getPayrollData = query({
+export const getPayrollData = internalQuery({
   args: {
     payrollId: v.id("payrollRecords"),
   },
@@ -209,6 +209,3 @@ export const getPayrollData = query({
     return payroll;
   },
 });
-
-// Make it available as internal API
-import { query } from "./_generated/server";

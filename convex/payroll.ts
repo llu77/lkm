@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { ConvexError } from "convex/values";
 
 // Get payroll records with filters
@@ -195,7 +195,7 @@ export const deletePayroll = mutation({
   },
 });
 
-// Mark payroll as email sent
+// Mark payroll as email sent (public mutation)
 export const markEmailSent = mutation({
   args: {
     payrollId: v.id("payrollRecords"),
@@ -209,6 +209,19 @@ export const markEmailSent = mutation({
       });
     }
 
+    await ctx.db.patch(args.payrollId, {
+      emailSent: true,
+      emailSentAt: Date.now(),
+    });
+  },
+});
+
+// Internal version for scheduled tasks
+export const markEmailSentInternal = internalMutation({
+  args: {
+    payrollId: v.id("payrollRecords"),
+  },
+  handler: async (ctx, args) => {
     await ctx.db.patch(args.payrollId, {
       emailSent: true,
       emailSentAt: Date.now(),
