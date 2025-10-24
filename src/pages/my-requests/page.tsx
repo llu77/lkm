@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
+import { Label } from "@/components/ui/label.tsx";
 import { ClipboardListIcon, CheckCircleIcon, XCircleIcon, ClockIcon, EyeIcon, ArrowLeftIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -77,6 +79,7 @@ export default function MyRequestsPage() {
 
 function MyRequestsContent({ branchId, branchName }: { branchId: string; branchName: string }) {
   const [selectedEmployee, setSelectedEmployee] = useState("");
+  const employeesData = useQuery(api.employeeRequests.getBranchEmployees, { branchId });
   const requests = useQuery(
     api.employeeRequests.getMyRequests,
     selectedEmployee ? { branchId, employeeName: selectedEmployee } : "skip"
@@ -84,7 +87,14 @@ function MyRequestsContent({ branchId, branchName }: { branchId: string; branchN
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const navigate = useNavigate();
 
-  if (requests === undefined) {
+  const employees = employeesData || [];
+
+  // If no employee selected yet and employees loaded, select first one
+  if (!selectedEmployee && employees.length > 0 && !requests) {
+    setSelectedEmployee(employees[0].name);
+  }
+
+  if (requests === undefined || employees.length === 0) {
     return (
       <div className="container mx-auto max-w-7xl p-4 space-y-4">
         <Skeleton className="h-12 w-full" />
@@ -112,6 +122,31 @@ function MyRequestsContent({ branchId, branchName }: { branchId: string; branchN
           عودة
         </Button>
       </div>
+
+      {/* Employee Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle>اختر الموظف</CardTitle>
+          <CardDescription>اختر اسم الموظف لعرض طلباته</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Label>اسم الموظف</Label>
+            <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+              <SelectTrigger>
+                <SelectValue placeholder="اختر الموظف" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map((emp) => (
+                  <SelectItem key={emp.id} value={emp.name}>
+                    {emp.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

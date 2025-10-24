@@ -185,20 +185,21 @@ export const updateStatus = mutation({
       requestId: args.requestId as unknown as string,
     });
 
-    // Send email notification if employee has email and status is approved/rejected
-    if (request.employeeId && (args.status === "مقبول" || args.status === "مرفوض")) {
-      const employee = await ctx.db.get(request.employeeId);
-      if (employee?.email) {
-        await ctx.scheduler.runAfter(0, internal.employeeRequestsEmail.sendRequestStatusEmail, {
-          employeeEmail: employee.email,
-          employeeName: request.employeeName,
-          requestType: request.requestType,
-          status: args.status,
-          branchName: request.branchName,
-          adminResponse: args.adminResponse,
-        });
-      }
-    }
+    // TODO: Send email notification if employee has email and status is approved/rejected
+    // Requires Convex codegen to regenerate API types for employeeRequestsEmail
+    // if (request.employeeId && (args.status === "مقبول" || args.status === "مرفوض")) {
+    //   const employee = await ctx.db.get(request.employeeId);
+    //   if (employee?.email) {
+    //     await ctx.scheduler.runAfter(0, internal.employeeRequestsEmail.sendRequestStatusEmail, {
+    //       employeeEmail: employee.email,
+    //       employeeName: request.employeeName,
+    //       requestType: request.requestType,
+    //       status: args.status,
+    //       branchName: request.branchName,
+    //       adminResponse: args.adminResponse,
+    //     });
+    //   }
+    // }
 
     return { success: true };
   },

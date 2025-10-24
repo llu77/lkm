@@ -281,6 +281,7 @@ export const getRecentRevenues = internalMutation({
       isMatched: r.isMatched || false,
       cash: r.cash || 0,
       network: r.network || 0,
+      budget: r.budget || 0,
     }));
   },
 });
