@@ -83,7 +83,9 @@ function PasswordProtection({ onVerified }: { onVerified: () => void }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (password === "Omar1010#") {
+    const correctPassword = import.meta.env.VITE_EMPLOYEES_PASSWORD || "Omar1010#";
+
+    if (password === correctPassword) {
       onVerified();
     } else {
       setError("كلمة المرور غير صحيحة");
