@@ -20,7 +20,7 @@ import { BranchSelector } from "@/components/branch-selector.tsx";
 import { toast } from "sonner";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 
-const ADMIN_PASSWORD = "Omar101010#";
+const ADMIN_PASSWORD = import.meta.env.VITE_MANAGE_REQUESTS_PASSWORD || "Omar101010#";
 
 interface Request {
   _id: Id<"employeeRequests">;

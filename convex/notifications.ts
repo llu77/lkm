@@ -200,6 +200,67 @@ export const createAINotification = internalMutation({
 });
 
 /**
+ * Create notification for employee request (internal)
+ */
+export const createEmployeeRequestNotification = internalMutation({
+  args: {
+    branchId: v.string(),
+    branchName: v.string(),
+    requestType: v.string(),
+    employeeName: v.string(),
+    status: v.string(),
+    requestId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    let title = "";
+    let message = "";
+    let type = "info";
+    let severity = "medium";
+
+    if (args.status === "تحت الإجراء") {
+      // New request notification
+      title = "طلب موظف جديد";
+      message = `تم إنشاء طلب ${args.requestType} من الموظف ${args.employeeName}`;
+      type = "info";
+      severity = "medium";
+    } else if (args.status === "مقبول") {
+      // Approved notification
+      title = "تم قبول الطلب";
+      message = `تم قبول طلب ${args.requestType} للموظف ${args.employeeName}`;
+      type = "success";
+      severity = "low";
+    } else if (args.status === "مرفوض") {
+      // Rejected notification
+      title = "تم رفض الطلب";
+      message = `تم رفض طلب ${args.requestType} للموظف ${args.employeeName}`;
+      type = "warning";
+      severity = "low";
+    }
+
+    const notificationId = await ctx.db.insert("notifications", {
+      branchId: args.branchId,
+      branchName: args.branchName,
+      type,
+      severity,
+      title,
+      message,
+      reasoning: undefined,
+      aiGenerated: false,
+      actionRequired: args.status === "تحت الإجراء",
+      relatedEntity: {
+        type: "request",
+        id: args.requestId,
+      },
+      isRead: false,
+      isDismissed: false,
+      expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
+    });
+
+    return notificationId;
+  },
+});
+
+/**
  * Get recent revenues (called from AI agents)
  */
 export const getRecentRevenues = internalMutation({

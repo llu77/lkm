@@ -14,16 +14,7 @@ import Navbar from "@/components/navbar.tsx";
 import { FileTextIcon, CalendarIcon, DollarSignIcon, ClockIcon, AlertCircleIcon, LogOutIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-
-const BRANCH_EMPLOYEES = {
-  "1010": ["عبدالحي جلال", "محمود عمارة", "علاء ناصر", "السيد محمد", "عمرو"],
-  "2020": ["محمد إسماعيل", "محمد ناصر", "فارس محمد"],
-};
-
-const BRANCH_SUPERVISORS = {
-  "1010": "عبدالحي جلال",
-  "2020": "محمد إسماعيل",
-};
+import type { Id } from "@/convex/_generated/dataModel.d.ts";
 
 const OBJECTION_REASONS = [
   "لم أقم بعمل المخالفة إطلاقاً",
@@ -38,9 +29,15 @@ const OBJECTION_REASONS = [
 export default function EmployeeRequests() {
   const { branchId, branchName, selectBranch } = useBranch();
   const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<Id<"employees"> | undefined>(undefined);
   const [requestType, setRequestType] = useState("");
 
-  
+  // Query to get employees from database
+  const employeesData = useQuery(
+    api.employeeRequests.getBranchEmployees,
+    branchId ? { branchId } : "skip"
+  );
+
   // Advance fields
   const [advanceAmount, setAdvanceAmount] = useState("");
   
@@ -69,8 +66,9 @@ export default function EmployeeRequests() {
     return <BranchSelector onBranchSelected={selectBranch} />;
   }
 
-  const employees = BRANCH_EMPLOYEES[branchId as keyof typeof BRANCH_EMPLOYEES] || [];
-  const supervisor = BRANCH_SUPERVISORS[branchId as keyof typeof BRANCH_SUPERVISORS] || "";
+  // Get employees list from database
+  const employees = employeesData || [];
+  const supervisor = employees.find((emp) => emp.isSupervisor)?.name || "";
 
   const calculatePermissionHours = () => {
     if (!permissionStartTime || !permissionEndTime) return 0;
@@ -100,8 +98,8 @@ export default function EmployeeRequests() {
         branchId,
         branchName: branchName || "",
         employeeName: selectedEmployee,
+        employeeId: selectedEmployeeId,
         requestType,
-
       };
 
       let specificData: Record<string, unknown> = {};
@@ -215,14 +213,21 @@ export default function EmployeeRequests() {
               {/* Employee Selection */}
               <div className="space-y-2">
                 <Label>اسم الموظف *</Label>
-                <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                <Select
+                  value={selectedEmployee}
+                  onValueChange={(empName) => {
+                    setSelectedEmployee(empName);
+                    const emp = employees.find((e) => e.name === empName);
+                    setSelectedEmployeeId(emp?.id);
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="اختر الموظف" />
                   </SelectTrigger>
                   <SelectContent>
                     {employees.map((emp) => (
-                      <SelectItem key={emp} value={emp}>
-                        {emp}
+                      <SelectItem key={emp.id} value={emp.name}>
+                        {emp.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

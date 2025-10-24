@@ -215,6 +215,7 @@ export default defineSchema({
     branchId: v.string(),
     branchName: v.string(),
     employeeName: v.string(),
+    employeeId: v.optional(v.id("employees")), // Reference to employees table
     requestType: v.string(), // "سلفة", "إجازة", "صرف متأخرات", "استئذان", "اعتراض على مخالفة", "استقالة"
     status: v.string(), // "تحت الإجراء", "مقبول", "مرفوض"
     requestDate: v.number(),
@@ -252,6 +253,7 @@ export default defineSchema({
     .index("by_branch", ["branchId"])
     .index("by_status", ["status"])
     .index("by_employee", ["employeeName"])
+    .index("by_employee_id", ["employeeId"])
     .index("by_user", ["userId"]),
 
   emailLogs: defineTable({
