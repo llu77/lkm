@@ -4,18 +4,22 @@ import { ConvexError } from "convex/values";
 import type { Id } from "./_generated/dataModel.d.ts";
 
 // دالة لتحديد الأسبوع من التاريخ
+// الأسابيع: 1-7, 8-14, 15-22, 23-29, 30 (يوم لحاله)
 function getWeekInfo(date: Date) {
   const day = date.getDate();
-  
+
   if (day >= 1 && day <= 7) {
-    return { weekNumber: 1, weekLabel: "الأسبوع الأول" };
-  } else if (day >= 8 && day <= 15) {
-    return { weekNumber: 2, weekLabel: "الأسبوع الثاني" };
-  } else if (day >= 16 && day <= 22) {
-    return { weekNumber: 3, weekLabel: "الأسبوع الثالث" };
+    return { weekNumber: 1, weekLabel: "الأسبوع الأول (1-7)" };
+  } else if (day >= 8 && day <= 14) {
+    return { weekNumber: 2, weekLabel: "الأسبوع الثاني (8-14)" };
+  } else if (day >= 15 && day <= 22) {
+    return { weekNumber: 3, weekLabel: "الأسبوع الثالث (15-22)" };
   } else if (day >= 23 && day <= 29) {
-    return { weekNumber: 4, weekLabel: "الأسبوع الرابع" };
+    return { weekNumber: 4, weekLabel: "الأسبوع الرابع (23-29)" };
+  } else if (day === 30) {
+    return { weekNumber: 5, weekLabel: "اليوم 30" };
   } else {
+    // يوم 31 (للأشهر التي تحتوي على 31 يوماً)
     return { weekNumber: 5, weekLabel: "أيام متبقية" };
   }
 }
@@ -36,6 +40,7 @@ function calculateBonus(totalRevenue: number): { amount: number; isEligible: boo
 }
 
 // دالة لحساب تاريخ بداية ونهاية الأسبوع
+// الأسابيع: 1-7, 8-14, 15-22, 23-29, 30
 function getWeekDateRange(year: number, month: number, weekNumber: number) {
   let startDay: number;
   let endDay: number;
@@ -45,15 +50,15 @@ function getWeekDateRange(year: number, month: number, weekNumber: number) {
     endDay = 7;
   } else if (weekNumber === 2) {
     startDay = 8;
-    endDay = 15;
+    endDay = 14;
   } else if (weekNumber === 3) {
-    startDay = 16;
+    startDay = 15;
     endDay = 22;
   } else if (weekNumber === 4) {
     startDay = 23;
     endDay = 29;
   } else {
-    // أيام متبقية
+    // يوم 30 أو أيام متبقية (30-31)
     startDay = 30;
     // آخر يوم في الشهر
     const lastDay = new Date(year, month, 0).getDate();
@@ -124,9 +129,11 @@ export const getCurrentWeekRevenues = query({
       )
       .first();
 
-    // تحديد هل يمكن الاعتماد (اليوم الأول من الأسبوع فقط)
+    // تحديد هل يمكن الاعتماد (في أيام 8, 15, 23, 30)
+    // الاعتماد يتم في أول يوم من الأسبوع الجديد
     const today = now.getDate();
-    const isFirstDayOfWeek = today === startDay;
+    const approvalDays = [8, 15, 23, 30];
+    const canApproveToday = approvalDays.includes(today);
     const isAlreadyApproved = !!existingRecord;
 
     return {
@@ -138,7 +145,7 @@ export const getCurrentWeekRevenues = query({
       year,
       employeeBonuses,
       totalBonusPaid: employeeBonuses.reduce((sum, emp) => sum + emp.bonusAmount, 0),
-      canApprove: isFirstDayOfWeek && !isAlreadyApproved,
+      canApprove: canApproveToday && !isAlreadyApproved,
       isAlreadyApproved,
       approvalDate: existingRecord?.approvedAt,
     };

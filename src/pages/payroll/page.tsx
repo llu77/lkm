@@ -70,8 +70,10 @@ function PasswordProtection({ onVerified }: { onVerified: () => void }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (password === "Omar1010#") {
+
+    const correctPassword = import.meta.env.VITE_PAYROLL_PASSWORD || "Omar1010#";
+
+    if (password === correctPassword) {
       toast.success("تم التحقق بنجاح! مرحباً بك في مسير الرواتب");
       onVerified();
     } else {
