@@ -51,9 +51,15 @@ export const sendToZapier = action({
     payload: v.optional(v.any()),
   },
   handler: async (ctx, args): Promise<{ success: boolean; status?: number; statusText?: string; error?: string }> => {
-    // Default Zapier webhook URL
-    const webhookUrl = "https://hooks.zapier.com/hooks/catch/4045e58858fec2e48109352fcd71ead5/";
-    
+    // Get Zapier webhook URL from environment variable
+    const webhookUrl = process.env.ZAPIER_WEBHOOK_URL || process.env.DEFAULT_ZAPIER_WEBHOOK_URL;
+
+    if (!webhookUrl) {
+      throw new Error(
+        "ZAPIER_WEBHOOK_URL not configured. Please set ZAPIER_WEBHOOK_URL in Convex environment variables."
+      );
+    }
+
     return await ctx.runAction(internal.zapier.sendToZapierInternal, {
       webhookUrl,
       eventType: args.eventType,

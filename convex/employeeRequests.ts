@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { ConvexError } from "convex/values";
+import { triggerEmployeeRequestCreated } from "./zapierHelper";
 
 // قائمة الموظفين حسب الفرع
 export const BRANCH_EMPLOYEES = {
@@ -67,7 +68,7 @@ export const create = mutation({
       status: "تحت الإجراء",
       requestDate: Date.now(),
       userId: user._id,
-      
+
       advanceAmount: args.advanceAmount,
       vacationDate: args.vacationDate,
       duesAmount: args.duesAmount,
@@ -81,6 +82,19 @@ export const create = mutation({
       nationalId: args.nationalId,
       resignationText: args.resignationText,
     });
+
+    // Trigger Zapier webhook for employee request creation
+    const request = await ctx.db.get(requestId);
+    if (request) {
+      await triggerEmployeeRequestCreated(ctx, {
+        _id: request._id,
+        employeeName: request.employeeName,
+        requestType: request.requestType,
+        status: request.status,
+        branchId: request.branchId,
+        branchName: request.branchName,
+      });
+    }
 
     return requestId;
   },

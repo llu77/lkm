@@ -1,6 +1,7 @@
 import { ConvexError } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { triggerExpenseCreated } from "./zapierHelper";
 
 export const create = mutation({
   args: {
@@ -112,6 +113,20 @@ export const create = mutation({
       branchId: args.branchId,
       branchName: args.branchName,
     });
+
+    // Trigger Zapier webhook for expense creation
+    const expense = await ctx.db.get(expenseId);
+    if (expense) {
+      await triggerExpenseCreated(ctx, {
+        _id: expense._id,
+        title: expense.title,
+        amount: expense.amount,
+        category: expense.category,
+        date: expense.date,
+        branchId: expense.branchId,
+        branchName: expense.branchName,
+      });
+    }
 
     return expenseId;
   },

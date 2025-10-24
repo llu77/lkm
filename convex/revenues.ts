@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { triggerRevenueCreated } from "./zapierHelper";
 
 export const getStats = query({
   args: { branchId: v.string() },
@@ -166,7 +167,7 @@ export const create = mutation({
       }
     }
 
-    await ctx.db.insert("revenues", {
+    const revenueId = await ctx.db.insert("revenues", {
       date: args.date,
       cash: args.cash,
       network: args.network,
@@ -180,6 +181,23 @@ export const create = mutation({
       branchName: args.branchName,
       employees: args.employees,
     });
+
+    // Trigger Zapier webhook for revenue creation
+    const revenue = await ctx.db.get(revenueId);
+    if (revenue) {
+      await triggerRevenueCreated(ctx, {
+        _id: revenue._id,
+        date: revenue.date,
+        cash: revenue.cash,
+        network: revenue.network,
+        budget: revenue.budget,
+        total: revenue.total,
+        branchId: revenue.branchId,
+        branchName: revenue.branchName,
+      });
+    }
+
+    return revenueId;
   },
 });
 

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { ConvexError } from "convex/values";
+import { triggerProductOrderCreated } from "./zapierHelper";
 
 // Get all product orders for a branch
 export const getOrders = query({
@@ -90,6 +91,22 @@ export const createOrder = mutation({
       branchId: args.branchId,
       branchName: args.branchName,
     });
+
+    // Trigger Zapier webhook only for actual orders (not drafts)
+    if (!args.isDraft) {
+      const order = await ctx.db.get(orderId);
+      if (order) {
+        await triggerProductOrderCreated(ctx, {
+          _id: order._id,
+          employeeName: order.employeeName,
+          grandTotal: order.grandTotal,
+          status: order.status,
+          branchId: order.branchId,
+          branchName: order.branchName,
+          products: order.products,
+        });
+      }
+    }
 
     return orderId;
   },
