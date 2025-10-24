@@ -1,0 +1,20 @@
+# Cloudflare Pages Configuration
+# استخدم هذا الملف للنشر عبر Wrangler CLI
+
+name = "lkm-hr-system"
+compatibility_date = "2025-01-15"
+pages_build_output_dir = "dist"
+
+# Build configuration
+[build]
+command = "npm run build"
+
+# Environment variables (production)
+# ملاحظة: يُفضل إضافة المتغيرات عبر Cloudflare Dashboard بدلاً من هنا
+[env.production.vars]
+# VITE_CONVEX_URL = "https://your-deployment.convex.cloud"
+# يجب إضافة المتغيرات الحساسة عبر Dashboard
+
+# Preview environment
+[env.preview.vars]
+# متغيرات بيئة الاختبار
