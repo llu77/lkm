@@ -129,11 +129,113 @@ export const createEmployee = mutation({
       });
     }
 
+    // === Comprehensive Validation ===
+
+    // Validate required string fields
+    if (!args.branchId?.trim()) {
+      throw new ConvexError({
+        message: "معرف الفرع مطلوب",
+        code: "INVALID_INPUT",
+      });
+    }
+
+    if (!args.branchName?.trim()) {
+      throw new ConvexError({
+        message: "اسم الفرع مطلوب",
+        code: "INVALID_INPUT",
+      });
+    }
+
+    if (!args.employeeName?.trim()) {
+      throw new ConvexError({
+        message: "اسم الموظف مطلوب",
+        code: "INVALID_INPUT",
+      });
+    }
+
+    // Validate salary values
+    if (args.baseSalary <= 0) {
+      throw new ConvexError({
+        message: "الراتب الأساسي يجب أن يكون أكبر من صفر",
+        code: "INVALID_SALARY",
+      });
+    }
+
+    if (args.supervisorAllowance < 0) {
+      throw new ConvexError({
+        message: "بدل الإشراف لا يمكن أن يكون سالباً",
+        code: "INVALID_ALLOWANCE",
+      });
+    }
+
+    if (args.incentives < 0) {
+      throw new ConvexError({
+        message: "الحوافز لا يمكن أن تكون سالبة",
+        code: "INVALID_INCENTIVES",
+      });
+    }
+
+    // Validate total salary is reasonable
+    const totalSalary = args.baseSalary + args.supervisorAllowance + args.incentives;
+    if (totalSalary > 100000) {
+      throw new ConvexError({
+        message: "إجمالي الراتب يتجاوز الحد المسموح (100,000 ر.س)",
+        code: "SALARY_TOO_HIGH",
+      });
+    }
+
+    // Validate national ID format if provided
+    if (args.nationalId) {
+      const nationalIdTrimmed = args.nationalId.trim();
+      if (nationalIdTrimmed.length !== 10) {
+        throw new ConvexError({
+          message: "رقم الهوية الوطنية يجب أن يكون 10 أرقام",
+          code: "INVALID_NATIONAL_ID",
+        });
+      }
+
+      // Check if it's all digits
+      if (!/^\d+$/.test(nationalIdTrimmed)) {
+        throw new ConvexError({
+          message: "رقم الهوية الوطنية يجب أن يحتوي على أرقام فقط",
+          code: "INVALID_NATIONAL_ID_FORMAT",
+        });
+      }
+    }
+
+    // Validate ID expiry date if provided
+    if (args.idExpiryDate) {
+      if (args.idExpiryDate < Date.now()) {
+        throw new ConvexError({
+          message: "تاريخ انتهاء الهوية يجب أن يكون في المستقبل",
+          code: "EXPIRED_ID",
+        });
+      }
+    }
+
+    // Check for duplicate employee name in the same branch
+    const existingEmployee = await ctx.db
+      .query("employees")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("branchId"), args.branchId),
+          q.eq(q.field("employeeName"), args.employeeName.trim())
+        )
+      )
+      .first();
+
+    if (existingEmployee) {
+      throw new ConvexError({
+        message: `موظف بنفس الاسم "${args.employeeName}" موجود مسبقاً في فرع ${args.branchName}`,
+        code: "DUPLICATE_EMPLOYEE",
+      });
+    }
+
     const employeeId = await ctx.db.insert("employees", {
       branchId: args.branchId,
       branchName: args.branchName,
-      employeeName: args.employeeName,
-      nationalId: args.nationalId,
+      employeeName: args.employeeName.trim(),
+      nationalId: args.nationalId?.trim(),
       idExpiryDate: args.idExpiryDate,
       baseSalary: args.baseSalary,
       supervisorAllowance: args.supervisorAllowance,
@@ -174,9 +276,84 @@ export const updateEmployee = mutation({
       });
     }
 
+    // === Comprehensive Validation ===
+
+    // Validate employee name if being updated
+    if (args.employeeName !== undefined && !args.employeeName?.trim()) {
+      throw new ConvexError({
+        message: "اسم الموظف لا يمكن أن يكون فارغاً",
+        code: "INVALID_INPUT",
+      });
+    }
+
+    // Validate salary values if being updated
+    if (args.baseSalary !== undefined && args.baseSalary <= 0) {
+      throw new ConvexError({
+        message: "الراتب الأساسي يجب أن يكون أكبر من صفر",
+        code: "INVALID_SALARY",
+      });
+    }
+
+    if (args.supervisorAllowance !== undefined && args.supervisorAllowance < 0) {
+      throw new ConvexError({
+        message: "بدل الإشراف لا يمكن أن يكون سالباً",
+        code: "INVALID_ALLOWANCE",
+      });
+    }
+
+    if (args.incentives !== undefined && args.incentives < 0) {
+      throw new ConvexError({
+        message: "الحوافز لا يمكن أن تكون سالبة",
+        code: "INVALID_INCENTIVES",
+      });
+    }
+
+    // Validate total salary if any salary component is being updated
+    if (args.baseSalary !== undefined || args.supervisorAllowance !== undefined || args.incentives !== undefined) {
+      const newBaseSalary = args.baseSalary ?? employee.baseSalary;
+      const newSupervisorAllowance = args.supervisorAllowance ?? employee.supervisorAllowance;
+      const newIncentives = args.incentives ?? employee.incentives;
+      const totalSalary = newBaseSalary + newSupervisorAllowance + newIncentives;
+
+      if (totalSalary > 100000) {
+        throw new ConvexError({
+          message: "إجمالي الراتب يتجاوز الحد المسموح (100,000 ر.س)",
+          code: "SALARY_TOO_HIGH",
+        });
+      }
+    }
+
+    // Validate national ID format if being updated
+    if (args.nationalId !== undefined && args.nationalId) {
+      const nationalIdTrimmed = args.nationalId.trim();
+      if (nationalIdTrimmed.length !== 10) {
+        throw new ConvexError({
+          message: "رقم الهوية الوطنية يجب أن يكون 10 أرقام",
+          code: "INVALID_NATIONAL_ID",
+        });
+      }
+
+      if (!/^\d+$/.test(nationalIdTrimmed)) {
+        throw new ConvexError({
+          message: "رقم الهوية الوطنية يجب أن يحتوي على أرقام فقط",
+          code: "INVALID_NATIONAL_ID_FORMAT",
+        });
+      }
+    }
+
+    // Validate ID expiry date if being updated
+    if (args.idExpiryDate !== undefined && args.idExpiryDate) {
+      if (args.idExpiryDate < Date.now()) {
+        throw new ConvexError({
+          message: "تاريخ انتهاء الهوية يجب أن يكون في المستقبل",
+          code: "EXPIRED_ID",
+        });
+      }
+    }
+
     const updates: Record<string, unknown> = {};
-    if (args.employeeName !== undefined) updates.employeeName = args.employeeName;
-    if (args.nationalId !== undefined) updates.nationalId = args.nationalId;
+    if (args.employeeName !== undefined) updates.employeeName = args.employeeName.trim();
+    if (args.nationalId !== undefined) updates.nationalId = args.nationalId?.trim();
     if (args.idExpiryDate !== undefined) updates.idExpiryDate = args.idExpiryDate;
     if (args.baseSalary !== undefined) updates.baseSalary = args.baseSalary;
     if (args.supervisorAllowance !== undefined) updates.supervisorAllowance = args.supervisorAllowance;

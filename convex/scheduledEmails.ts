@@ -209,20 +209,23 @@ export const sendWeeklyBonusEmails = internalAction({
 // ================== Internal Queries للبيانات ==================
 
 /**
- * الحصول على جميع الفروع مع معلومات الاتصال
+ * الحصول على جميع الفروع النشطة من قاعدة البيانات
  */
 export const getAllBranches = internalQuery({
   args: {},
   handler: async (ctx) => {
-    // قراءة emails المشرفين من environment variables
-    // يجب تكوينها في Convex Dashboard → Settings → Environment Variables
-    const supervisor1Email = process.env.SUPERVISOR_EMAIL_1010 || process.env.DEFAULT_SUPERVISOR_EMAIL || "admin@company.com";
-    const supervisor2Email = process.env.SUPERVISOR_EMAIL_2020 || process.env.DEFAULT_SUPERVISOR_EMAIL || "admin@company.com";
+    // قراءة جميع الفروع النشطة من قاعدة البيانات
+    const branches = await ctx.db
+      .query("branches")
+      .withIndex("by_active", (q) => q.eq("isActive", true))
+      .collect();
 
-    return [
-      { id: "1010", name: "لبن", supervisorEmail: supervisor1Email },
-      { id: "2020", name: "طويق", supervisorEmail: supervisor2Email },
-    ];
+    // تحويل الصيغة لتوافق الكود الحالي
+    return branches.map((branch) => ({
+      id: branch.branchId,
+      name: branch.branchName,
+      supervisorEmail: branch.supervisorEmail,
+    }));
   },
 });
 

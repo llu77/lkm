@@ -33,11 +33,80 @@ export const create = mutation({
       });
     }
 
+    // === Comprehensive Validation ===
+
+    // Validate required string fields
+    if (!args.title?.trim()) {
+      throw new ConvexError({
+        code: "INVALID_INPUT",
+        message: "عنوان المصروف مطلوب",
+      });
+    }
+
+    if (args.title.trim().length > 200) {
+      throw new ConvexError({
+        code: "INVALID_INPUT",
+        message: "عنوان المصروف طويل جداً (الحد الأقصى 200 حرف)",
+      });
+    }
+
+    if (!args.category?.trim()) {
+      throw new ConvexError({
+        code: "INVALID_INPUT",
+        message: "تصنيف المصروف مطلوب",
+      });
+    }
+
+    if (!args.branchId?.trim()) {
+      throw new ConvexError({
+        code: "INVALID_INPUT",
+        message: "معرف الفرع مطلوب",
+      });
+    }
+
+    if (!args.branchName?.trim()) {
+      throw new ConvexError({
+        code: "INVALID_INPUT",
+        message: "اسم الفرع مطلوب",
+      });
+    }
+
+    // Validate amount
+    if (args.amount <= 0) {
+      throw new ConvexError({
+        code: "INVALID_AMOUNT",
+        message: "مبلغ المصروف يجب أن يكون أكبر من صفر",
+      });
+    }
+
+    if (args.amount > 1000000) {
+      throw new ConvexError({
+        code: "AMOUNT_TOO_HIGH",
+        message: "مبلغ المصروف يتجاوز الحد المسموح (1,000,000 ر.س)",
+      });
+    }
+
+    // Validate date
+    if (args.date > Date.now() + (24 * 60 * 60 * 1000)) {
+      throw new ConvexError({
+        code: "INVALID_DATE",
+        message: "تاريخ المصروف لا يمكن أن يكون في المستقبل",
+      });
+    }
+
+    // Validate description length if provided
+    if (args.description && args.description.trim().length > 500) {
+      throw new ConvexError({
+        code: "DESCRIPTION_TOO_LONG",
+        message: "وصف المصروف طويل جداً (الحد الأقصى 500 حرف)",
+      });
+    }
+
     const expenseId = await ctx.db.insert("expenses", {
-      title: args.title,
+      title: args.title.trim(),
       amount: args.amount,
-      category: args.category,
-      description: args.description,
+      category: args.category.trim(),
+      description: args.description?.trim(),
       date: args.date,
       userId: user._id,
       branchId: args.branchId,
@@ -135,11 +204,71 @@ export const update = mutation({
       });
     }
 
+    // === Comprehensive Validation ===
+
+    // Validate title if being updated
+    if (args.title !== undefined) {
+      if (!args.title?.trim()) {
+        throw new ConvexError({
+          code: "INVALID_INPUT",
+          message: "عنوان المصروف لا يمكن أن يكون فارغاً",
+        });
+      }
+
+      if (args.title.trim().length > 200) {
+        throw new ConvexError({
+          code: "INVALID_INPUT",
+          message: "عنوان المصروف طويل جداً (الحد الأقصى 200 حرف)",
+        });
+      }
+    }
+
+    // Validate category if being updated
+    if (args.category !== undefined && !args.category?.trim()) {
+      throw new ConvexError({
+        code: "INVALID_INPUT",
+        message: "تصنيف المصروف لا يمكن أن يكون فارغاً",
+      });
+    }
+
+    // Validate amount if being updated
+    if (args.amount !== undefined) {
+      if (args.amount <= 0) {
+        throw new ConvexError({
+          code: "INVALID_AMOUNT",
+          message: "مبلغ المصروف يجب أن يكون أكبر من صفر",
+        });
+      }
+
+      if (args.amount > 1000000) {
+        throw new ConvexError({
+          code: "AMOUNT_TOO_HIGH",
+          message: "مبلغ المصروف يتجاوز الحد المسموح (1,000,000 ر.س)",
+        });
+      }
+    }
+
+    // Validate date if being updated
+    if (args.date !== undefined && args.date > Date.now() + (24 * 60 * 60 * 1000)) {
+      throw new ConvexError({
+        code: "INVALID_DATE",
+        message: "تاريخ المصروف لا يمكن أن يكون في المستقبل",
+      });
+    }
+
+    // Validate description length if being updated
+    if (args.description !== undefined && args.description && args.description.trim().length > 500) {
+      throw new ConvexError({
+        code: "DESCRIPTION_TOO_LONG",
+        message: "وصف المصروف طويل جداً (الحد الأقصى 500 حرف)",
+      });
+    }
+
     const updates: Record<string, unknown> = {};
-    if (args.title !== undefined) updates.title = args.title;
+    if (args.title !== undefined) updates.title = args.title.trim();
     if (args.amount !== undefined) updates.amount = args.amount;
-    if (args.category !== undefined) updates.category = args.category;
-    if (args.description !== undefined) updates.description = args.description;
+    if (args.category !== undefined) updates.category = args.category.trim();
+    if (args.description !== undefined) updates.description = args.description?.trim();
     if (args.date !== undefined) updates.date = args.date;
 
     await ctx.db.patch(args.id, updates);

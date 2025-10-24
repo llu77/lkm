@@ -303,6 +303,16 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_key", ["settingKey"]),
 
+  branches: defineTable({
+    branchId: v.string(), // "1010" للبن، "2020" لطويق
+    branchName: v.string(), // "لبن"، "طويق"
+    supervisorEmail: v.string(), // إيميل المشرف للتقارير اليومية والشهرية
+    isActive: v.boolean(), // هل الفرع نشط
+    createdAt: v.number(),
+  })
+    .index("by_branch_id", ["branchId"])
+    .index("by_active", ["isActive"]),
+
   employees: defineTable({
     branchId: v.string(),
     branchName: v.string(),

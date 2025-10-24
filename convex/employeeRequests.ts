@@ -130,6 +130,26 @@ export const updateStatus = mutation({
       });
     }
 
+    // التحقق من صلاحيات المستخدم (admin only)
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!user) {
+      throw new ConvexError({
+        message: "المستخدم غير موجود",
+        code: "NOT_FOUND",
+      });
+    }
+
+    if (user.role !== "admin") {
+      throw new ConvexError({
+        message: "⚠️ غير مصرح لك بإدارة الطلبات - صلاحيات أدمن فقط",
+        code: "FORBIDDEN",
+      });
+    }
+
     await ctx.db.patch(args.requestId, {
       status: args.status,
       ...(args.adminResponse ? { adminResponse: args.adminResponse } : {}),

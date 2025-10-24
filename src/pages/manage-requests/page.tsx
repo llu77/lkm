@@ -20,7 +20,8 @@ import { BranchSelector } from "@/components/branch-selector.tsx";
 import { toast } from "sonner";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 
-const ADMIN_PASSWORD = "Omar101010#";
+// استخدام environment variable بدون fallback لتحسين الأمان
+const ADMIN_PASSWORD = import.meta.env.VITE_MANAGE_REQUESTS_PASSWORD || "";
 
 interface Request {
   _id: Id<"employeeRequests">;
@@ -102,6 +103,10 @@ export default function ManageRequestsPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
+                    if (!ADMIN_PASSWORD) {
+                      toast.error("خطأ في التكوين: كلمة المرور غير معرّفة في البيئة");
+                      return;
+                    }
                     if (password === ADMIN_PASSWORD) {
                       setIsAuthenticated(true);
                       toast.success("تم الدخول بنجاح");
@@ -116,6 +121,10 @@ export default function ManageRequestsPage() {
             <Button
               className="w-full"
               onClick={() => {
+                if (!ADMIN_PASSWORD) {
+                  toast.error("خطأ في التكوين: كلمة المرور غير معرّفة في البيئة");
+                  return;
+                }
                 if (password === ADMIN_PASSWORD) {
                   setIsAuthenticated(true);
                   toast.success("تم الدخول بنجاح");
