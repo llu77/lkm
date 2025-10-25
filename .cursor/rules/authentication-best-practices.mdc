@@ -1,0 +1,244 @@
+---
+alwaysApply: true
+description: Authentication security best practices for Convex with React
+---
+
+# Authentication Best Practices - Convex + React
+
+Reference: [Authentication Best Practices: Convex, Clerk and Next.js](https://stack.convex.dev/authentication-best-practices-convex-clerk-and-nextjs)
+
+## 🔐 Three Layers of Authentication
+
+### 1. Client-side (React Components)
+- Use `useConvexAuth()` to check authentication state
+- **Always** check `isLoading` and `isAuthenticated` before rendering protected content
+- **Never** assume authentication from parent components
+
+### 2. Database Layer (Convex Functions)
+- **Always** validate `ctx.auth.getUserIdentity()` in every query/mutation
+- Convex is a **public API** - anyone can call your functions
+- Use `internalQuery` and `internalMutation` for sensitive operations
+
+### 3. Server-side (if using Next.js)
+- Use middleware to protect routes
+- Validate auth before server components render
+
+---
+
+## ⚠️ Critical: Race Conditions
+
+### The Problem
+`useConvexAuth()` is **asynchronous** - queries can execute **before** authentication completes!
+
+### The Solution: Always Skip Unauthenticated Queries
+
+**❌ Bad (Race Condition)**:
+```typescript
+const { isAuthenticated } = useConvexAuth();
+const data = useQuery(api.myData.get, { id: "123" });
+
+if (!isAuthenticated) return <div>Not allowed</div>;
+return <div>{data}</div>; // Query already executed!
+```
+
+**✅ Good (Safe)**:
+```typescript
+const { isAuthenticated } = useConvexAuth();
+const data = useQuery(
+  api.myData.get,
+  isAuthenticated ? { id: "123" } : "skip"
+);
+
+if (!isAuthenticated) return <div>Not allowed</div>;
+return <div>{data}</div>;
+```
+
+---
+
+## 🛡️ Backend Security Rules
+
+### Rule 1: Always Validate in Backend
+
+**Every** Convex function must check authentication:
+
+```typescript
+import { query } from "./_generated/server";
+import { ConvexError } from "convex/values";
+
+export const myQuery = query({
+  args: { /* ... */ },
+  handler: async (ctx, args) => {
+    // ALWAYS do this first
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError("Unauthenticated call");
+    }
+    
+    // Now safe to proceed
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    
+    if (!user) {
+      throw new ConvexError("User not found");
+    }
+    
+    // Your logic here
+  },
+});
+```
+
+### Rule 2: Use Internal Functions for Sensitive Operations
+
+```typescript
+// Public - can be called from client
+export const publicQuery = query({ /* ... */ });
+
+// Internal - can ONLY be called from other Convex functions
+export const sensitiveQuery = internalQuery({
+  handler: async (ctx) => {
+    // Still validate auth even in internal functions!
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new ConvexError("Unauthenticated");
+    
+    // Sensitive logic here
+  },
+});
+```
+
+### Rule 3: Check Permissions, Not Just Authentication
+
+```typescript
+export const adminMutation = mutation({
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new ConvexError("Not authenticated");
+    
+    const user = await getUserByToken(ctx, identity.tokenIdentifier);
+    
+    // Check role/permissions
+    if (user.role !== "admin") {
+      throw new ConvexError("Admin access required");
+    }
+    
+    // Admin-only logic
+  },
+});
+```
+
+---
+
+## 🎯 Custom Hooks (Recommended)
+
+### Helper: Skip Queries When Not Authenticated
+
+Create [src/hooks/use-authenticated-query.ts](mdc:src/hooks/use-authenticated-query.ts):
+
+```typescript
+import { useConvexAuth, useQuery } from "convex/react";
+import { FunctionReference } from "convex/server";
+
+/**
+ * Automatically skips query if user is not authenticated
+ * Prevents race conditions and unauthorized queries
+ */
+export function useAuthenticatedQuery<Query extends FunctionReference<"query">>(
+  query: Query,
+  args: any
+) {
+  const { isAuthenticated } = useConvexAuth();
+  return useQuery(query, isAuthenticated ? args : "skip");
+}
+```
+
+### Usage Example
+
+```typescript
+import { useAuthenticatedQuery } from "@/hooks/use-authenticated-query";
+import { api } from "@/convex/_generated/api";
+
+function MyComponent() {
+  const { isLoading, isAuthenticated } = useConvexAuth();
+  
+  // Query is automatically skipped if not authenticated
+  const data = useAuthenticatedQuery(api.myData.get, { id: "123" });
+  
+  if (isLoading) return <div>Loading...</div>;
+  if (!isAuthenticated) return <div>Please sign in</div>;
+  
+  return <div>{data?.value}</div>;
+}
+```
+
+---
+
+## 🚨 Common Security Mistakes
+
+### ❌ Mistake 1: Not Checking Auth in Backend
+```typescript
+// DANGEROUS - anyone can call this!
+export const deleteUser = mutation({
+  handler: async (ctx, { userId }) => {
+    await ctx.db.delete(userId); // No auth check!
+  },
+});
+```
+
+### ❌ Mistake 2: Race Conditions in Client
+```typescript
+// DANGEROUS - query might run before isAuthenticated is true
+const { isAuthenticated } = useConvexAuth();
+const data = useQuery(api.sensitiveData.get, {});
+
+if (!isAuthenticated) return null; // Too late!
+```
+
+### ❌ Mistake 3: Assuming Server-side Auth Protects Client Queries
+```typescript
+// In Next.js Server Component (protected by middleware)
+<ClientComponent userId={user.id} />
+
+// In ClientComponent
+// DANGEROUS - client can call Convex directly!
+const data = useQuery(api.admin.getAllPasswords, {});
+```
+
+---
+
+## ✅ Security Checklist
+
+### Backend (Convex Functions):
+- [ ] Every public query/mutation validates `ctx.auth.getUserIdentity()`
+- [ ] Sensitive operations use `internalQuery`/`internalMutation`
+- [ ] User roles/permissions checked where needed
+- [ ] Error messages don't leak sensitive data
+
+### Frontend (React Components):
+- [ ] Use `useConvexAuth()` to check authentication state
+- [ ] Queries use `"skip"` when `!isAuthenticated`
+- [ ] Protected components check `isLoading` before rendering
+- [ ] No sensitive data in client-side state
+
+### Project Setup:
+- [ ] [convex/auth.ts](mdc:convex/auth.ts) configured correctly
+- [ ] [convex/schema.ts](mdc:convex/schema.ts) includes `authTables`
+- [ ] [convex/http.ts](mdc:convex/http.ts) exposes auth routes
+- [ ] Auth provider wraps app ([src/components/providers/auth.tsx](mdc:src/components/providers/auth.tsx))
+
+---
+
+## 📚 Related Files
+
+- Auth configuration: [convex/auth.ts](mdc:convex/auth.ts)
+- Auth helpers: [convex/authHelpers.ts](mdc:convex/authHelpers.ts)
+- Frontend provider: [src/components/providers/auth.tsx](mdc:src/components/providers/auth.tsx)
+- Auth hooks: [src/hooks/use-auth.ts](mdc:src/hooks/use-auth.ts)
+
+---
+
+## 🔗 Resources
+
+- [Convex Auth Docs](https://labs.convex.dev/auth)
+- [Debugging Authentication](https://docs.convex.dev/auth/debug)
+- [Best Practices Article](https://stack.convex.dev/authentication-best-practices-convex-clerk-and-nextjs)
