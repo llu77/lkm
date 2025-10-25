@@ -76,7 +76,7 @@ export async function requireRole(
 ) {
   const user = await requireUser(ctx);
 
-  if (!allowedRoles.includes(user.role)) {
+  if (!user.role || !allowedRoles.includes(user.role)) {
     throw new ConvexError({
       code: "FORBIDDEN",
       message: `This action requires one of these roles: ${allowedRoles.join(", ")}`,

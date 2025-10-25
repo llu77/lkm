@@ -24,11 +24,8 @@ export const updateCurrentUser = mutation({
     const username = `user_${Date.now()}`;
     
     return await ctx.db.insert("users", {
-      name: null,
-      email: null,
       tokenIdentifier: userId,
       username,
-      avatar: null,
       role: "employee",
     });
   },
