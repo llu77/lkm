@@ -1,6 +1,6 @@
 import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
-import hercules from "@usehercules/vite";
+// import hercules from "@usehercules/vite"; // Disabled: causing MIME type errors
 import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "vite";
 
@@ -28,7 +28,11 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 1000,
   },
-  plugins: [react(), tailwindcss(), hercules()],
+  plugins: [
+    react(), 
+    tailwindcss(), 
+    // hercules() // Disabled: Enable only when VITE_HERCULES_WEBSITE_ID is configured
+  ],
   resolve: {
     alias: {
       "@/convex": path.resolve(__dirname, "./convex"),
