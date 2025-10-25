@@ -194,21 +194,5 @@ export const sendPayrollEmail = action({
   },
 });
 
-/**
- * استرجاع بيانات مسير الرواتب (internal query)
- */
-export const getPayrollData = query({
-  args: {
-    payrollId: v.id("payrollRecords"),
-  },
-  handler: async (ctx, args) => {
-    const payroll = await ctx.db.get(args.payrollId);
-    if (!payroll) {
-      return null;
-    }
-    return payroll;
-  },
-});
-
-// Make it available as internal API
-import { query } from "./_generated/server";
+// Note: getPayrollData moved to payroll.ts as an internalQuery
+// because "use node" files can only contain actions, not queries

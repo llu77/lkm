@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { ConvexError } from "convex/values";
 
 // Get payroll records with filters
@@ -229,5 +229,21 @@ export const updatePayrollEmailStatus = mutation({
       emailSentAt: args.emailSent ? Date.now() : undefined,
       pdfUrl: args.pdfUrl,
     });
+  },
+});
+
+/**
+ * Internal query to get payroll data (used by payrollEmail.ts action)
+ */
+export const getPayrollData = internalQuery({
+  args: {
+    payrollId: v.id("payrollRecords"),
+  },
+  handler: async (ctx, args) => {
+    const payroll = await ctx.db.get(args.payrollId);
+    if (!payroll) {
+      return null;
+    }
+    return payroll;
   },
 });
