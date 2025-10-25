@@ -1,4 +1,5 @@
-// Removed "use node" - not needed if no external Node packages used
+// Removed "use node" directive - not needed for this action
+// Convex will automatically handle Node.js context when needed
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";
