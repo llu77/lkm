@@ -10,7 +10,9 @@
 
 ## ⚙️ Cloudflare Pages Configuration
 
-### **Build Settings:**
+The project includes a `wrangler.toml` configuration file that automatically configures Cloudflare Pages deployment settings.
+
+### **Build Settings (Configured via wrangler.toml):**
 
 | Setting | Value |
 |---------|-------|
@@ -18,6 +20,8 @@
 | **Build command** | `npm run build` |
 | **Build output directory** | `dist` |
 | **Node version** | 20 |
+
+> **Note:** The `wrangler.toml` file at the root of the project ensures Cloudflare Pages correctly identifies the build output directory.
 
 ### **Environment Variables:**
 
