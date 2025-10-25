@@ -68,7 +68,7 @@ convex/
 
 #### 1.1 اذهب إلى Zapier:
 ```
-https://zapier.com/
+https://zapier.com/app/zaps
 ```
 
 #### 1.2 سجل حساب (مجاني):
@@ -78,36 +78,45 @@ https://zapier.com/
 #### 1.3 أنشئ Zap جديد:
 ```
 1. اضغط "Create Zap"
-2. في Trigger:
+2. في Trigger (الخطوة الأولى):
    - ابحث عن: "Webhooks by Zapier"
-   - اختر: "Catch Hook"
+   - اختر App Event: "Catch Hook"
    - اضغط "Continue"
-3. ستظهر لك Webhook URL:
-   https://hooks.zapier.com/hooks/catch/12345678/abcdef
-4. انسخ هذا الرابط! ✅
+3. ستظهر لك "Custom Webhook URL" مثل:
+   https://hooks.zapier.com/hooks/catch/1234567/XXXXXXX
+4. انسخ هذا الرابط الكامل! ✅
+
+⚠️ مهم: هذا الرابط فريد لك - لا تستخدم أمثلة من التوثيق!
 ```
 
-### الخطوة 2: ضع المفتاح في Convex
+### الخطوة 2: ضع الرابط في Convex
 
 #### الطريقة 1: عبر Dashboard (موصى بها)
 
 ```
 1. اذهب إلى: https://dashboard.convex.dev/
-2. اختر مشروعك
+2. اختر مشروعك: smiling-dinosaur-349
 3. Settings → Environment Variables
 4. اضغط "Add Variable"
 5. املأ:
    Name:  ZAPIER_WEBHOOK_URL
-   Value: https://hooks.zapier.com/hooks/catch/12345678/abcdef
+   Value: [الصق الرابط الذي نسخته من Zapier]
 6. Save
 ```
+
+**مثال للقيمة:**
+```
+https://hooks.zapier.com/hooks/catch/1234567/XXXXXXX
+```
+⚠️ استخدم رابطك الخاص - ليس المثال!
 
 #### الطريقة 2: عبر Terminal
 
 ```bash
 cd /home/user/lkm
 
-npx convex env set ZAPIER_WEBHOOK_URL "https://hooks.zapier.com/hooks/catch/12345678/abcdef"
+# استبدل [YOUR-URL] برابطك الحقيقي من Zapier
+npx convex env set ZAPIER_WEBHOOK_URL "https://hooks.zapier.com/hooks/catch/[YOUR-URL]"
 ```
 
 #### ✅ تحقق من الإضافة:
