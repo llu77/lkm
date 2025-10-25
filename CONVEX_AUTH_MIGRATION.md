@@ -134,7 +134,9 @@ AUTH_GOOGLE_SECRET=your-google-client-secret
 ### 3. Deploy
 
 ```bash
+
 npx convex deploy
+
 ```
 
 ## Quick Setup: Magic Links (Email)

@@ -22,7 +22,7 @@ export const sendDailyFinancialReport = internalAction({
     const endOfDay = new Date(yesterday.setHours(23, 59, 59, 999)).getTime();
 
     // الحصول على جميع الفروع
-    const branches = await ctx.runQuery(internal.scheduledEmails.getAllBranches);
+    const branches = await ctx.runQuery(internal.scheduledEmailsQueries.getAllBranches);
 
     if (!branches || branches.length === 0) {
       console.log("No branches found for daily report");
@@ -33,7 +33,7 @@ export const sendDailyFinancialReport = internalAction({
     for (const branch of branches) {
       try {
         // الحصول على البيانات المالية لليوم
-        const financialData = await ctx.runQuery(internal.scheduledEmails.getDailyFinancialData, {
+        const financialData = await ctx.runQuery(internal.scheduledEmailsQueries.getDailyFinancialData, {
           branchId: branch.id,
           startDate: startOfDay,
           endDate: endOfDay,
@@ -83,7 +83,7 @@ export const sendMonthlyFinancialReport = internalAction({
     const endOfMonth = new Date(year, month - 1, 30, 23, 59, 59, 999).getTime();
 
     // الحصول على جميع الفروع
-    const branches = await ctx.runQuery(internal.scheduledEmails.getAllBranches);
+    const branches = await ctx.runQuery(internal.scheduledEmailsQueries.getAllBranches);
 
     if (!branches || branches.length === 0) {
       console.log("No branches found for monthly report");
@@ -94,7 +94,7 @@ export const sendMonthlyFinancialReport = internalAction({
     for (const branch of branches) {
       try {
         // الحصول على البيانات المالية للشهر
-        const financialData = await ctx.runQuery(internal.scheduledEmails.getMonthlyFinancialData, {
+        const financialData = await ctx.runQuery(internal.scheduledEmailsQueries.getMonthlyFinancialData, {
           branchId: branch.id,
           startDate: startOfMonth,
           endDate: endOfMonth,
@@ -141,7 +141,7 @@ export const sendWeeklyBonusEmails = internalAction({
     const month = now.getMonth() + 1;
 
     // الحصول على جميع الفروع
-    const branches = await ctx.runQuery(internal.scheduledEmails.getAllBranches);
+    const branches = await ctx.runQuery(internal.scheduledEmailsQueries.getAllBranches);
 
     if (!branches || branches.length === 0) {
       console.log("No branches found for bonus emails");
@@ -152,7 +152,7 @@ export const sendWeeklyBonusEmails = internalAction({
     for (const branch of branches) {
       try {
         // الحصول على بيانات البونص للأسبوع السابق
-        const bonusData = await ctx.runQuery(internal.scheduledEmails.getWeeklyBonusData, {
+        const bonusData = await ctx.runQuery(internal.scheduledEmailsQueries.getWeeklyBonusData, {
           branchId: branch.id,
           year,
           month,
@@ -795,3 +795,4 @@ function generateEmployeeBonusHTML(employee: any, branchName: string, weekLabel:
     </html>
   `;
 }
+
