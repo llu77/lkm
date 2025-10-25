@@ -1,9 +1,9 @@
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { query } from "./_generated/server";
 
 export const getStats = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { branchId: v.string() },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({
@@ -21,9 +21,15 @@ export const getStats = query({
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0).getTime();
 
-    // Get all revenues and expenses
-    const allRevenues = await ctx.db.query("revenues").collect();
-    const allExpenses = await ctx.db.query("expenses").collect();
+    // Get all revenues and expenses for THIS BRANCH ONLY
+    const allRevenues = await ctx.db
+      .query("revenues")
+      .filter((q) => q.eq(q.field("branchId"), args.branchId))
+      .collect();
+    const allExpenses = await ctx.db
+      .query("expenses")
+      .withIndex("by_branch", (q) => q.eq("branchId", args.branchId))
+      .collect();
 
     // Current month revenues and expenses
     const currentMonthRevenues = allRevenues.filter(
@@ -95,8 +101,8 @@ export const getStats = query({
 });
 
 export const getRecentActivity = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { branchId: v.string() },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({
@@ -105,13 +111,17 @@ export const getRecentActivity = query({
       });
     }
 
+    // Get recent revenues for THIS BRANCH ONLY
     const recentRevenues = await ctx.db
       .query("revenues")
+      .filter((q) => q.eq(q.field("branchId"), args.branchId))
       .order("desc")
       .take(5);
 
+    // Get recent expenses for THIS BRANCH ONLY
     const recentExpenses = await ctx.db
       .query("expenses")
+      .withIndex("by_branch", (q) => q.eq("branchId", args.branchId))
       .order("desc")
       .take(5);
 
@@ -123,8 +133,8 @@ export const getRecentActivity = query({
 });
 
 export const getChartData = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { branchId: v.string() },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new ConvexError({
@@ -133,7 +143,7 @@ export const getChartData = query({
       });
     }
 
-    // Get last 6 months data
+    // Get last 6 months data for THIS BRANCH ONLY
     const now = new Date();
     const monthsData = [];
 
@@ -144,12 +154,24 @@ export const getChartData = query({
 
       const revenues = await ctx.db
         .query("revenues")
-        .withIndex("by_date", (q) => q.gte("date", startOfMonth).lte("date", endOfMonth))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("branchId"), args.branchId),
+            q.gte(q.field("date"), startOfMonth),
+            q.lte(q.field("date"), endOfMonth)
+          )
+        )
         .collect();
 
       const expenses = await ctx.db
         .query("expenses")
-        .withIndex("by_date", (q) => q.gte("date", startOfMonth).lte("date", endOfMonth))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("branchId"), args.branchId),
+            q.gte(q.field("date"), startOfMonth),
+            q.lte(q.field("date"), endOfMonth)
+          )
+        )
         .collect();
 
       const totalRevenue = revenues.reduce((sum, r) => sum + (r.total || 0), 0);

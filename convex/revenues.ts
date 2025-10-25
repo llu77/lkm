@@ -3,36 +3,45 @@ import { mutation, query } from "./_generated/server";
 import { triggerRevenueCreated } from "./zapierHelper";
 
 export const getStats = query({
-  args: { branchId: v.string() },
+  args: {
+    branchId: v.string(),
+    month: v.optional(v.number()), // 0-11 (JavaScript month index)
+    year: v.optional(v.number()),
+  },
   handler: async (ctx, args) => {
+    // ✅ إذا تم تمرير month/year، استخدمهم. وإلا استخدم الشهر الحالي
+    const now = new Date();
+    const targetMonth = args.month !== undefined ? args.month : now.getMonth();
+    const targetYear = args.year !== undefined ? args.year : now.getFullYear();
+
+    // ✅ حساب بداية ونهاية الشهر المحدد
+    const startOfMonth = new Date(targetYear, targetMonth, 1).getTime();
+    const endOfMonth = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59).getTime();
+
+    // ✅ جلب إيرادات الشهر المحدد فقط (ليس تراكمي)
     const revenues = await ctx.db
       .query("revenues")
-      .filter((q) => q.eq(q.field("branchId"), args.branchId))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("branchId"), args.branchId),
+          q.gte(q.field("date"), startOfMonth),
+          q.lte(q.field("date"), endOfMonth)
+        )
+      )
       .collect();
 
+    // ✅ حساب الإحصائيات للشهر المحدد فقط
     const totalRevenue = revenues.reduce((sum, r) => sum + (r.total || 0), 0);
     const totalCash = revenues.reduce((sum, r) => sum + (r.cash || 0), 0);
     const totalNetwork = revenues.reduce((sum, r) => sum + (r.network || 0), 0);
     const totalBudget = revenues.reduce((sum, r) => sum + (r.budget || 0), 0);
 
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).getTime();
-
-    const currentMonthRevenues = revenues.filter(
-      (r) => r.date >= startOfMonth && r.date <= endOfMonth,
-    );
-    const currentMonthTotal = currentMonthRevenues.reduce(
-      (sum, r) => sum + (r.total || 0),
-      0,
-    );
-
     return {
-      totalRevenue,
-      totalCash,
-      totalNetwork,
-      totalBudget,
-      currentMonthTotal,
+      totalRevenue, // ✅ إجمالي الشهر المحدد (ليس تراكمي)
+      totalCash, // ✅ كاش الشهر المحدد
+      totalNetwork, // ✅ شبكة الشهر المحدد
+      totalBudget, // ✅ موازنة الشهر المحدد
+      currentMonthTotal: totalRevenue, // للتوافق مع الكود القديم
       count: revenues.length,
     };
   },
