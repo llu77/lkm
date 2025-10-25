@@ -1,0 +1,24 @@
+# Security Headers for Cloudflare Pages
+
+/*
+  # Security Headers
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+  # Content Security Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://smiling-dinosaur-349.convex.cloud https://accounts.hercules.app; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://smiling-dinosaur-349.convex.cloud https://accounts.hercules.app wss://smiling-dinosaur-349.convex.cloud; frame-ancestors 'none';
+
+# Cache Control for Static Assets
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Cache Control for HTML
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Cache Control for Service Worker (if any)
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
