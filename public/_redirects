@@ -1,3 +1,8 @@
-# Cloudflare Pages SPA Routing
-# Redirect all requests to index.html for React Router
-/*    /index.html   200
+# Cloudflare Pages SPA Routing for React Router
+# This allows client-side routing to work properly
+
+# Serve static assets directly
+/assets/*  /assets/:splat  200
+
+# All other requests go to index.html (SPA fallback)
+/*  /index.html  200!
