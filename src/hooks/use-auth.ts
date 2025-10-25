@@ -1,31 +1,26 @@
-import { useCallback, useEffect, useMemo } from "react";
-import { useAuth as useOidcAuth } from "react-oidc-context";
+import { useConvexAuth } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useMemo } from "react";
 
-type UseAuthHook = {
-  fetchAccessToken: (args: {
-    forceRefreshToken: boolean;
-  }) => Promise<string | null>;
-} & ReturnType<typeof useOidcAuth>;
-
-export function useAuth(): UseAuthHook {
-  const oidcAuth = useOidcAuth();
-
-  const idToken = oidcAuth.user?.id_token;
-  const fetchAccessToken = useCallback(
-    // eslint-disable-next-line no-empty-pattern
-    async ({}: { forceRefreshToken: boolean }) => {
-      // TODO: refresh token if needed
-      return idToken ?? null;
-    },
-    [idToken],
-  );
+/**
+ * Custom auth hook compatible with Convex Auth
+ * Provides backward compatibility with OIDC-based auth interface
+ */
+export function useAuth() {
+  const { isLoading, isAuthenticated } = useConvexAuth();
+  const { signIn, signOut } = useAuthActions();
 
   return useMemo(
     () => ({
-      ...oidcAuth,
-      fetchAccessToken,
+      isLoading,
+      isAuthenticated,
+      // Backward compatibility: map to OIDC interface
+      signinRedirect: () => void signIn("anonymous"),
+      signoutRedirect: signOut,
+      user: null,
+      error: null,
     }),
-    [oidcAuth, fetchAccessToken],
+    [isLoading, isAuthenticated, signIn, signOut]
   );
 }
 
@@ -36,29 +31,29 @@ type UseUserProps = {
   shouldRedirect?: boolean;
 };
 
+/**
+ * Hook for accessing user information
+ * With Anonymous auth, automatically signs in if needed
+ */
 export function useUser({ shouldRedirect }: UseUserProps = {}) {
-  const { user, isLoading, error, isAuthenticated, signinRedirect } = useAuth();
+  const { isLoading, isAuthenticated } = useConvexAuth();
+  const { signIn } = useAuthActions();
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated && shouldRedirect) {
-      signinRedirect();
-    }
-  }, [isLoading, isAuthenticated, shouldRedirect, signinRedirect]);
+  // Auto sign-in with anonymous auth if needed
+  if (!isLoading && !isAuthenticated && shouldRedirect) {
+    void signIn("anonymous");
+  }
 
-  return useMemo(() => {
-    const id = user?.profile.sub;
-    const name = user?.profile.name;
-    const email = user?.profile.email;
-    const avatar = user?.profile.picture;
-    return {
-      ...(user ?? {}),
-      id,
-      name,
-      email,
-      avatar,
-      isAuthenticated,
+  return useMemo(
+    () => ({
       isLoading,
-      error,
-    };
-  }, [user, isAuthenticated, isLoading, error]);
+      isAuthenticated,
+      id: null, // Can be fetched from getCurrentUser query
+      name: null,
+      email: null,
+      avatar: null,
+      error: null,
+    }),
+    [isLoading, isAuthenticated]
+  );
 }

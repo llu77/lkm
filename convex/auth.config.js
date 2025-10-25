@@ -1,8 +1,11 @@
+import { convexAuth } from "@convex-dev/auth/server";
+import { Anonymous } from "@convex-dev/auth/providers/Anonymous";
+
+export const { auth, signIn, signOut, store } = convexAuth({
+  providers: [Anonymous],
+});
+
+// Re-export for backward compatibility
 export default {
-  providers: [
-    {
-      domain: process.env.HERCULES_OIDC_AUTHORITY,
-      applicationID: process.env.HERCULES_OIDC_CLIENT_ID,
-    },
-  ],
+  providers: [],
 };
