@@ -164,11 +164,75 @@ export const updateStatus = mutation({
       });
     }
 
+    // الحصول على تفاصيل الطلب
+    const request = await ctx.db.get(args.requestId);
+    if (!request) {
+      throw new ConvexError({
+        message: "الطلب غير موجود",
+        code: "NOT_FOUND",
+      });
+    }
+
+    // تحديث حالة الطلب
     await ctx.db.patch(args.requestId, {
       status: args.status,
       ...(args.adminResponse ? { adminResponse: args.adminResponse } : {}),
       responseDate: Date.now(),
     });
+
+    // ✅ المزامنة التلقائية: إنشاء سجل سلفة أو خصم عند القبول
+    if (args.status === "مقبول") {
+      // الحصول على معرف الموظف من جدول الموظفين
+      const employee = await ctx.db
+        .query("employees")
+        .withIndex("by_branch", (q) => q.eq("branchId", request.branchId))
+        .filter((q) => q.eq(q.field("employeeName"), request.employeeName))
+        .first();
+
+      if (!employee) {
+        console.warn(`⚠️ لم يتم العثور على الموظف: ${request.employeeName} في الفرع: ${request.branchId}`);
+        // لا نرمي خطأ - فقط تحذير في السجل
+        return { success: true };
+      }
+
+      // الحصول على الشهر والسنة الحاليين
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1; // 1-12
+      const currentYear = now.getFullYear();
+
+      // إنشاء سلفة تلقائياً عند قبول طلب سلفة
+      if (request.requestType === "سلفة" && request.advanceAmount) {
+        await ctx.db.insert("advances", {
+          branchId: request.branchId,
+          branchName: request.branchName,
+          employeeId: employee._id,
+          employeeName: request.employeeName,
+          amount: request.advanceAmount,
+          month: currentMonth,
+          year: currentYear,
+          description: `سلفة تم قبولها تلقائياً من طلب رقم: ${args.requestId}`,
+          recordedBy: user._id,
+        });
+        console.log(`✅ تم إنشاء سجل سلفة تلقائياً للموظف: ${request.employeeName}`);
+      }
+
+      // إنشاء خصم تلقائياً عند قبول طلب صرف متأخرات
+      if (request.requestType === "صرف متأخرات" && request.duesAmount) {
+        await ctx.db.insert("deductions", {
+          branchId: request.branchId,
+          branchName: request.branchName,
+          employeeId: employee._id,
+          employeeName: request.employeeName,
+          amount: request.duesAmount,
+          month: currentMonth,
+          year: currentYear,
+          reason: "صرف متأخرات",
+          description: `خصم تم قبوله تلقائياً من طلب رقم: ${args.requestId}`,
+          recordedBy: user._id,
+        });
+        console.log(`✅ تم إنشاء سجل خصم تلقائياً للموظف: ${request.employeeName}`);
+      }
+    }
 
     return { success: true };
   },
@@ -192,6 +256,31 @@ export const getStats = query({
       pending,
       approved,
       rejected,
+    };
+  },
+});
+
+// ✅ التحقق من كلمة مرور إدارة الطلبات (مخفية في backend)
+export const verifyManageRequestsPassword = mutation({
+  args: { password: v.string() },
+  handler: async (ctx, args) => {
+    // كلمة المرور مخزنة في Convex environment variables (ليست VITE_)
+    // يمكن تعيينها عبر: npx convex env set MANAGE_REQUESTS_PASSWORD "your-password"
+    const correctPassword = process.env.MANAGE_REQUESTS_PASSWORD;
+
+    if (!correctPassword) {
+      throw new ConvexError({
+        message: "خطأ في التكوين: كلمة المرور غير معرّفة في البيئة",
+        code: "CONFIG_ERROR",
+      });
+    }
+
+    // التحقق من كلمة المرور
+    const isValid = args.password === correctPassword;
+
+    return {
+      isValid,
+      message: isValid ? "تم التحقق بنجاح" : "كلمة مرور خاطئة",
     };
   },
 });

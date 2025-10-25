@@ -78,6 +78,21 @@ export const generatePayroll = mutation({
       });
     }
 
+    // ✅ منع التكرار: التحقق من عدم وجود مسير رواتب سابق لنفس الفرع/الشهر/السنة
+    const existingPayroll = await ctx.db
+      .query("payrollRecords")
+      .withIndex("by_branch_month", (q) =>
+        q.eq("branchId", args.branchId).eq("year", args.year).eq("month", args.month)
+      )
+      .first();
+
+    if (existingPayroll) {
+      throw new ConvexError({
+        message: `⚠️ يوجد بالفعل مسير رواتب لهذا الفرع والشهر (${args.month}/${args.year}). يرجى حذف المسير السابق أولاً إذا كنت تريد إنشاء واحد جديد.`,
+        code: "DUPLICATE_PAYROLL",
+      });
+    }
+
     // Get active employees for this branch
     const employees = await ctx.db
       .query("employees")
