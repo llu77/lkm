@@ -21,12 +21,13 @@
 
 ### **wrangler.toml (Cloudflare Pages)**
 
-Cloudflare Pages لا يدعم قسم `[build]` في ملف `wrangler.toml`. استخدم المفاتيح الخاصة بصفحات Pages فقط:
+Cloudflare Pages يتطلب حقل `name` أعلى الملف، ولا يدعم قسم `[build]` في ملف `wrangler.toml`. استخدم المفاتيح الخاصة بصفحات Pages فقط:
 
 ```toml
+name = "lkm-hr-system"
 pages_build_output_dir = "dist"
 compatibility_date = "2025-01-01"
-# name = "lkm-hr-system" # اختياري لعمليات CLI
+# لا تضف قسماً باسم [build]
 ```
 
 > تجنّب إضافة قسم `[build]` وإلا ستظهر رسالة: `Configuration file for Pages projects does not support "build"`.
@@ -156,6 +157,7 @@ npm run build
 ### **Password Protection**
 
 Current password-protected pages:
+
 - `/employees` - Password: `Omar1010#`
 - `/payroll` - Password: `Omar1010#`
 - `/manage-requests` - Password: `Omar101010#`
@@ -175,6 +177,7 @@ Current password-protected pages:
 ### **Caching:**
 
 Cloudflare automatically caches:
+
 - Static assets (JS, CSS, images)
 - HTML with short TTL
 
@@ -207,6 +210,7 @@ npm run build
 ### **Blank Page After Deployment**
 
 **Possible causes:**
+
 1. Missing `_redirects` file → Check `public/_redirects` exists
 2. Wrong `VITE_CONVEX_URL` → Verify environment variable
 3. Build errors → Check Cloudflare Pages build logs
@@ -223,6 +227,7 @@ npm run build
 ### **Environment Variables Not Working**
 
 **Check:**
+
 1. Variables prefixed with `VITE_` ✓
 2. Added in Cloudflare dashboard ✓
 3. Rebuild after adding variables ✓

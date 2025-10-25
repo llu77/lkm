@@ -1,8 +1,6 @@
+name = "lkm-hr-system"
 pages_build_output_dir = "dist"
 compatibility_date = "2025-01-01"
-
-# Optional: CLI project name (not required for Pages to work)
-# name = "lkm-hr-system"
 
 # Note: Do NOT include a [build] section for Cloudflare Pages
 # Pages ignores it and may error with: "does not support build"
