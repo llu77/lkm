@@ -1,0 +1,77 @@
+---
+alwaysApply: true
+description: Environment variables configuration for development and production
+---
+
+# Environment Variables Configuration
+
+## Required Environment Variables
+
+### Convex (Required)
+```bash
+VITE_CONVEX_URL=https://your-deployment.convex.cloud
+```
+- **Where to set**: 
+  - Local: `.env.local` file (git-ignored)
+  - Production: Cloudflare Pages → Settings → Environment Variables
+- **Critical**: App will fail to load without this
+- **Validation**: Check [src/lib/convex.ts](mdc:src/lib/convex.ts) for usage
+
+### OIDC Authentication (Required for Auth)
+```bash
+VITE_HERCULES_OIDC_AUTHORITY=https://your-oidc-provider.com
+VITE_HERCULES_OIDC_CLIENT_ID=your-client-id
+```
+- **Where configured**: [src/components/providers/auth.tsx](mdc:src/components/providers/auth.tsx)
+- **Error if missing**: "No authority or metadataUrl configured on settings"
+- **Optional with defaults**:
+  - `VITE_HERCULES_OIDC_PROMPT=select_account`
+  - `VITE_HERCULES_OIDC_RESPONSE_TYPE=code`
+  - `VITE_HERCULES_OIDC_SCOPE=openid profile email`
+  - `VITE_HERCULES_OIDC_REDIRECT_URI=${origin}/auth/callback`
+
+### Hercules Analytics (Optional)
+```bash
+VITE_HERCULES_WEBSITE_ID=your-website-id
+```
+- **Where used**: [index.html](mdc:index.html) and `@usehercules/vite` plugin
+- **If missing**: Warning in build logs, Hercules error handler fails to load
+- **Production**: Either set this or remove Hercules plugin from [vite.config.ts](mdc:vite.config.ts)
+
+## Common Errors & Solutions
+
+### Error: "Failed to load module script: Expected JavaScript but got HTML"
+**Cause**: Hercules plugin tries to load external script but WEBSITE_ID is not set
+**Solution**: 
+1. Set `VITE_HERCULES_WEBSITE_ID` in Cloudflare Pages environment variables
+2. OR remove `hercules()` plugin from [vite.config.ts](mdc:vite.config.ts) for production
+
+### Error: "No authority or metadataUrl configured"
+**Cause**: Missing `VITE_HERCULES_OIDC_AUTHORITY`
+**Solution**: Add OIDC environment variables in Cloudflare Pages dashboard
+
+### Error: Convex client fails silently
+**Cause**: `VITE_CONVEX_URL` not set, falls back to localhost
+**Solution**: Set production Convex URL in environment variables
+
+## Environment Variable Checklist
+
+### Local Development (.env.local)
+- [ ] `VITE_CONVEX_URL` - Your Convex development deployment
+- [ ] `VITE_HERCULES_OIDC_AUTHORITY` - OIDC provider URL
+- [ ] `VITE_HERCULES_OIDC_CLIENT_ID` - OIDC client ID
+- [ ] `VITE_HERCULES_WEBSITE_ID` (optional) - Hercules analytics
+
+### Cloudflare Pages Production
+- [ ] `VITE_CONVEX_URL` - Production Convex deployment
+- [ ] `VITE_HERCULES_OIDC_AUTHORITY` - OIDC provider URL
+- [ ] `VITE_HERCULES_OIDC_CLIENT_ID` - OIDC client ID
+- [ ] `VITE_HERCULES_WEBSITE_ID` (optional) - Hercules analytics
+- [ ] Set for both **Production** and **Preview** environments
+
+## Important Notes
+
+1. **All client-side variables MUST be prefixed with `VITE_`** - Vite only exposes these to the browser
+2. **Never commit `.env` files** - They're git-ignored in [.gitignore](mdc:.gitignore)
+3. **Rebuild required** - After adding/changing environment variables in Cloudflare Pages, trigger a new deployment
+4. **Environment variables are public** - They're bundled into JavaScript, don't store secrets here

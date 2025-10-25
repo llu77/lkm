@@ -1,0 +1,196 @@
+---
+description: How to debug production errors in browser console and deployment logs
+alwaysApply: false
+---
+
+# Debugging Production Errors
+
+## Browser Console Errors
+
+### How to Access
+1. Open deployed site (e.g., `https://your-app.pages.dev`)
+2. Open DevTools (F12 or Right-click → Inspect)
+3. Go to **Console** tab
+4. Check for errors in red
+
+### Common Error Patterns
+
+#### Module Script MIME Type Error
+```
+__hercules_error_handler.js:1 Failed to load module script: 
+Expected a JavaScript-or-Wasm module script but the server responded 
+with a MIME type of "text/html".
+```
+
+**Root Cause**: 
+- Hercules plugin (`@usehercules/vite`) in [vite.config.ts](mdc:vite.config.ts) tries to load external script
+- `VITE_HERCULES_WEBSITE_ID` not set, so Hercules server returns 404 HTML instead of JS
+
+**Solutions**:
+1. **Add env var**: Set `VITE_HERCULES_WEBSITE_ID` in Cloudflare Pages
+2. **Remove plugin**: Comment out `hercules()` in [vite.config.ts](mdc:vite.config.ts):
+   ```typescript
+   plugins: [
+     react(), 
+     tailwindcss(), 
+     // hercules() // Disable if not using Hercules analytics
+   ],
+   ```
+
+#### OIDC Authority Error
+```
+Login error Object
+innerError: Error: No authority or metadataUrl configured on settings
+    at dG.getMetadata
+    at dG._getMetadataProperty
+    at dG.getAuthorizationEndpoint
+    at AG.createSigninRequest
+    at qG._signinStart
+    at qG.signinRedirect
+```
+
+**Root Cause**: Missing OIDC environment variables in production
+
+**Solution**: Add to Cloudflare Pages → Settings → Environment Variables:
+```
+VITE_HERCULES_OIDC_AUTHORITY=https://your-oidc-provider.com
+VITE_HERCULES_OIDC_CLIENT_ID=your-client-id
+```
+
+**Where configured**: [src/components/providers/auth.tsx](mdc:src/components/providers/auth.tsx)
+
+#### Convex Connection Errors
+```
+ConvexReactClient: Failed to connect to https://your-project.convex.cloud
+```
+
+**Root Cause**: Wrong or missing `VITE_CONVEX_URL`
+
+**Solution**: 
+1. Check [src/lib/convex.ts](mdc:src/lib/convex.ts) for fallback to localhost
+2. Set correct production URL in Cloudflare Pages environment variables
+3. Trigger new deployment
+
+### Network Tab Debugging
+
+1. Open DevTools → **Network** tab
+2. Reload page
+3. Look for failed requests (red status codes)
+4. Check:
+   - **404 errors**: Missing files or wrong paths
+   - **401/403 errors**: Authentication issues
+   - **500 errors**: Backend/Convex errors
+   - **CORS errors**: Cross-origin issues
+
+## Cloudflare Pages Build Logs
+
+### How to Access
+1. Go to Cloudflare Dashboard → Pages
+2. Select your project
+3. Click on latest deployment
+4. Click **View build log**
+
+### Log Analysis
+
+#### Build Configuration Phase
+```
+Checking for configuration in a Wrangler configuration file (BETA)
+Found wrangler.toml file. Reading build configuration...
+```
+
+**Look for**:
+- `✘ [ERROR]` lines indicating config problems
+- Check [wrangler.toml](mdc:wrangler.toml) syntax
+
+#### Dependency Installation Phase
+```
+Installing project dependencies: pnpm install
+Packages: +386
+Done in 6.5s
+```
+
+**Look for**:
+- Failed package installations
+- Version conflicts
+- Missing dependencies in [package.json](mdc:package.json)
+
+#### Build Execution Phase
+```
+Executing user command: npm run build
+> app-template@0.0.0 build
+> tsc -b && vite build
+```
+
+**Look for**:
+- TypeScript compilation errors
+- Vite build failures
+- Missing environment variables (warnings about undefined VITE_ vars)
+
+#### Build Warnings
+```
+(!) %VITE_HERCULES_WEBSITE_ID% is not defined in env variables found in /index.html
+```
+
+**Meaning**: Environment variable referenced in [index.html](mdc:index.html) but not set
+**Impact**: Non-critical, but feature won't work
+**Solution**: Add to Cloudflare Pages environment variables
+
+## Debugging Strategy
+
+### Step 1: Identify Error Category
+- **Build-time errors**: Check Cloudflare Pages build logs
+- **Runtime errors**: Check browser console
+- **Network errors**: Check browser Network tab
+
+### Step 2: Check Environment Variables
+1. Go to Cloudflare Pages → Settings → Environment Variables
+2. Verify all `VITE_*` variables are set for **both**:
+   - Production environment
+   - Preview environment
+3. Required variables from [.cursor/rules/environment-variables.mdc](mdc:.cursor/rules/environment-variables.mdc)
+
+### Step 3: Compare Local vs Production
+1. Build locally: `npm run build`
+2. Preview locally: `npm run preview`
+3. If works locally but not production → environment variable mismatch
+4. If fails locally too → code issue, check files
+
+### Step 4: Check Configuration Files
+- [wrangler.toml](mdc:wrangler.toml) - Correct syntax, name, output dir
+- [vite.config.ts](mdc:vite.config.ts) - Plugins, build config
+- [package.json](mdc:package.json) - Build scripts
+- [.node-version](mdc:.node-version) - Node version matches Cloudflare
+
+### Step 5: Trigger Clean Deployment
+1. Make a trivial commit (e.g., add comment)
+2. Push to main branch
+3. Watch build logs in real-time
+4. Check if new deployment resolves issue
+
+## Common Resolution Patterns
+
+### Pattern 1: Missing Environment Variable
+1. Identify variable name from error
+2. Add to Cloudflare Pages environment variables
+3. Trigger new deployment (env changes don't auto-deploy)
+4. Verify in console
+
+### Pattern 2: Plugin Misconfiguration
+1. Identify problematic plugin (Hercules, etc.)
+2. Either configure properly OR disable it
+3. Commit changes to [vite.config.ts](mdc:vite.config.ts)
+4. Push and redeploy
+
+### Pattern 3: Build Script Error
+1. Fix code/config issue locally
+2. Test with `npm run build` and `npm run preview`
+3. Commit and push fix
+4. Monitor build logs for success
+
+## Emergency Rollback
+
+If production is broken:
+1. Go to Cloudflare Pages → Deployments
+2. Find last working deployment
+3. Click **...** → **Rollback to this deployment**
+4. Debug issue on a branch before deploying again

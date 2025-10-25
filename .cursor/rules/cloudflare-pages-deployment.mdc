@@ -1,0 +1,114 @@
+---
+alwaysApply: false
+description: Cloudflare Pages deployment configuration and troubleshooting
+---
+
+# Cloudflare Pages Deployment Guide
+
+## Configuration Files
+
+### wrangler.toml (Required for Pages)
+Location: [wrangler.toml](mdc:wrangler.toml)
+
+**Critical requirements**:
+- MUST include `name` field (top-level)
+- MUST include `pages_build_output_dir`
+- MUST NOT include `[build]` section (Pages doesn't support it)
+
+```toml
+name = "lkm-hr-system"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-01-01"
+```
+
+### Build Configuration
+- **Build command**: `npm run build` or `pnpm build`
+- **Build output directory**: `dist` (configured in [vite.config.ts](mdc:vite.config.ts))
+- **Node version**: 20 (defined in [.node-version](mdc:.node-version))
+- **Framework preset**: Vite or None
+
+### SPA Routing
+- **File**: [public/_redirects](mdc:public/_redirects)
+- **Content**: `/*    /index.html   200`
+- **Purpose**: Handles React Router client-side routing
+
+## Common Deployment Errors
+
+### Error: "Configuration file does not support build"
+**Logs show**: `Running configuration file validation for Pages: - Configuration file for Pages projects does not support "build"`
+**Cause**: `[build]` section exists in wrangler.toml
+**Solution**: Remove `[build]` section, only use `pages_build_output_dir`
+
+### Error: "Missing top-level field name"
+**Logs show**: `Missing top-level field "name" in configuration file`
+**Cause**: No `name` field in wrangler.toml
+**Solution**: Add `name = "your-project-name"` at the top of wrangler.toml
+
+### Error: "/bin/sh: 1: Run: not found"
+**Logs show**: `Executing user command: Run` then `Run: not found`
+**Cause**: Build command is set to "Run" instead of actual build command
+**Solution**: Set build command to `npm run build` or `pnpm build` in Pages settings
+
+### Error: "Failed to load module script: Expected JavaScript but got HTML"
+**Console shows**: `__hercules_error_handler.js: Expected JavaScript-or-Wasm module script but server responded with MIME type "text/html"`
+**Cause**: Hercules plugin enabled but `VITE_HERCULES_WEBSITE_ID` not set
+**Solution**: 
+1. Add `VITE_HERCULES_WEBSITE_ID` to Cloudflare Pages environment variables
+2. OR remove `hercules()` from [vite.config.ts](mdc:vite.config.ts) plugins array
+
+### Error: "No authority or metadataUrl configured on settings"
+**Console shows**: `Login error` with `No authority or metadataUrl configured on settings`
+**Cause**: OIDC environment variables not set in Cloudflare Pages
+**Solution**: Add these to Cloudflare Pages → Settings → Environment Variables:
+- `VITE_HERCULES_OIDC_AUTHORITY`
+- `VITE_HERCULES_OIDC_CLIENT_ID`
+
+### Error: Blank page after deployment
+**Possible causes**:
+1. Missing [public/_redirects](mdc:public/_redirects) file
+2. Wrong `VITE_CONVEX_URL` environment variable
+3. Build errors in logs
+
+## Deployment Checklist
+
+### Before First Deploy
+- [ ] Create project in Cloudflare Pages dashboard
+- [ ] Connect GitHub repository
+- [ ] Set production branch to `main`
+- [ ] Configure build settings (see above)
+- [ ] Add all required environment variables
+- [ ] Verify [wrangler.toml](mdc:wrangler.toml) is correct
+
+### After Environment Variable Changes
+- [ ] Trigger new deployment (Pages doesn't auto-rebuild on env var changes)
+- [ ] Check deployment logs for errors
+- [ ] Test authentication flow
+- [ ] Verify Convex connection
+
+### Production Monitoring
+- [ ] Check Cloudflare Pages → Analytics for traffic
+- [ ] Monitor deployment logs for errors
+- [ ] Test all authenticated routes
+- [ ] Verify SPA routing works (refresh on deep routes)
+
+## Local Testing Before Deploy
+
+```bash
+# Install dependencies
+npm install  # or pnpm install
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Check for build errors
+# Output should show dist/ with index.html and assets/
+ls -la dist/
+```
+
+## References
+- Full deployment guide: [CLOUDFLARE_PAGES_SETUP.md](mdc:CLOUDFLARE_PAGES_SETUP.md)
+- Environment variables: [.cursor/rules/environment-variables.mdc](mdc:.cursor/rules/environment-variables.mdc)
+- Vite config: [vite.config.ts](mdc:vite.config.ts)
