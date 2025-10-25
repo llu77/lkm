@@ -5,9 +5,11 @@ import Navbar from "@/components/navbar.tsx";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { 
-  TrendingUpIcon, 
-  TrendingDownIcon, 
+import { useBranch } from "@/hooks/use-branch.ts";
+import { BranchSelector } from "@/components/branch-selector.tsx";
+import {
+  TrendingUpIcon,
+  TrendingDownIcon,
   DollarSignIcon,
   ArrowUpIcon,
   ArrowDownIcon,
@@ -17,10 +19,10 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Responsive
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
-function DashboardContent() {
-  const stats = useQuery(api.dashboard.getStats);
-  const chartData = useQuery(api.dashboard.getChartData);
-  const recentActivity = useQuery(api.dashboard.getRecentActivity);
+function DashboardContent({ branchId }: { branchId: string }) {
+  const stats = useQuery(api.dashboard.getStats, { branchId });
+  const chartData = useQuery(api.dashboard.getChartData, { branchId });
+  const recentActivity = useQuery(api.dashboard.getRecentActivity, { branchId });
 
   if (stats === undefined || chartData === undefined || recentActivity === undefined) {
     return (
@@ -316,6 +318,8 @@ function DashboardContent() {
 }
 
 export default function Dashboard() {
+  const { branchId, selectBranch } = useBranch();
+
   return (
     <div className="flex h-screen flex-col bg-background">
       <Navbar />
@@ -338,7 +342,13 @@ export default function Dashboard() {
         </div>
       </AuthLoading>
       <Authenticated>
-        <DashboardContent />
+        {!branchId ? (
+          <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+            <BranchSelector onBranchSelected={selectBranch} />
+          </div>
+        ) : (
+          <DashboardContent branchId={branchId} />
+        )}
       </Authenticated>
     </div>
   );

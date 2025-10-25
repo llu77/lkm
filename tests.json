@@ -1,0 +1,210 @@
+{
+  "meta": {
+    "lastUpdated": "2025-10-24T20:10:00.000Z",
+    "version": "1.0.0",
+    "project": "LKM HR System"
+  },
+  "summary": {
+    "total": 0,
+    "passing": 0,
+    "failing": 0,
+    "not_started": 0,
+    "skipped": 0
+  },
+  "suites": [
+    {
+      "id": "auth",
+      "name": "Authentication Flow",
+      "description": "Tests for OIDC authentication and user session management",
+      "tests": [
+        {
+          "id": "auth_001",
+          "name": "successful_login",
+          "description": "User can login with valid OIDC credentials",
+          "status": "not_started",
+          "priority": "high",
+          "tags": ["authentication", "oidc", "critical"]
+        },
+        {
+          "id": "auth_002",
+          "name": "logout_flow",
+          "description": "User can logout and session is cleared",
+          "status": "not_started",
+          "priority": "high",
+          "tags": ["authentication", "session"]
+        },
+        {
+          "id": "auth_003",
+          "name": "token_refresh",
+          "description": "Access token refreshes automatically",
+          "status": "not_started",
+          "priority": "medium",
+          "tags": ["authentication", "token"]
+        }
+      ]
+    },
+    {
+      "id": "employees",
+      "name": "Employee Management",
+      "description": "Tests for employee CRUD operations",
+      "tests": [
+        {
+          "id": "emp_001",
+          "name": "create_employee",
+          "description": "Admin can create new employee",
+          "status": "not_started",
+          "priority": "high",
+          "tags": ["employees", "crud", "admin"]
+        },
+        {
+          "id": "emp_002",
+          "name": "update_employee",
+          "description": "Admin can update employee information",
+          "status": "not_started",
+          "priority": "medium",
+          "tags": ["employees", "crud", "admin"]
+        },
+        {
+          "id": "emp_003",
+          "name": "delete_employee",
+          "description": "Admin can delete employee",
+          "status": "not_started",
+          "priority": "medium",
+          "tags": ["employees", "crud", "admin"]
+        },
+        {
+          "id": "emp_004",
+          "name": "list_employees",
+          "description": "Can view list of employees with filtering",
+          "status": "not_started",
+          "priority": "high",
+          "tags": ["employees", "ui"]
+        }
+      ]
+    },
+    {
+      "id": "payroll",
+      "name": "Payroll System",
+      "description": "Tests for payroll calculation and processing",
+      "tests": [
+        {
+          "id": "pay_001",
+          "name": "calculate_monthly_payroll",
+          "description": "System calculates payroll correctly",
+          "status": "not_started",
+          "priority": "critical",
+          "tags": ["payroll", "calculation", "critical"]
+        },
+        {
+          "id": "pay_002",
+          "name": "apply_advances",
+          "description": "Advances are deducted from payroll",
+          "status": "not_started",
+          "priority": "high",
+          "tags": ["payroll", "advances"]
+        },
+        {
+          "id": "pay_003",
+          "name": "apply_deductions",
+          "description": "Deductions are applied correctly",
+          "status": "not_started",
+          "priority": "high",
+          "tags": ["payroll", "deductions"]
+        },
+        {
+          "id": "pay_004",
+          "name": "generate_payroll_pdf",
+          "description": "Payroll PDF generates correctly",
+          "status": "not_started",
+          "priority": "medium",
+          "tags": ["payroll", "pdf"]
+        }
+      ]
+    },
+    {
+      "id": "revenues",
+      "name": "Revenue Management",
+      "description": "Tests for revenue tracking",
+      "tests": [
+        {
+          "id": "rev_001",
+          "name": "create_revenue_entry",
+          "description": "Can create revenue entry with all fields",
+          "status": "not_started",
+          "priority": "high",
+          "tags": ["revenues", "crud"]
+        },
+        {
+          "id": "rev_002",
+          "name": "revenue_calculations",
+          "description": "Revenue totals calculate correctly",
+          "status": "not_started",
+          "priority": "high",
+          "tags": ["revenues", "calculation"]
+        },
+        {
+          "id": "rev_003",
+          "name": "filter_by_branch",
+          "description": "Can filter revenues by branch",
+          "status": "not_started",
+          "priority": "medium",
+          "tags": ["revenues", "filtering"]
+        }
+      ]
+    },
+    {
+      "id": "expenses",
+      "name": "Expense Management",
+      "description": "Tests for expense tracking",
+      "tests": [
+        {
+          "id": "exp_001",
+          "name": "create_expense_entry",
+          "description": "Can create expense entry",
+          "status": "not_started",
+          "priority": "high",
+          "tags": ["expenses", "crud"]
+        },
+        {
+          "id": "exp_002",
+          "name": "expense_categories",
+          "description": "Expenses categorized correctly",
+          "status": "not_started",
+          "priority": "medium",
+          "tags": ["expenses", "categories"]
+        },
+        {
+          "id": "exp_003",
+          "name": "expense_reports",
+          "description": "Expense reports generate correctly",
+          "status": "not_started",
+          "priority": "medium",
+          "tags": ["expenses", "reports"]
+        }
+      ]
+    },
+    {
+      "id": "webhooks",
+      "name": "Zapier Webhooks",
+      "description": "Tests for webhook integration",
+      "tests": [
+        {
+          "id": "hook_001",
+          "name": "revenue_created_webhook",
+          "description": "Webhook fires on revenue creation",
+          "status": "not_started",
+          "priority": "medium",
+          "tags": ["webhooks", "zapier", "revenues"]
+        },
+        {
+          "id": "hook_002",
+          "name": "expense_created_webhook",
+          "description": "Webhook fires on expense creation",
+          "status": "not_started",
+          "priority": "medium",
+          "tags": ["webhooks", "zapier", "expenses"]
+        }
+      ]
+    }
+  ]
+}

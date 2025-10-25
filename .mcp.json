@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "zapier": {
+      "transport": "http",
+      "url": "https://mcp.zapier.com/api/mcp/mcp",
+      "headers": {
+        "Authorization": "Bearer NGQ4YzgwNWQtYmJkYS00MTVjLWExNDItYzI4MzE0YmUwMjYxOjA2MmYwMjhjLWFmNzItNGFiZC1hNDBkLWYxMTNiYWNjZjY0Mw=="
+      }
+    }
+  }
+}

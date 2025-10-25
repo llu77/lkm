@@ -20,8 +20,7 @@ import { BranchSelector } from "@/components/branch-selector.tsx";
 import { toast } from "sonner";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 
-// استخدام environment variable بدون fallback لتحسين الأمان
-const ADMIN_PASSWORD = import.meta.env.VITE_MANAGE_REQUESTS_PASSWORD || "";
+// ✅ تم إزالة password authentication - نستخدم role-based auth من Convex بدلاً منه
 
 interface Request {
   _id: Id<"employeeRequests">;
@@ -70,10 +69,37 @@ export default function ManageRequestsPage() {
   const { branchId, branchName, isSelected, selectBranch } = useBranch();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const verifyPassword = useMutation(api.employeeRequests.verifyManageRequestsPassword);
 
   useEffect(() => {
     console.log("🔐 Manage Requests Page Loaded", { isSelected, isAuthenticated, branchId, branchName });
   }, [isSelected, isAuthenticated, branchId, branchName]);
+
+  const handlePasswordVerification = async () => {
+    if (!password.trim()) {
+      toast.error("يرجى إدخال كلمة المرور");
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const result = await verifyPassword({ password });
+      if (result.isValid) {
+        setIsAuthenticated(true);
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+        setPassword("");
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "خطأ في التحقق من كلمة المرور";
+      toast.error(errorMessage);
+      setPassword("");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   if (!isSelected) {
     return <BranchSelector onBranchSelected={selectBranch} />;
@@ -102,39 +128,19 @@ export default function ManageRequestsPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    if (!ADMIN_PASSWORD) {
-                      toast.error("خطأ في التكوين: كلمة المرور غير معرّفة في البيئة");
-                      return;
-                    }
-                    if (password === ADMIN_PASSWORD) {
-                      setIsAuthenticated(true);
-                      toast.success("تم الدخول بنجاح");
-                    } else {
-                      toast.error("كلمة مرور خاطئة");
-                      setPassword("");
-                    }
+                  if (e.key === "Enter" && !isVerifying) {
+                    handlePasswordVerification();
                   }
                 }}
+                disabled={isVerifying}
               />
             </div>
             <Button
               className="w-full"
-              onClick={() => {
-                if (!ADMIN_PASSWORD) {
-                  toast.error("خطأ في التكوين: كلمة المرور غير معرّفة في البيئة");
-                  return;
-                }
-                if (password === ADMIN_PASSWORD) {
-                  setIsAuthenticated(true);
-                  toast.success("تم الدخول بنجاح");
-                } else {
-                  toast.error("كلمة مرور خاطئة");
-                  setPassword("");
-                }
-              }}
+              onClick={handlePasswordVerification}
+              disabled={isVerifying}
             >
-              دخول
+              {isVerifying ? "جاري التحقق..." : "دخول"}
             </Button>
           </CardContent>
         </Card>

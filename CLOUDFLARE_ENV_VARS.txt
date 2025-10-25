@@ -1,0 +1,45 @@
+# انسخ هذه المتغيرات وأضفها في Cloudflare Pages
+# اذهب إلى: Settings → Environment variables → Add variable
+
+# ========================================
+# المتغيرات الإجبارية (يجب إضافتها كلها)
+# ========================================
+
+Variable name: VITE_CONVEX_URL
+Value: https://smiling-dinosaur-349.convex.cloud
+
+Variable name: VITE_DEV_MODE
+Value: true
+
+Variable name: VITE_PAYROLL_PASSWORD
+Value: Omar1010#
+
+Variable name: VITE_EMPLOYEES_PASSWORD
+Value: Omar1010#
+
+# ========================================
+# متغيرات Hercules (اختيارية - أضفها فقط إذا كنت تستخدم Hercules)
+# ========================================
+
+Variable name: VITE_HERCULES_OIDC_AUTHORITY
+Value: https://accounts.hercules.app
+
+Variable name: VITE_HERCULES_OIDC_CLIENT_ID
+Value: your-client-id-here
+
+Variable name: VITE_HERCULES_OIDC_PROMPT
+Value: select_account
+
+Variable name: VITE_HERCULES_OIDC_RESPONSE_TYPE
+Value: code
+
+Variable name: VITE_HERCULES_OIDC_SCOPE
+Value: openid profile email
+
+# ========================================
+# بعد إضافة المتغيرات:
+# ========================================
+# 1. اضغط Save
+# 2. اذهب إلى Deployments
+# 3. اضغط Retry deployment
+# ========================================

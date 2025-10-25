@@ -4,7 +4,9 @@ import { ConvexError } from "convex/values";
 import type { Id } from "./_generated/dataModel.d.ts";
 
 // دالة لتحديد الأسبوع من التاريخ
-// الأسابيع: 1-7, 8-14, 15-22, 23-29, 30 (يوم لحاله)
+// ✅ النظام الجديد العادل: كل أسبوع عمل = 7 أيام بالضبط
+// الأسابيع: 1-7, 8-14, 15-21, 22-28, 29-31 (أيام متبقية)
+// يعمل مع جميع الأشهر: 28، 29، 30، 31 يوم
 function getWeekInfo(date: Date) {
   const day = date.getDate();
 
@@ -12,15 +14,19 @@ function getWeekInfo(date: Date) {
     return { weekNumber: 1, weekLabel: "الأسبوع الأول (1-7)" };
   } else if (day >= 8 && day <= 14) {
     return { weekNumber: 2, weekLabel: "الأسبوع الثاني (8-14)" };
-  } else if (day >= 15 && day <= 22) {
-    return { weekNumber: 3, weekLabel: "الأسبوع الثالث (15-22)" };
-  } else if (day >= 23 && day <= 29) {
-    return { weekNumber: 4, weekLabel: "الأسبوع الرابع (23-29)" };
-  } else if (day === 30) {
-    return { weekNumber: 5, weekLabel: "اليوم 30" };
+  } else if (day >= 15 && day <= 21) {
+    // ✅ تم التصحيح: 7 أيام بدلاً من 8
+    return { weekNumber: 3, weekLabel: "الأسبوع الثالث (15-21)" };
+  } else if (day >= 22 && day <= 28) {
+    // ✅ تم التصحيح: بداية من 22 بدلاً من 23
+    return { weekNumber: 4, weekLabel: "الأسبوع الرابع (22-28)" };
   } else {
-    // يوم 31 (للأشهر التي تحتوي على 31 يوماً)
-    return { weekNumber: 5, weekLabel: "أيام متبقية" };
+    // أيام 29-31 (حسب طول الشهر)
+    // فبراير 28: لا يوجد أسبوع 5
+    // فبراير 29: يوم 29 فقط
+    // أشهر 30: أيام 29-30
+    // أشهر 31: أيام 29-31
+    return { weekNumber: 5, weekLabel: "أيام متبقية (29-31)" };
   }
 }
 
@@ -40,7 +46,7 @@ function calculateBonus(totalRevenue: number): { amount: number; isEligible: boo
 }
 
 // دالة لحساب تاريخ بداية ونهاية الأسبوع
-// الأسابيع: 1-7, 8-14, 15-22, 23-29, 30
+// ✅ النظام الجديد: 1-7, 8-14, 15-21, 22-28, 29-31
 function getWeekDateRange(year: number, month: number, weekNumber: number) {
   let startDay: number;
   let endDay: number;
@@ -53,14 +59,14 @@ function getWeekDateRange(year: number, month: number, weekNumber: number) {
     endDay = 14;
   } else if (weekNumber === 3) {
     startDay = 15;
-    endDay = 22;
+    endDay = 21; // ✅ تم التصحيح: 21 بدلاً من 22
   } else if (weekNumber === 4) {
-    startDay = 23;
-    endDay = 29;
+    startDay = 22; // ✅ تم التصحيح: 22 بدلاً من 23
+    endDay = 28; // ✅ تم التصحيح: 28 بدلاً من 29
   } else {
-    // يوم 30 أو أيام متبقية (30-31)
-    startDay = 30;
-    // آخر يوم في الشهر
+    // أيام 29-31 (حسب طول الشهر)
+    startDay = 29; // ✅ تم التصحيح: 29 بدلاً من 30
+    // آخر يوم في الشهر (28, 29, 30, or 31)
     const lastDay = new Date(year, month, 0).getDate();
     endDay = lastDay;
   }
@@ -129,10 +135,10 @@ export const getCurrentWeekRevenues = query({
       )
       .first();
 
-    // تحديد هل يمكن الاعتماد (في أيام 8, 15, 23, 30)
+    // ✅ تحديد هل يمكن الاعتماد (في أيام 8, 15, 22, 29)
     // الاعتماد يتم في أول يوم من الأسبوع الجديد
     const today = now.getDate();
-    const approvalDays = [8, 15, 23, 30];
+    const approvalDays = [8, 15, 22, 29]; // ✅ تم التصحيح: 22, 29 بدلاً من 23, 30
     const canApproveToday = approvalDays.includes(today);
     const isAlreadyApproved = !!existingRecord;
 

@@ -28,3 +28,8 @@ tsconfig.tsbuildinfo
 
 # Environment variables
 .env*
+!.env.example
+
+# Secrets and sensitive information
+ALL_SECRETS_AND_KEYS.md
+SECRETS_QUICK_SUMMARY.txt

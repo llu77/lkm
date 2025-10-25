@@ -109,9 +109,14 @@ function RevenuesContent({ branchId, branchName }: { branchId: string; branchNam
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [showForm, setShowForm] = useState(false);
-  
-  const stats = useQuery(api.revenues.getStats, { branchId });
-  const revenues = useQuery(api.revenues.list, { 
+
+  // ✅ تمرير currentMonth و currentYear لعرض إحصائيات الشهر المحدد فقط
+  const stats = useQuery(api.revenues.getStats, {
+    branchId,
+    month: currentMonth,
+    year: currentYear,
+  });
+  const revenues = useQuery(api.revenues.list, {
     branchId,
     month: currentMonth,
     year: currentYear,
