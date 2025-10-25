@@ -3,7 +3,7 @@
  * Bypasses OIDC authentication for local development when VITE_DEV_MODE=true
  */
 import { createContext, useContext, useMemo, useCallback } from "react";
-import type { AuthProviderProps, User } from "react-oidc-context";
+import type { User } from "oidc-client-ts";
 
 const DEV_MODE = import.meta.env.VITE_DEV_MODE === "true";
 
