@@ -19,6 +19,18 @@
 | **Build output directory** | `dist` |
 | **Node version** | 20 |
 
+### **wrangler.toml (Cloudflare Pages)**
+
+Cloudflare Pages لا يدعم قسم `[build]` في ملف `wrangler.toml`. استخدم المفاتيح الخاصة بصفحات Pages فقط:
+
+```toml
+pages_build_output_dir = "dist"
+compatibility_date = "2025-01-01"
+# name = "lkm-hr-system" # اختياري لعمليات CLI
+```
+
+> تجنّب إضافة قسم `[build]` وإلا ستظهر رسالة: `Configuration file for Pages projects does not support "build"`.
+
 ### **Environment Variables:**
 
 Add these in Cloudflare Pages dashboard → Settings → Environment Variables:
@@ -39,7 +51,7 @@ VITE_CONVEX_URL=https://your-project.convex.cloud
 ### **Option 1: Connect Git Repository (Recommended)**
 
 1. **Login to Cloudflare Dashboard**
-   - Go to: https://dash.cloudflare.com/
+   - Go to: [Cloudflare Dashboard](https://dash.cloudflare.com/)
    - Navigate to: **Pages** → **Create a project**
 
 2. **Connect Repository**
@@ -49,7 +61,8 @@ VITE_CONVEX_URL=https://your-project.convex.cloud
    - Select your repository: `llu77/lkm`
 
 3. **Configure Build**
-   ```
+
+   ```text
    Project name: lkm-hr-system (or your choice)
    Production branch: main
    Build command: npm run build
@@ -94,6 +107,7 @@ wrangler pages deploy dist --project-name=lkm-hr-system
 ### **Preview Deployments**
 
 Cloudflare Pages automatically creates preview URLs for:
+
 - Pull requests
 - Non-production branches
 
@@ -175,6 +189,7 @@ Your app will be served from 300+ Cloudflare edge locations worldwide.
 ### **Build Fails**
 
 **Issue**: `npm install` fails
+
 ```bash
 # Solution: Clear cache
 rm -rf node_modules package-lock.json
@@ -182,6 +197,7 @@ npm install
 ```
 
 **Issue**: TypeScript errors
+
 ```bash
 # Solution: Check tsconfig.json
 npm run build
@@ -199,7 +215,8 @@ npm run build
 
 **Symptom**: 404 on refresh
 **Solution**: Ensure `public/_redirects` contains:
-```
+
+```text
 /*    /index.html   200
 ```
 
@@ -264,9 +281,9 @@ Before going live:
 
 ## 📞 Support
 
-- **Cloudflare Docs**: https://developers.cloudflare.com/pages/
-- **Vite Docs**: https://vitejs.dev/
-- **Convex Docs**: https://docs.convex.dev/
+- **Cloudflare Docs**: [developers.cloudflare.com/pages](https://developers.cloudflare.com/pages/)
+- **Vite Docs**: [vitejs.dev](https://vitejs.dev/)
+- **Convex Docs**: [docs.convex.dev](https://docs.convex.dev/)
 
 ---
 
