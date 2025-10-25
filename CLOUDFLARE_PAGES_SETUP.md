@@ -5,6 +5,7 @@
 - Cloudflare account
 - Git repository (GitHub/GitLab)
 - Convex project deployed
+- **Convex environment variables configured** (see [CONVEX_SETUP.md](./CONVEX_SETUP.md))
 
 ---
 
@@ -31,6 +32,8 @@ VITE_CONVEX_URL=https://your-project.convex.cloud
 ```
 
 > **Note:** All environment variables for client-side React/Vite apps must be prefixed with `VITE_`
+
+> **Important:** Backend environment variables (used in Convex functions) must be set using `npx convex env set`. See [CONVEX_SETUP.md](./CONVEX_SETUP.md) for details.
 
 ---
 
