@@ -1,4 +1,4 @@
-"use node";
+// Removed "use node" - not needed if no external Node packages used
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";

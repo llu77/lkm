@@ -1,4 +1,5 @@
-"use node";
+// Removed "use node" to allow internalQuery definitions
+// If you need Node.js packages, move actions to a separate file
 
 import { internalAction, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
@@ -208,26 +209,7 @@ export const sendWeeklyBonusEmails = internalAction({
 
 // ================== Internal Queries للبيانات ==================
 
-/**
- * الحصول على جميع الفروع النشطة من قاعدة البيانات
- */
-export const getAllBranches = internalQuery({
-  args: {},
-  handler: async (ctx) => {
-    // قراءة جميع الفروع النشطة من قاعدة البيانات
-    const branches = await ctx.db
-      .query("branches")
-      .withIndex("by_active", (q) => q.eq("isActive", true))
-      .collect();
-
-    // تحويل الصيغة لتوافق الكود الحالي
-    return branches.map((branch) => ({
-      id: branch.branchId,
-      name: branch.branchName,
-      supervisorEmail: branch.supervisorEmail,
-    }));
-  },
-});
+// Query moved to scheduledEmailsQueries.ts
 
 /**
  * الحصول على البيانات المالية اليومية
