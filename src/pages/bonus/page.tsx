@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
+import type { Doc } from "@/convex/_generated/dataModel";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
@@ -15,16 +16,37 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
+type WeekBonusResponse = {
+  totalBonusPaid: number;
+  employeeBonuses: Array<{
+    employeeName: string;
+    totalRevenue: number;
+    bonusAmount: number;
+    isEligible: boolean;
+  }>;
+  canApprove: boolean;
+  isAlreadyApproved: boolean;
+  startDay: number;
+  endDay: number;
+  weekLabel: string;
+  month: number;
+  year: number;
+};
+
+type BonusRecord = Doc<"bonusRecords">;
+
 function BonusPageInner() {
   const { branchId, branchName, selectBranch } = useBranch();
   const [isApproving, setIsApproving] = useState(false);
 
-  const currentWeekData = useQuery(api.bonus.getCurrentWeekRevenues, 
-    branchId ? { branchId } : "skip"
-  );
-  const bonusRecords = useQuery(api.bonus.getBonusRecords, 
-    branchId ? { branchId } : "skip"
-  );
+  const currentWeekData = useQuery(
+    api.bonus.getCurrentWeekRevenues,
+    branchId ? { branchId } : "skip",
+  ) as WeekBonusResponse | undefined;
+  const bonusRecords = useQuery(
+    api.bonus.getBonusRecords,
+    branchId ? { branchId } : "skip",
+  ) as BonusRecord[] | undefined;
   const approveBonus = useMutation(api.bonus.approveBonus);
 
   if (!branchId || !branchName) {

@@ -16,6 +16,9 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import type { Id } from "@/convex/_generated/dataModel";
 import { printProductOrderPDF } from "@/lib/pdf-export.ts";
+import type { Doc } from "@/convex/_generated/dataModel";
+
+type ProductOrderDraft = Doc<"productOrders">;
 
 // قائمة المنتجات الكاملة مع الأسعار (SAR)
 const PRODUCTS_WITH_PRICES: Record<string, number> = {
@@ -340,7 +343,7 @@ function ProductOrdersContent({ branchId, branchName }: { branchId: string; bran
             )}
             {drafts && drafts.length > 0 && (
               <div className="space-y-2">
-                {drafts.map((draft) => (
+              {drafts.map((draft: ProductOrderDraft) => (
                   <div
                     key={draft._id}
                     className="flex items-center justify-between p-3 border rounded-lg"

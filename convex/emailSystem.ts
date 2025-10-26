@@ -161,6 +161,11 @@ function renderTemplate(templateId: string, variables: Record<string, unknown>):
 
 // ================== Email Sending Actions ==================
 
+type SendEmailResult = {
+  emailId: string;
+  success: boolean;
+};
+
 export const sendEmail = action({
   args: {
     to: v.array(v.string()),
@@ -168,7 +173,7 @@ export const sendEmail = action({
     html: v.string(),
     from: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<SendEmailResult> => {
     // إرسال webhook إلى Zapier أولاً (non-blocking)
     try {
       await ctx.runAction(internal.zapier.triggerEmailWebhook, {
@@ -206,7 +211,11 @@ export const sendEmail = action({
         emailId: result.data?.id || "unknown",
       });
 
-      return { success: true, emailId: result.data?.id };
+      if (!result.data?.id) {
+        return { success: true, emailId: "unknown" };
+      }
+
+      return { success: true, emailId: result.data.id };
     } catch (error) {
       // Log failed email
       await ctx.runMutation(internal.emailLogs.logEmail, {
@@ -267,7 +276,11 @@ export const sendTemplateEmail = action({
         emailId: result.data?.id || "unknown",
       });
 
-      return { success: true, emailId: result.data?.id };
+      if (!result.data?.id) {
+        return { success: true, emailId: "unknown" };
+      }
+
+      return { success: true, emailId: result.data.id };
     } catch (error) {
       await ctx.runMutation(internal.emailLogs.logEmail, {
         to: args.to,

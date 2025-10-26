@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
+import type { Doc } from "@/convex/_generated/dataModel";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import Navbar from "@/components/navbar.tsx";
@@ -139,6 +140,8 @@ function PasswordProtection({ onVerified }: { onVerified: () => void }) {
   );
 }
 
+type EmployeeDoc = Doc<"employees">;
+
 function EmployeesPageContent() {
   const { branchId, branchName, selectBranch } = useBranch();
   const [searchQuery, setSearchQuery] = useState("");
@@ -146,7 +149,7 @@ function EmployeesPageContent() {
 
   const employees = useQuery(api.employees.listEmployees, {
     branchId: branchId || undefined,
-  });
+  }) as EmployeeDoc[] | undefined;
 
   const deleteEmployee = useMutation(api.employees.deleteEmployee);
 
@@ -161,7 +164,7 @@ function EmployeesPageContent() {
   };
 
   // Filter and search employees
-  const filteredEmployees = employees?.filter((emp) => {
+  const filteredEmployees = (employees ?? []).filter((emp: EmployeeDoc) => {
     const matchesSearch = emp.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.nationalId?.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -171,11 +174,11 @@ function EmployeesPageContent() {
       !emp.isActive;
 
     return matchesSearch && matchesFilter;
-  }) || [];
+  });
 
   const totalEmployees = filteredEmployees.length;
   const activeEmployees = filteredEmployees.filter(emp => emp.isActive).length;
-  const totalSalaries = filteredEmployees.reduce((sum, emp) =>
+  const totalSalaries = filteredEmployees.reduce((sum: number, emp: EmployeeDoc) =>
     sum + emp.baseSalary + emp.supervisorAllowance + emp.incentives, 0
   );
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { SignInButton } from "@/components/ui/signin";
 import { Button } from "@/components/ui/button";
@@ -51,6 +51,10 @@ export default function AdvancesDeductionsPage() {
   );
 }
 
+type Advance = Doc<"advances">;
+type Deduction = Doc<"deductions">;
+type Employee = Doc<"employees">;
+
 function AdvancesDeductionsContent() {
   const { branchId, branchName } = useBranch();
   const currentDate = new Date();
@@ -61,21 +65,21 @@ function AdvancesDeductionsContent() {
     branchId: branchId ?? undefined,
     month: selectedMonth,
     year: selectedYear,
-  });
+  }) as Advance[] | undefined;
 
   const deductions = useQuery(api.deductions.listDeductions, {
     branchId: branchId ?? undefined,
     month: selectedMonth,
     year: selectedYear,
-  });
+  }) as Deduction[] | undefined;
 
   const employees = useQuery(api.employees.getActiveEmployees, {
     branchId: branchId ?? undefined,
-  });
+  }) as Employee[] | undefined;
 
   // Calculate totals
-  const totalAdvances = advances?.reduce((sum, a) => sum + a.amount, 0) || 0;
-  const totalDeductions = deductions?.reduce((sum, d) => sum + d.amount, 0) || 0;
+  const totalAdvances = (advances ?? []).reduce((sum: number, advance: Advance) => sum + advance.amount, 0);
+  const totalDeductions = (deductions ?? []).reduce((sum: number, deduction: Deduction) => sum + deduction.amount, 0);
 
   const months = [
     { value: 1, label: "يناير" },

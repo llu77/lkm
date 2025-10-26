@@ -1,26 +1,64 @@
+import { useCallback, useMemo } from "react";
 import { useConvexAuth } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useMemo } from "react";
+
+type FetchAccessTokenArgs = { forceRefreshToken: boolean };
 
 /**
  * Custom auth hook compatible with Convex Auth
  * Provides backward compatibility with OIDC-based auth interface
  */
-export function useAuth() {
+export type AuthResult = {
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  signinRedirect: () => Promise<void>;
+  signoutRedirect: () => Promise<void>;
+  user: null;
+  error: string | null;
+  fetchAccessToken: (options: FetchAccessTokenArgs) => Promise<string | null>;
+};
+
+export function useAuth(): AuthResult {
   const { isLoading, isAuthenticated } = useConvexAuth();
-  const { signIn, signOut } = useAuthActions();
+  const authActions = useAuthActions() as ReturnType<typeof useAuthActions> & {
+    fetchAccessToken?: (options: FetchAccessTokenArgs) => Promise<string | null>;
+  };
+  const { signIn, signOut } = authActions;
+  const fetchToken = authActions.fetchAccessToken;
+
+  const fetchAccessToken = useCallback(
+    async ({ forceRefreshToken }: FetchAccessTokenArgs) => {
+      if (!fetchToken) {
+        console.warn("fetchAccessToken is not available from useAuthActions");
+        return null;
+      }
+      try {
+        return await fetchToken({ forceRefreshToken });
+      } catch (error) {
+        console.error("Failed to fetch access token", error);
+        return null;
+      }
+    },
+    [fetchToken]
+  );
 
   return useMemo(
     () => ({
       isLoading,
       isAuthenticated,
-      // Backward compatibility: map to OIDC interface
-      signinRedirect: () => void signIn("anonymous"),
+      signinRedirect: async () => {
+        try {
+          await signIn("anonymous");
+        } catch (error) {
+          console.error("Anonymous sign-in failed", error);
+        }
+      },
       signoutRedirect: signOut,
       user: null,
       error: null,
+      fetchAccessToken,
     }),
-    [isLoading, isAuthenticated, signIn, signOut]
+    [isLoading, isAuthenticated, signIn, signOut, fetchAccessToken]
   );
 }
 

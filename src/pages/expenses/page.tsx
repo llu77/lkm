@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
-import type { Id } from "@/convex/_generated/dataModel.d.ts";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import Navbar from "@/components/navbar.tsx";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { BranchSelector } from "@/components/branch-selector.tsx";
@@ -47,6 +47,16 @@ const EXPENSE_CATEGORIES = [
   "أخرى",
 ];
 
+type ExpenseDoc = Doc<"expenses">;
+type ExpenseStats = {
+  totalExpenses: number;
+  totalCount: number;
+  currentMonthTotal: number;
+  currentMonthCount: number;
+  averageExpense: number;
+  categoryTotals: Array<{ category: string; total: number }>;
+};
+
 function ExpensesContent() {
   const { branchId, branchName, isSelected, selectBranch } = useBranch();
   
@@ -60,17 +70,21 @@ function ExpensesContent() {
 
   const expenses = useQuery(
     api.expenses.list,
-    isSelected ? { 
-      branchId: branchId!,
-      category: selectedCategory === "all" ? undefined : selectedCategory 
-    } : "skip"
-  );
+    isSelected
+      ? {
+          branchId: branchId!,
+          category: selectedCategory === "all" ? undefined : selectedCategory,
+        }
+      : "skip",
+  ) as ExpenseDoc[] | undefined;
   const stats = useQuery(
     api.expenses.getStats,
-    isSelected ? { branchId: branchId! } : "skip"
-  );
+    isSelected ? { branchId: branchId! } : "skip",
+  ) as ExpenseStats | undefined;
   const createExpense = useMutation(api.expenses.create);
   const removeExpense = useMutation(api.expenses.remove);
+
+  const expensesList: ExpenseDoc[] = expenses ?? [];
 
   if (!isSelected) {
     return (
@@ -244,13 +258,13 @@ function ExpensesContent() {
                 </div>
 
                 {/* Export and Print Buttons */}
-                {expenses && expenses.length > 0 && (
+                {expensesList.length > 0 && (
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={async () => {
-                        const pdfData = expenses.map((exp) => ({
+                        const pdfData = expensesList.map((exp) => ({
                           title: exp.title,
                           category: exp.category,
                           amount: exp.amount,
@@ -258,13 +272,19 @@ function ExpensesContent() {
                           description: exp.description || "-",
                         }));
 
-                        const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-                        const categoryBreakdown = EXPENSE_CATEGORIES.map(cat => {
-                          const catTotal = expenses
-                            .filter(e => e.category === cat)
-                            .reduce((sum, e) => sum + e.amount, 0);
-                          return { category: cat, total: catTotal };
-                        }).filter(item => item.total > 0);
+                        const totalExpenses = expensesList.reduce(
+                          (sum: number, expense: ExpenseDoc) => sum + expense.amount,
+                          0,
+                        );
+                        const categoryBreakdown = EXPENSE_CATEGORIES.map((cat) => {
+                          const categoryTotal = expensesList
+                            .filter((expense) => expense.category === cat)
+                            .reduce(
+                              (sum: number, expense: ExpenseDoc) => sum + expense.amount,
+                              0,
+                            );
+                          return { category: cat, total: categoryTotal };
+                        }).filter((item) => item.total > 0);
 
                         await generateExpensesPDF(
                           pdfData,
@@ -282,7 +302,7 @@ function ExpensesContent() {
                       variant="outline"
                       size="sm"
                       onClick={async () => {
-                        const pdfData = expenses.map((exp) => ({
+                        const pdfData = expensesList.map((exp) => ({
                           title: exp.title,
                           category: exp.category,
                           amount: exp.amount,
@@ -290,13 +310,19 @@ function ExpensesContent() {
                           description: exp.description || "-",
                         }));
 
-                        const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-                        const categoryBreakdown = EXPENSE_CATEGORIES.map(cat => {
-                          const catTotal = expenses
-                            .filter(e => e.category === cat)
-                            .reduce((sum, e) => sum + e.amount, 0);
-                          return { category: cat, total: catTotal };
-                        }).filter(item => item.total > 0);
+                        const totalExpenses = expensesList.reduce(
+                          (sum: number, expense: ExpenseDoc) => sum + expense.amount,
+                          0,
+                        );
+                        const categoryBreakdown = EXPENSE_CATEGORIES.map((cat) => {
+                          const categoryTotal = expensesList
+                            .filter((expense) => expense.category === cat)
+                            .reduce(
+                              (sum: number, expense: ExpenseDoc) => sum + expense.amount,
+                              0,
+                            );
+                          return { category: cat, total: categoryTotal };
+                        }).filter((item) => item.total > 0);
 
                         await generateExpensesPDF(
                           pdfData,
@@ -312,7 +338,7 @@ function ExpensesContent() {
               </div>
             </CardHeader>
             <CardContent>
-              {expenses.length === 0 ? (
+              {expensesList.length === 0 ? (
                 <Empty>
                   <EmptyHeader>
                     <EmptyMedia variant="icon">
@@ -329,7 +355,7 @@ function ExpensesContent() {
                 </Empty>
               ) : (
                 <div className="space-y-4">
-                  {expenses.map((expense) => (
+                  {expensesList.map((expense) => (
                     <Card key={expense._id}>
                       <CardContent className="pt-6">
                         <div className="flex items-start justify-between">

@@ -18,53 +18,13 @@ import { useState, useEffect } from "react";
 import { useBranch } from "@/hooks/use-branch.ts";
 import { BranchSelector } from "@/components/branch-selector.tsx";
 import { toast } from "sonner";
-import type { Id } from "@/convex/_generated/dataModel.d.ts";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 
 // استخدام environment variable بدون fallback لتحسين الأمان
 const ADMIN_PASSWORD = import.meta.env.VITE_MANAGE_REQUESTS_PASSWORD || "";
 
-interface Request {
-  _id: Id<"employeeRequests">;
-  _creationTime: number;
-  employeeName: string;
-  requestType: string;
-  status: string;
-  requestDate: number;
-  branchName: string;
-  advanceAmount?: number;
-  vacationDate?: number;
-  duesAmount?: number;
-  permissionDate?: number;
-  permissionStartTime?: string;
-  permissionEndTime?: string;
-  permissionHours?: number;
-  violationDate?: number;
-  objectionReason?: string;
-  objectionDetails?: string;
-  nationalId?: string;
-  resignationText?: string;
-  adminResponse?: string;
-  responseDate?: number;
-}
-
-interface ProductOrder {
-  _id: Id<"productOrders">;
-  _creationTime: number;
-  orderName?: string;
-  products: Array<{
-    productName: string;
-    quantity: number;
-    price: number;
-    total: number;
-  }>;
-  grandTotal: number;
-  status: string;
-  isDraft: boolean;
-  employeeName: string;
-  notes?: string;
-  branchId: string;
-  branchName: string;
-}
+type Request = Doc<"employeeRequests">;
+type ProductOrder = Doc<"productOrders">;
 
 export default function ManageRequestsPage() {
   const { branchId, branchName, isSelected, selectBranch } = useBranch();
@@ -171,8 +131,8 @@ export default function ManageRequestsPage() {
 }
 
 function ManageRequestsContent({ branchId, branchName }: { branchId: string; branchName: string }) {
-  const requests = useQuery(api.employeeRequests.getAllRequests, {});
-  const productOrders = useQuery(api.productOrders.getOrders, { branchId });
+  const requests = useQuery(api.employeeRequests.getAllRequests, {}) as Request[] | undefined;
+  const productOrders = useQuery(api.productOrders.getOrders, { branchId }) as ProductOrder[] | undefined;
   const updateStatus = useMutation(api.employeeRequests.updateStatus);
   const updateProductOrderStatus = useMutation(api.productOrders.updateStatus);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
@@ -187,7 +147,7 @@ function ManageRequestsContent({ branchId, branchName }: { branchId: string; bra
     console.log("📋 All Requests Data:", { requests, count: requests?.length });
   }, [requests]);
 
-  if (requests === undefined) {
+  if (requests === undefined || productOrders === undefined) {
     return (
       <div className="container mx-auto max-w-7xl p-4 space-y-4">
         <Skeleton className="h-12 w-full" />
@@ -196,9 +156,12 @@ function ManageRequestsContent({ branchId, branchName }: { branchId: string; bra
     );
   }
 
-  const pendingRequests = requests.filter((r) => r.status === "تحت الإجراء");
-  const approvedRequests = requests.filter((r) => r.status === "مقبول");
-  const rejectedRequests = requests.filter((r) => r.status === "مرفوض");
+  const requestsList = requests ?? [];
+  const productOrdersList = productOrders ?? [];
+
+  const pendingRequests = requestsList.filter((request) => request.status === "تحت الإجراء");
+  const approvedRequests = requestsList.filter((request) => request.status === "مقبول");
+  const rejectedRequests = requestsList.filter((request) => request.status === "مرفوض");
 
   const handleReview = async (action: "approve" | "reject") => {
     if (!selectedRequest) return;

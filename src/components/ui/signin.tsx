@@ -61,13 +61,13 @@ export const SignInButton = forwardRef<HTMLButtonElement, SignInButtonProps>(
     },
     ref,
   ) => {
-    const { isAuthenticated, signinRedirect, removeUser, isLoading, error } =
+    const { isAuthenticated, signinRedirect, signoutRedirect, isLoading, error } =
       useAuth();
 
     useEffect(() => {
       if (error) {
         toast.error("Login error", {
-          description: error.message,
+          description: error,
         });
         console.error("Login error", error);
       }
@@ -80,7 +80,7 @@ export const SignInButton = forwardRef<HTMLButtonElement, SignInButtonProps>(
 
         try {
           if (isAuthenticated) {
-            await removeUser();
+            await signoutRedirect();
           } else {
             await signinRedirect();
           }
@@ -89,7 +89,7 @@ export const SignInButton = forwardRef<HTMLButtonElement, SignInButtonProps>(
           // Don't prevent the default here as the auth library handles errors
         }
       },
-      [isAuthenticated, signinRedirect, removeUser, onClick],
+      [isAuthenticated, signinRedirect, signoutRedirect, onClick],
     );
 
     const isDisabled = disabled || isLoading;

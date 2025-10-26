@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAction, useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
+import type { Doc } from "@/convex/_generated/dataModel";
 import { Authenticated, Unauthenticated } from "convex/react";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import Navbar from "@/components/navbar.tsx";
@@ -34,6 +35,14 @@ import {
   Trash2Icon,
   PlusIcon,
 } from "lucide-react";
+
+type EmailSettingsDoc = ReturnType<typeof useQuery<typeof api.emailSettings.getAllSettings>> extends infer T
+  ? T extends undefined
+    ? undefined
+    : T
+  : undefined;
+
+type EmailLogDoc = Doc<"emailLogs">;
 
 function SettingsTabContent() {
   const settings = useQuery(api.emailSettings.getAllSettings);
@@ -69,35 +78,35 @@ function SettingsTabContent() {
     if (settings) {
       setSenderName(settings.senderName as string);
       setSenderEmail(settings.senderEmail as string);
-      setRecipients((settings.defaultRecipients as string[]) || []);
-      
-      const daily = settings.dailySchedule as {
+      setRecipients((settings.defaultRecipients as string[]) ?? []);
+
+      const daily = (settings.dailySchedule as {
         enabled: boolean;
-        time: string;
+        time?: string;
         templateId?: string;
         customContent?: string;
         recipients?: string[];
-      };
+      }) ?? { enabled: false };
       setDailyEnabled(daily.enabled);
-      setDailyTime(daily.time || "03:00");
-      setDailyTemplate(daily.templateId || "report");
-      setDailyCustomContent(daily.customContent || "");
-      setDailyRecipients(daily.recipients || []);
-      
-      const monthly = settings.monthlySchedule as {
+      setDailyTime(daily.time ?? "03:00");
+      setDailyTemplate(daily.templateId ?? "report");
+      setDailyCustomContent(daily.customContent ?? "");
+      setDailyRecipients(daily.recipients ?? []);
+
+      const monthly = (settings.monthlySchedule as {
         enabled: boolean;
-        day: number;
-        time: string;
+        day?: number;
+        time?: string;
         templateId?: string;
         customContent?: string;
         recipients?: string[];
-      };
+      }) ?? { enabled: false };
       setMonthlyEnabled(monthly.enabled);
-      setMonthlyDay(monthly.day || 1);
-      setMonthlyTime(monthly.time || "12:00");
-      setMonthlyTemplate(monthly.templateId || "report");
-      setMonthlyCustomContent(monthly.customContent || "");
-      setMonthlyRecipients(monthly.recipients || []);
+      setMonthlyDay(monthly.day ?? 1);
+      setMonthlyTime(monthly.time ?? "12:00");
+      setMonthlyTemplate(monthly.templateId ?? "report");
+      setMonthlyCustomContent(monthly.customContent ?? "");
+      setMonthlyRecipients(monthly.recipients ?? []);
     }
   }, [settings]);
 
@@ -538,9 +547,17 @@ function SettingsTabContent() {
   );
 }
 
+type EmailStats = {
+  total: number;
+  sent: number;
+  failed: number;
+  pending: number;
+  successRate: string;
+};
+
 function SystemSupportInner() {
-  const emailStats = useQuery(api.emailLogs.getEmailStats);
-  const emailLogs = useQuery(api.emailLogs.getEmailLogs, { limit: 20 });
+  const emailStats = useQuery(api.emailLogs.getEmailStats) as EmailStats | undefined;
+  const emailLogs = useQuery(api.emailLogs.getEmailLogs, { limit: 20 }) as EmailLogDoc[] | undefined;
   const sendEmail = useAction(api.emailSystem.sendEmail);
   const sendTemplateEmail = useAction(api.emailSystem.sendTemplateEmail);
   const testEmail = useAction(api.emailSystem.testEmail);

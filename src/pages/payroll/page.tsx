@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { useBranch } from "@/hooks/use-branch.ts";
 import { BranchSelector } from "@/components/branch-selector.tsx";
 import { PlusIcon, ReceiptIcon, TrashIcon, DownloadIcon, PrinterIcon, FileTextIcon } from "lucide-react";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 
 export default function PayrollPage() {
   return (
@@ -128,6 +128,8 @@ function PasswordProtection({ onVerified }: { onVerified: () => void }) {
   );
 }
 
+type PayrollRecordDoc = Doc<"payrollRecords">;
+
 function PayrollPageContent() {
   const { branchId, branchName, selectBranch } = useBranch();
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
@@ -138,7 +140,7 @@ function PayrollPageContent() {
     branchId: branchId || undefined,
     month,
     year,
-  });
+  }) as PayrollRecordDoc[] | undefined;
 
   const generatePayroll = useMutation(api.payroll.generatePayroll);
   const deletePayroll = useMutation(api.payroll.deletePayroll);
@@ -178,8 +180,12 @@ function PayrollPageContent() {
     }
   };
 
-  const totalRecords = payrollRecords?.length || 0;
-  const totalAmount = payrollRecords?.reduce((sum, record) => sum + record.totalNetSalary, 0) || 0;
+  const payrollList = payrollRecords ?? [];
+  const totalRecords = payrollList.length;
+  const totalAmount = payrollList.reduce(
+    (sum: number, record: PayrollRecordDoc) => sum + record.totalNetSalary,
+    0,
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -408,22 +414,7 @@ function GeneratePayrollForm({ onGenerate, month, year }: { onGenerate: (supervi
   );
 }
 
-function PayrollDetailsDialog({ record }: { record: {
-  _id: string;
-  branchName: string;
-  month: number;
-  year: number;
-  employees: Array<{
-    employeeName: string;
-    baseSalary: number;
-    supervisorAllowance: number;
-    incentives: number;
-    totalAdvances: number;
-    totalDeductions: number;
-    netSalary: number;
-  }>;
-  totalNetSalary: number;
-} }) {
+function PayrollDetailsDialog({ record }: { record: PayrollRecordDoc }) {
   const monthNames = [
     "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
     "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"

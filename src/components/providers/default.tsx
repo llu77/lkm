@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ConvexProviderWithAuth } from "convex/react";
 import { ThemeProvider } from "next-themes";
 import { convex } from "@/lib/convex.ts";
@@ -9,7 +10,7 @@ import { QueryClientProvider } from "@/components/providers/query-client.tsx";
 import { UpdateCurrentUserProvider } from "@/components/providers/update-current-user.tsx";
 import { ErrorBoundary } from "@/components/error-boundary.tsx";
 
-export function DefaultProviders({ children }: { children: React.ReactNode }) {
+export function DefaultProviders({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary>
       <AuthProvider>

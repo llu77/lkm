@@ -3,7 +3,11 @@
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
+
+type PayrollRecordDoc = Doc<"payrollRecords">;
+type PayrollEmployee = PayrollRecordDoc["employees"][number];
 
 /**
  * إرسال إيميل مسير الرواتب للمشرف
@@ -14,15 +18,20 @@ export const sendPayrollEmail = action({
     payrollId: v.id("payrollRecords"),
     supervisorEmail: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ success: true; emailId: string } | never> => {
     // Get payroll data
-    const payroll = await ctx.runQuery(internal.payrollEmail.getPayrollData, {
+    const payroll = await ctx.runQuery(internal.payroll.getPayrollData, {
       payrollId: args.payrollId,
     });
 
     if (!payroll) {
       throw new Error("Payroll record not found");
     }
+
+    const employees: PayrollEmployee[] = payroll.employees ?? [];
 
     // تحويل رقم الشهر إلى اسم بالعربية
     const arabicMonths = [
@@ -42,7 +51,7 @@ export const sendPayrollEmail = action({
 
     // بناء جدول الموظفين
     let employeesTableRows = '';
-    payroll.employees.forEach((emp, index) => {
+    employees.forEach((emp, index) => {
       const grossSalary = emp.baseSalary + emp.supervisorAllowance + emp.incentives;
       employeesTableRows += `
         <tr style="${index % 2 === 0 ? 'background-color: #f8fafc;' : ''}">
@@ -90,7 +99,7 @@ export const sendPayrollEmail = action({
               <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
                 <div style="flex: 1; min-width: 200px;">
                   <p style="margin: 0; color: #64b5f6; font-size: 14px; font-weight: 600;">عدد الموظفين</p>
-                  <p style="margin: 5px 0 0 0; color: #1565c0; font-size: 28px; font-weight: bold;">${payroll.employees.length}</p>
+                    <p style="margin: 5px 0 0 0; color: #1565c0; font-size: 28px; font-weight: bold;">${employees.length}</p>
                 </div>
                 <div style="flex: 1; min-width: 200px;">
                   <p style="margin: 0; color: #64b5f6; font-size: 14px; font-weight: 600;">إجمالي صافي الرواتب</p>
@@ -171,7 +180,7 @@ export const sendPayrollEmail = action({
 
     // إرسال الإيميل
     try {
-      const result = await ctx.runAction(internal.emailSystem.sendEmail, {
+      const result = await ctx.runAction(api.emailSystem.sendEmail, {
         to: [args.supervisorEmail],
         subject: `💼 مسير رواتب ${monthName} ${payroll.year} - ${payroll.branchName}`,
         html: emailHtml,
@@ -179,7 +188,7 @@ export const sendPayrollEmail = action({
       });
 
       // تحديث حالة الإيميل في payroll record
-      await ctx.runMutation(internal.payroll.markEmailSent, {
+      await ctx.runMutation(api.payroll.markEmailSent, {
         payrollId: args.payrollId,
       });
 

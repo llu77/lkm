@@ -1,5 +1,5 @@
 import { ConvexError } from "convex/values";
-import { QueryCtx, MutationCtx } from "./_generated/server";
+import type { QueryCtx, MutationCtx } from "./_generated/server";
 
 /**
  * Get the current authenticated user's ID

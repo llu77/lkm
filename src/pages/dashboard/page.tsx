@@ -1,6 +1,7 @@
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
+import type { Doc } from "@/convex/_generated/dataModel";
 import Navbar from "@/components/navbar.tsx";
 import { SignInButton } from "@/components/ui/signin.tsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.tsx";
@@ -17,10 +18,41 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Responsive
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
+type DashboardStats = {
+  totalRevenue: number;
+  totalExpenses: number;
+  netIncome: number;
+  revenueGrowth: number;
+  expenseGrowth: number;
+  netIncomeGrowth: number;
+  pendingProductOrdersCount: number;
+  pendingEmployeeOrdersCount: number;
+  currentMonth: {
+    revenues: number;
+    expenses: number;
+  };
+  lastMonth: {
+    totalRevenue: number;
+    totalExpenses: number;
+    netIncome: number;
+  };
+};
+
+type DashboardChartPoint = {
+  month: string;
+  revenue: number;
+  expense: number;
+};
+
+type DashboardRecentActivity = {
+  recentRevenues: Array<Doc<"revenues">>;
+  recentExpenses: Array<Doc<"expenses">>;
+};
+
 function DashboardContent() {
-  const stats = useQuery(api.dashboard.getStats);
-  const chartData = useQuery(api.dashboard.getChartData);
-  const recentActivity = useQuery(api.dashboard.getRecentActivity);
+  const stats = useQuery(api.dashboard.getStats) as DashboardStats | undefined;
+  const chartData = useQuery(api.dashboard.getChartData) as DashboardChartPoint[] | undefined;
+  const recentActivity = useQuery(api.dashboard.getRecentActivity) as DashboardRecentActivity | undefined;
 
   if (stats === undefined || chartData === undefined || recentActivity === undefined) {
     return (

@@ -87,8 +87,7 @@ export const seedTestData = testingMutation({
       branchName: "فرع الاختبار",
       supervisorEmail: "test@example.com",
       isActive: true,
-      employeeCount: 0,
-      location: "الرياض",
+      createdAt: Date.now(),
     });
     
     // Example: Create test user

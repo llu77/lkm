@@ -4,7 +4,8 @@
 
 import { internalAction, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
+// types are inferred from queries
 
 // ================== إيميل يومي - 3:00 صباحاً ==================
 
@@ -14,7 +15,7 @@ import { internal } from "./_generated/api";
  */
 export const sendDailyFinancialReport = internalAction({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<{ success: boolean; message: string }> => {
     // الحصول على تاريخ اليوم
     const now = new Date();
     const yesterday = new Date(now);
@@ -48,7 +49,7 @@ export const sendDailyFinancialReport = internalAction({
 
         // إرسال الإيميل
         if (branch.supervisorEmail) {
-          await ctx.runAction(internal.emailSystem.sendEmail, {
+          await ctx.runAction(api.emailSystem.sendEmail, {
             to: [branch.supervisorEmail],
             subject: `📊 التقرير المالي اليومي - ${branch.name} - ${formatArabicDate(yesterday)}`,
             html: emailHtml,
@@ -71,7 +72,7 @@ export const sendDailyFinancialReport = internalAction({
  */
 export const sendMonthlyFinancialReport = internalAction({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<{ success: boolean; message: string }> => {
     const now = new Date();
     const lastMonth = new Date(now);
     lastMonth.setMonth(lastMonth.getMonth() - 1);
@@ -111,7 +112,7 @@ export const sendMonthlyFinancialReport = internalAction({
 
         // إرسال الإيميل
         if (branch.supervisorEmail) {
-          await ctx.runAction(internal.emailSystem.sendEmail, {
+          await ctx.runAction(api.emailSystem.sendEmail, {
             to: [branch.supervisorEmail],
             subject: `📈 التقرير المالي الشهري - ${branch.name} - ${getArabicMonth(month)} ${year}`,
             html: emailHtml,
@@ -137,7 +138,10 @@ export const sendWeeklyBonusEmails = internalAction({
   args: {
     weekNumber: v.number(), // 1, 2, 3, أو 4
   },
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ success: boolean; message: string }> => {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
@@ -154,11 +158,15 @@ export const sendWeeklyBonusEmails = internalAction({
     for (const branch of branches) {
       try {
         // الحصول على بيانات البونص للأسبوع السابق
-        const bonusData = await ctx.runQuery(internal.scheduledEmailsQueries.getWeeklyBonusData, {
+        const weekStart = new Date(now);
+        weekStart.setDate(weekStart.getDate() - 7);
+        const bonusData = await ctx.runQuery(internal.scheduledEmails.getWeeklyBonusData, {
           branchId: branch.id,
           year,
           month,
           weekNumber: args.weekNumber,
+          startDate: weekStart.getTime(),
+          endDate: now.getTime(),
         });
 
         if (!bonusData || bonusData.employees.length === 0) continue;
@@ -172,7 +180,7 @@ export const sendWeeklyBonusEmails = internalAction({
             month
           );
 
-          await ctx.runAction(internal.emailSystem.sendEmail, {
+          await ctx.runAction(api.emailSystem.sendEmail, {
             to: [branch.supervisorEmail],
             subject: `🎁 تقرير البونص الأسبوعي - ${branch.name} - ${bonusData.weekLabel}`,
             html: supervisorEmailHtml,
@@ -191,7 +199,7 @@ export const sendWeeklyBonusEmails = internalAction({
               month
             );
 
-            await ctx.runAction(internal.emailSystem.sendEmail, {
+            await ctx.runAction(api.emailSystem.sendEmail, {
               to: [employee.email],
               subject: `🎉 تهانينا! لقد حصلت على بونص ${employee.bonusAmount} ريال`,
               html: employeeEmailHtml,
@@ -265,10 +273,10 @@ export const getDailyFinancialData = internalQuery({
       )
       .collect();
 
-    const totalRevenue = revenues.reduce((sum, r) => sum + r.total, 0);
-    const totalCash = revenues.reduce((sum, r) => sum + r.cash, 0);
-    const totalNetwork = revenues.reduce((sum, r) => sum + r.network, 0);
-    const totalBudget = revenues.reduce((sum, r) => sum + r.budget, 0);
+    const totalRevenue = revenues.reduce((sum, r) => sum + (r.total ?? 0), 0);
+    const totalCash = revenues.reduce((sum, r) => sum + (r.cash ?? 0), 0);
+    const totalNetwork = revenues.reduce((sum, r) => sum + (r.network ?? 0), 0);
+    const totalBudget = revenues.reduce((sum, r) => sum + (r.budget ?? 0), 0);
 
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     const netProfit = totalRevenue - totalExpenses;
@@ -334,7 +342,7 @@ export const getMonthlyFinancialData = internalQuery({
       )
       .collect();
 
-    const totalRevenue = revenues.reduce((sum, r) => sum + r.total, 0);
+    const totalRevenue = revenues.reduce((sum, r) => sum + (r.total ?? 0), 0);
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     const netProfit = totalRevenue - totalExpenses;
 
@@ -368,6 +376,8 @@ export const getMonthlyFinancialData = internalQuery({
 export const getWeeklyBonusData = internalQuery({
   args: {
     branchId: v.string(),
+    startDate: v.number(),
+    endDate: v.number(),
     year: v.number(),
     month: v.number(),
     weekNumber: v.number(),
@@ -388,18 +398,25 @@ export const getWeeklyBonusData = internalQuery({
       return null;
     }
 
-    // TODO: إضافة emails الموظفين من جدول employees
-    const employees = bonusRecord.employees.map((emp) => ({
-      ...emp,
-      email: undefined, // يجب جلب الإيميل من جدول employees
+    const employeeBonuses = bonusRecord.employeeBonuses.map((emp) => ({
+      employeeName: emp.employeeName,
+      bonusAmount: emp.bonusAmount,
+      isEligible: emp.isEligible,
+      totalRevenue: emp.totalRevenue,
+      email: undefined,
+      bonusPercentage: emp.totalRevenue > 0 ? Math.round((emp.bonusAmount / emp.totalRevenue) * 100) : 0,
     }));
 
     return {
+      branchId: args.branchId,
+      year: args.year,
+      month: args.month,
       weekNumber: args.weekNumber,
       weekLabel: getWeekLabel(args.weekNumber),
-      employees,
+      totalRevenue: bonusRecord.revenueSnapshot.reduce((sum, record) => sum + record.revenue, 0),
       totalBonus: bonusRecord.totalBonusPaid,
-      eligibleCount: employees.filter((e) => e.isEligible).length,
+      employees: employeeBonuses,
+      eligibleCount: employeeBonuses.filter((employee) => employee.isEligible).length,
     };
   },
 });

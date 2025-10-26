@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api.js";
 import { useConvexAuth, useMutation } from "convex/react";
-import { useAuth } from "@/hooks/use-auth";
 import { Spinner } from "../ui/spinner";
 
 // This will automatically run and store the user
 function useUpdateCurrentUserEffect() {
   const { isAuthenticated } = useConvexAuth();
-  const { user } = useAuth();
-  const sub = user?.profile.sub;
   const updateCurrentUser = useMutation(api.users.updateCurrentUser);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [userCreated, setUserCreated] = useState(false);
@@ -28,7 +25,7 @@ function useUpdateCurrentUserEffect() {
       }
     }
     createUser();
-  }, [isAuthenticated, updateCurrentUser, sub]);
+  }, [isAuthenticated, updateCurrentUser]);
 
   return { isCreatingUser, userCreated };
 }
