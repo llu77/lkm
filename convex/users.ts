@@ -14,6 +14,13 @@ export const updateCurrentUser = mutation({
       });
     }
 
+    if (typeof userId !== "string" || userId.length === 0) {
+      throw new ConvexError({
+        code: "AUTH_INVALID_TOKEN",
+        message: "Anonymous identity is missing a token identifier",
+      });
+    }
+
     // Check if user exists
     const existingUser = await ctx.db.get(userId);
     if (existingUser !== null) {
