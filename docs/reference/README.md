@@ -44,7 +44,13 @@ docs/reference/
 │   └── cloudflare-deployer.mdx
 │
 ├── claude-skills/        # Claude Skills Documentation
-│   └── authoring-best-practices.md
+│   ├── authoring-best-practices.md
+│   └── advanced-programming-skill/
+│       ├── SKILL.md
+│       ├── DEBUGGING_PATTERNS.md
+│       ├── ARCHITECTURE_PATTERNS.md
+│       ├── SECURITY_PATTERNS.md
+│       └── PERFORMANCE_PATTERNS.md
 │
 ├── anthropic-api/        # Anthropic API Reference
 │   └── context-1m-beta.md
@@ -1107,6 +1113,199 @@ await vectorStore.upsert({
 ✅ Building vector databases
 
 **مهم جداً:** هذا أساس أي RAG system - الفهم الصحيح للـ chunking والـ embeddings ضروري!
+
+---
+
+## 🎯 **Claude Skills (Advanced)**
+
+### Advanced Programming & Debugging Skill
+**الوصف:** Claude Skill متقدم شامل للبرمجة والإصلاح مع تفكير عميق وأنماط sub-agents
+**الموقع:** `claude-skills/advanced-programming-skill/`
+**النوع:** Skill كامل مع ملفات مرجعية متخصصة
+
+**المكونات:**
+
+**SKILL.md (الملف الرئيسي):**
+- Thinking Framework متعدد المراحل (Problem Analysis → Brainstorming → Decision → Implementation)
+- Debugging Protocol منهجي (Information Gathering → Hypothesis Formation → Investigation → Root Cause → Fix)
+- Sub-Agent Delegation Patterns (Code Analysis, Security Analysis, Performance Analysis, Test Generation)
+- Execution Patterns (Iterative Refinement, Test-Driven Debugging, Layered Analysis, Comparative Implementation)
+- Code Review Protocol شامل (Correctness, Performance, Security, Maintainability, Testing, Architecture)
+
+**Thinking Framework Structure:**
+```
+<problem-analysis>
+- Core problem identification
+- Constraints analysis
+- Edge cases and failure modes
+- Dependencies and side effects
+</problem-analysis>
+
+<solution-brainstorm>
+Approach A: [pros, cons, best for]
+Approach B: [pros, cons, best for]
+Approach C: [pros, cons, best for]
+</solution-brainstorm>
+
+<decision>
+Selected approach: [rationale]
+Trade-offs accepted: [why acceptable]
+</decision>
+
+<implementation-plan>
+1. Step-by-step actions
+2. Testing strategy
+3. Rollback plan
+</implementation-plan>
+```
+
+**Sub-Agent Patterns:**
+
+**Code Analysis Sub-Agent:** للبحث عن patterns عبر ملفات متعددة، فهم codebase structure، تحليل dependencies.
+
+**Security Analysis Sub-Agent:** للمراجعة الأمنية، فحص vulnerabilities، تحليل authentication/authorization logic.
+
+**Performance Analysis Sub-Agent:** لتحديد bottlenecks، تحليل algorithmic complexity، إيجاد memory leaks.
+
+**Test Generation Sub-Agent:** لإنشاء test suites شاملة، integration tests، test fixtures ومocks.
+
+**DEBUGGING_PATTERNS.md:**
+10 أنماط debugging متقدمة مع أمثلة كاملة:
+
+**Binary Search Debugging:** عزل مكان الـ bug في codebase كبير بطريقة binary search.
+
+**State Snapshot Comparison:** مقارنة state قبل وبعد العملية لتحديد التغييرات غير المتوقعة.
+
+**Minimal Reproduction:** تقليل السيناريو المعقد إلى أصغر مجموعة تعيد إنتاج الـ bug.
+
+**Time-Travel Debugging:** استخدام git bisect لإيجاد الـ commit الذي أدخل الـ bug.
+
+**Rubber Duck Debugging++:** نسخة محسنة مع structured explanation framework.
+
+**Assertion Injection:** حقن assertions مؤقتة لالتقاط state corruption مبكراً.
+
+**Differential Debugging:** مقارنة سلوك النسخة العاملة مع المكسورة side-by-side.
+
+**Heisenbug Trapping:** للـ bugs التي تختفي عند محاولة debugging (race conditions, timing bugs).
+
+**Statistical Debugging:** تحليل إحصائي للـ bugs المتقطعة بجمع samples وإيجاد patterns.
+
+**Dependency Isolation:** عزل external dependencies بـ mocks لتحديد مصدر الـ bug.
+
+**ARCHITECTURE_PATTERNS.md:**
+6 architectural patterns مع trade-off analysis شامل:
+
+**Layered Architecture:** Presentation → Business Logic → Data Access → Database. متى يستخدم، المزايا والعيوب، decision criteria.
+
+**Hexagonal Architecture (Ports & Adapters):** Application Core محاط بـ ports وadapters. مثالي للـ testability وswapping infrastructure.
+
+**Event-Driven Architecture:** Loose coupling عبر event bus. للأنظمة التي تحتاج asynchronous processing وeventual consistency.
+
+**CQRS (Command Query Responsibility Segregation):** فصل read وwrite models. للأنظمة التي تحتاج independent scaling للقراءة والكتابة.
+
+**Microservices:** Independent services مع databases منفصلة. للفرق الكبيرة والأنظمة التي تحتاج independent deployment.
+
+**Domain-Driven Design:** Rich domain models مع entities, value objects, aggregates. للـ business logic المعقد.
+
+**Decision Framework:**
+- Team size considerations
+- Domain complexity analysis
+- Scaling needs evaluation
+- Consistency requirements
+- Deployment independence needs
+
+**Architecture Evolution Path:**
+```
+Phase 1 (0-6 months): Simple Layered Monolith
+Phase 2 (6-24 months): Hexagonal for core + Events
+Phase 3 (24+ months): Extract Microservices selectively
+```
+
+**Anti-patterns محددة:** Resume-Driven Development, Big Bang Rewrites, Architecture Astronauts, Technology Mismatches.
+
+**SECURITY_PATTERNS.md:**
+10 security patterns مع أمثلة تنفيذية كاملة:
+
+**Defense in Depth:** طبقات أمان متعددة (Input Validation → Authentication → Authorization → Encryption → Logging → Incident Response).
+
+**Input Validation:** Allowlist approach، type validation مع Pydantic، تجنب injection attacks.
+
+**SQL Injection Prevention:** Parameterized queries دائماً، عدم concatenation للـ SQL أبداً، ORM usage الآمن.
+
+**Authentication & Password Security:** bcrypt/argon2 للـ passwords، JWT security مع expiration وrevocation، multi-factor authentication.
+
+**Authorization (RBAC/ABAC):** Role-Based وAttribute-Based access control patterns.
+
+**XSS Prevention:** Output encoding/escaping، Content Security Policy (CSP)، template auto-escaping.
+
+**CSRF Prevention:** CSRF tokens على state-changing requests، SameSite cookie attribute.
+
+**Secure File Upload:** Extension validation، size limits، filename sanitization، malware scanning.
+
+**Secrets Management:** Environment variables، secrets management services، encryption at rest.
+
+**Rate Limiting:** Per-endpoint وper-user rate limits، DoS protection.
+
+**Security Headers:** X-Frame-Options، Content-Security-Policy، Strict-Transport-Security، وغيرها.
+
+**Security Checklist شامل:** Input Validation, Authentication, Authorization, Data Protection, SQL Injection, XSS, CSRF, Logging, Dependencies, Error Handling.
+
+**PERFORMANCE_PATTERNS.md:**
+10 performance optimization patterns مع profiling tools:
+
+**Rule 0:** Measure First, Optimize Later - عدم optimization بدون قياس.
+
+**Database Query Optimization:** حل N+1 query problem، indexing strategy، query optimization checklist.
+
+**Caching Strategies:** Cache hierarchy (L1: in-memory → L2: Redis → L3: Database)، cache invalidation patterns.
+
+**Lazy Loading:** تحميل الـ resources فقط عند الحاجة.
+
+**Batch Operations:** Bulk operations بدلاً من loops، bulk insert patterns.
+
+**Pagination:** Offset-based وcursor-based pagination للـ large datasets.
+
+**Async I/O:** Asynchronous API calls للعمليات المتوازية.
+
+**Connection Pooling:** إعادة استخدام database connections بدلاً من إنشاء جديدة.
+
+**Compression:** Gzip compression للـ large responses.
+
+**Memoization:** Cache نتائج الحسابات المكلفة.
+
+**Profiling Tools:**
+- Python profiling (cProfile, pstats)
+- Memory profiling (memory_profiler)
+- Database query profiling (SQLAlchemy events)
+- Performance testing (timer context manager)
+
+**Performance Checklist:** Database optimization, Caching, API/Network, Code algorithms, Monitoring, Frontend optimization.
+
+**الاستخدامات المثالية:**
+- Systematic debugging لمشاكل معقدة
+- Architecture decisions مع trade-off analysis
+- Security reviews شاملة
+- Performance optimization مبني على قياسات
+- Code reviews منهجية
+- Sub-agent delegation للمهام الكبيرة
+- Teaching and mentoring عبر structured thinking
+
+**مهم:**
+- يجمع بين thinking step-by-step للدقة
+- Systematic debugging للكفاءة
+- Sub-agent delegation للمهام المعقدة
+- Clear communication للتعاون
+- Continuous learning للتحسين المستمر
+
+**Best Practices:**
+- Always think before coding
+- Test assumptions, don't guess
+- Document reasoning
+- Use sub-agents strategically
+- Communicate uncertainty
+- Show your work
+- Iterate incrementally
+- Learn from bugs
 
 ---
 
