@@ -55,88 +55,9 @@ export default function EmployeesPage() {
         </div>
       </AuthLoading>
       <Authenticated>
-        <EmployeesPageWithPassword />
+        <EmployeesPageContent />
       </Authenticated>
     </>
-  );
-}
-
-function EmployeesPageWithPassword() {
-  const [isPasswordVerified, setIsPasswordVerified] = useState(() => {
-    return sessionStorage.getItem("employees_admin_verified") === "true";
-  });
-
-  if (!isPasswordVerified) {
-    return <PasswordProtection onVerified={() => {
-      setIsPasswordVerified(true);
-      sessionStorage.setItem("employees_admin_verified", "true");
-      toast.success("تم التحقق بنجاح! مرحباً بك في صفحة الموظفين");
-    }} />;
-  }
-
-  return <EmployeesPageContent />;
-}
-
-function PasswordProtection({ onVerified }: { onVerified: () => void }) {
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const correctPassword = import.meta.env.VITE_EMPLOYEES_PASSWORD || "Omar1010#";
-
-    if (password === correctPassword) {
-      onVerified();
-    } else {
-      setError("كلمة المرور غير صحيحة");
-      toast.error("كلمة المرور غير صحيحة");
-      setPassword("");
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-primary/10">
-              <UsersIcon className="size-8 text-primary" />
-            </div>
-            <CardTitle className="text-2xl">حماية صفحة الموظفين</CardTitle>
-            <CardDescription>
-              هذه الصفحة محمية. يرجى إدخال كلمة مرور الأدمن للمتابعة
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="admin-password">كلمة مرور الأدمن</Label>
-                <Input
-                  id="admin-password"
-                  type="password"
-                  placeholder="أدخل كلمة المرور"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setError("");
-                  }}
-                  className={error ? "border-destructive" : ""}
-                  autoFocus
-                />
-                {error && (
-                  <p className="text-sm text-destructive">{error}</p>
-                )}
-              </div>
-              <Button type="submit" className="w-full" size="lg">
-                تحقق والدخول
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
   );
 }
 

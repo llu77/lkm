@@ -3,6 +3,8 @@
 
 هذا الدليل يشرح كيفية إعداد متغيرات البيئة للمشروع في جميع البيئات.
 
+> ✨ **تحديث:** تم تبسيط نظام المصادقة! لم تعد هناك حاجة لكلمات مرور محلية - يستخدم التطبيق الآن Convex Anonymous Auth فقط للدخول السريع والآمن.
+
 ---
 
 ## 📋 جدول المحتويات
@@ -47,14 +49,12 @@ cp .env.example .env
 ```env
 # Frontend Variables
 VITE_CONVEX_URL=https://careful-clownfish-771.convex.cloud
-VITE_EMPLOYEES_PASSWORD=YourSecurePassword123!
-VITE_PAYROLL_PASSWORD=YourSecurePassword456!
-VITE_MANAGE_REQUESTS_PASSWORD=YourSecurePassword789!
 VITE_APP_URL=http://localhost:5173
 
 # Backend Variables (تضاف في Convex Dashboard)
 ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
 RESEND_API_KEY=re_your-key-here
+APP_URL=https://1868c429.lkm-3fu.pages.dev
 SUPERVISOR_EMAIL_1010=supervisor1@company.com
 SUPERVISOR_EMAIL_2020=supervisor2@company.com
 ```
@@ -126,9 +126,6 @@ npx convex deploy
 |---------|--------|-------|
 | `VITE_CONVEX_URL` | `https://careful-clownfish-771.convex.cloud` | رابط Convex deployment |
 | `VITE_APP_URL` | `https://1868c429.lkm-3fu.pages.dev` | رابط التطبيق |
-| `VITE_EMPLOYEES_PASSWORD` | `YourPassword123!` | كلمة مرور صفحة الموظفين |
-| `VITE_PAYROLL_PASSWORD` | `YourPassword456!` | كلمة مرور صفحة الرواتب |
-| `VITE_MANAGE_REQUESTS_PASSWORD` | `YourPassword789!` | كلمة مرور صفحة الطلبات |
 
 ### ملاحظات مهمة:
 
@@ -147,8 +144,7 @@ npx convex deploy
 ```env
 # ملف .env في جذر المشروع
 VITE_CONVEX_URL=https://careful-clownfish-771.convex.cloud
-VITE_EMPLOYEES_PASSWORD=password
-VITE_PAYROLL_PASSWORD=password
+VITE_APP_URL=http://localhost:5173
 ```
 
 ### ✅ لـ Convex Backend:
@@ -170,9 +166,6 @@ DEFAULT_SUPERVISOR_EMAIL=admin@company.com
 ```
 VITE_CONVEX_URL=https://careful-clownfish-771.convex.cloud
 VITE_APP_URL=https://1868c429.lkm-3fu.pages.dev
-VITE_EMPLOYEES_PASSWORD=YourPassword123!
-VITE_PAYROLL_PASSWORD=YourPassword456!
-VITE_MANAGE_REQUESTS_PASSWORD=YourPassword789!
 ```
 
 ---
@@ -180,10 +173,10 @@ VITE_MANAGE_REQUESTS_PASSWORD=YourPassword789!
 ## 🔐 نصائح أمنية
 
 1. **لا تشارك ملف `.env`** أبدًا على GitHub
-2. **غيّر كلمات المرور الافتراضية** في الإنتاج
-3. **استخدم كلمات مرور قوية** (أحرف كبيرة، صغيرة، أرقام، رموز)
-4. **راجع المتغيرات بانتظام** وأزل ما لا تحتاجه
-5. **قم بتدوير المفاتيح (rotate)** بشكل دوري
+2. **احمِ مفاتيح API** (ANTHROPIC_API_KEY, RESEND_API_KEY) ولا تشاركها
+3. **راجع المتغيرات بانتظام** وأزل ما لا تحتاجه
+4. **قم بتدوير المفاتيح (rotate)** بشكل دوري
+5. **المصادقة الآن عبر Convex Auth فقط** - لا حاجة لكلمات مرور محلية
 
 ---
 

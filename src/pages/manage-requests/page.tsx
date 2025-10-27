@@ -8,10 +8,8 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
-import { Input } from "@/components/ui/input.tsx";
-import { Label } from "@/components/ui/label.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
-import { ClipboardListIcon, CheckCircleIcon, XCircleIcon, ClockIcon, EyeIcon, ShieldIcon, PackageIcon } from "lucide-react";
+import { ClipboardListIcon, CheckCircleIcon, XCircleIcon, ClockIcon, EyeIcon, PackageIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useState, useEffect } from "react";
@@ -20,86 +18,14 @@ import { BranchSelector } from "@/components/branch-selector.tsx";
 import { toast } from "sonner";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 
-// استخدام environment variable بدون fallback لتحسين الأمان
-const ADMIN_PASSWORD = import.meta.env.VITE_MANAGE_REQUESTS_PASSWORD || "";
-
 type Request = Doc<"employeeRequests">;
 type ProductOrder = Doc<"productOrders">;
 
 export default function ManageRequestsPage() {
   const { branchId, branchName, isSelected, selectBranch } = useBranch();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState("");
-
-  useEffect(() => {
-    console.log("🔐 Manage Requests Page Loaded", { isSelected, isAuthenticated, branchId, branchName });
-  }, [isSelected, isAuthenticated, branchId, branchName]);
 
   if (!isSelected) {
     return <BranchSelector onBranchSelected={selectBranch} />;
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-primary/10">
-              <ShieldIcon className="size-8 text-primary" />
-            </div>
-            <CardTitle>إدارة الطلبات</CardTitle>
-            <CardDescription>
-              هذه الصفحة محمية. يرجى إدخال كلمة المرور للوصول
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password">كلمة المرور</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="أدخل كلمة المرور"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    if (!ADMIN_PASSWORD) {
-                      toast.error("خطأ في التكوين: كلمة المرور غير معرّفة في البيئة");
-                      return;
-                    }
-                    if (password === ADMIN_PASSWORD) {
-                      setIsAuthenticated(true);
-                      toast.success("تم الدخول بنجاح");
-                    } else {
-                      toast.error("كلمة مرور خاطئة");
-                      setPassword("");
-                    }
-                  }
-                }}
-              />
-            </div>
-            <Button
-              className="w-full"
-              onClick={() => {
-                if (!ADMIN_PASSWORD) {
-                  toast.error("خطأ في التكوين: كلمة المرور غير معرّفة في البيئة");
-                  return;
-                }
-                if (password === ADMIN_PASSWORD) {
-                  setIsAuthenticated(true);
-                  toast.success("تم الدخول بنجاح");
-                } else {
-                  toast.error("كلمة مرور خاطئة");
-                  setPassword("");
-                }
-              }}
-            >
-              دخول
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
   }
 
   return (
