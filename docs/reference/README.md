@@ -23,6 +23,7 @@ docs/reference/
 │   ├── agent-tool.go
 │   ├── agent-service.go
 │   ├── models.go
+│   ├── tool-base.go
 │   ├── diagnostics-tool.go
 │   └── patch-tool.go
 │
@@ -277,6 +278,107 @@ CostPer1MOutCached:  0.30   // تكلفة قراءة من Cache (خصم 90%)
 ✅ حساب تكلفة المشاريع بناءً على استخدام Tokens
 ✅ اختيار النموذج المناسب حسب الميزانية والمتطلبات
 ✅ تنفيذ cost tracking في Agent services
+
+### Tool Base Interface
+**الوصف:** الواجهة الأساسية لجميع الأدوات في OpenCode مع context management
+**الميزات:**
+- Unified tool interface (BaseTool)
+- Response types (Text/Image/Error)
+- Metadata support في الـ responses
+- Context value extraction (SessionID, MessageID)
+- JSON parameter handling
+
+**المشروع الأصلي:** OpenCode AI
+**الملف:** `go/tool-base.go`
+
+**Core Interface:**
+```go
+type BaseTool interface {
+    Info() ToolInfo        // معلومات الأداة (Name, Description, Parameters)
+    Run(ctx context.Context, params ToolCall) (ToolResponse, error)
+}
+
+type ToolInfo struct {
+    Name        string
+    Description string
+    Parameters  map[string]any  // JSON schema للـ parameters
+    Required    []string        // Required parameter names
+}
+
+type ToolCall struct {
+    ID    string  // Tool call identifier
+    Name  string  // Tool name
+    Input string  // JSON-encoded parameters
+}
+
+type ToolResponse struct {
+    Type     toolResponseType  // "text" أو "image"
+    Content  string
+    Metadata string            // JSON metadata (optional)
+    IsError  bool
+}
+```
+
+**Response Helpers:**
+```go
+// Response عادي
+NewTextResponse(content string) ToolResponse
+
+// Response مع metadata
+WithResponseMetadata(response ToolResponse, metadata any) ToolResponse
+
+// Error response
+NewTextErrorResponse(content string) ToolResponse
+```
+
+**Context Management:**
+```go
+// استرجاع SessionID و MessageID من Context
+func GetContextValues(ctx context.Context) (sessionID, messageID string)
+
+// يستخدم في الأدوات للحصول على معلومات الجلسة:
+sessionID, messageID := GetContextValues(ctx)
+```
+
+**استخدام النمط:**
+```go
+type myTool struct {
+    // dependencies
+}
+
+func (t *myTool) Info() ToolInfo {
+    return ToolInfo{
+        Name: "my_tool",
+        Description: "Tool description",
+        Parameters: map[string]any{
+            "param": map[string]any{
+                "type": "string",
+                "description": "Parameter description",
+            },
+        },
+        Required: []string{"param"},
+    }
+}
+
+func (t *myTool) Run(ctx context.Context, call ToolCall) (ToolResponse, error) {
+    var params MyParams
+    json.Unmarshal([]byte(call.Input), &params)
+
+    sessionID, _ := GetContextValues(ctx)
+    // ... perform work ...
+
+    return WithResponseMetadata(
+        NewTextResponse("Success"),
+        MyMetadata{...},
+    ), nil
+}
+```
+
+**الاستخدامات المثالية:**
+✅ بناء أدوات جديدة بواجهة موحدة
+✅ فهم معمارية OpenCode tools
+✅ إضافة metadata للـ tool responses
+✅ Session و message tracking
 
 ### Diagnostics Tool
 **الوصف:** أداة للحصول على diagnostics من LSP clients مع دعم file-level و project-level
