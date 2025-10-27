@@ -40,6 +40,7 @@ docs/reference/
 │   ├── parallel-workflows.mdx
 │   ├── agent-get-memory.mdx
 │   ├── memory-query.mdx
+│   ├── graph-rag-tool.mdx
 │   └── cloudflare-deployer.mdx
 │
 ├── claude-skills/        # Claude Skills Documentation
