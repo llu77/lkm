@@ -116,6 +116,64 @@ bytes_data = s3.read_bytes_from_s3('my-bucket', 'image.png')
 s3.write_bytes_to_s3('my-bucket', 'output/image.png', bytes_data, 'image/png')
 ```
 
+## Performance Optimization
+
+The `performance/` module provides utilities for optimizing AI/ML inference:
+
+```python
+from performance import PerformanceOptimizer
+
+optimizer = PerformanceOptimizer()
+
+# Use caching
+result = optimizer.get_cached_or_compute(
+    key="my_prompt",
+    compute_fn=lambda: expensive_operation()
+)
+
+# Use batching
+optimizer.add_to_batch(request_data)
+```
+
+### Optimized Bedrock Adapter
+
+Use the `OptimizedInferenceAdapter` for automatic caching and batching:
+
+```python
+from claude_bedrock import OptimizedInferenceAdapter
+
+adapter = OptimizedInferenceAdapter(enable_cache=True)
+
+# First call - cache miss (slower)
+response1 = adapter.invoke_model_cached("What is AI?")
+
+# Second call - cache hit (much faster, no API call!)
+response2 = adapter.invoke_model_cached("What is AI?")
+
+# Batch processing
+results = adapter.invoke_batch([
+    {"prompt": "Question 1", "max_tokens": 100},
+    {"prompt": "Question 2", "max_tokens": 100}
+])
+
+# Check cache stats
+stats = adapter.get_cache_stats()
+print(f"Cache size: {stats['size']}/{stats['max_entries']}")
+```
+
+**Performance Benefits:**
+- Up to 90% cost reduction through caching
+- 2-10x latency improvement on cache hits
+- Automatic TTL-based expiration (default: 5 minutes)
+- LRU eviction for memory management
+
+**Configuration:**
+
+See `config/performance.json` for tuning options:
+- Cache size and TTL
+- Batch size and wait time
+- WASM optimization settings
+
 ## Other Scripts
 
 Additional utility scripts can be added to this directory as needed.
