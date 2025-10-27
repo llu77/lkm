@@ -54,9 +54,15 @@ docs/reference/
 │   ├── backend-architecture-skill/
 │   │   ├── SKILL.md
 │   │   └── AUTH_PATTERNS.md
-│   └── error-handling-skill/
-│       ├── SKILL.md
-│       └── GRACEFUL_DEGRADATION.md
+│   ├── error-handling-skill/
+│   │   ├── SKILL.md
+│   │   └── GRACEFUL_DEGRADATION.md
+│   ├── testing-qa-skill/
+│   │   └── SKILL.md
+│   ├── database-optimization-skill/
+│   │   └── SKILL.md
+│   └── devops-deployment-skill/
+│       └── SKILL.md
 │
 ├── anthropic-api/        # Anthropic API Reference
 │   └── context-1m-beta.md
@@ -1470,6 +1476,162 @@ Recovery: Auto-recover? Manual intervention? Prevention?
 - Automatic recovery when possible
 - Clear error communication
 - Production-tested resilience patterns
+
+### Testing & QA Skill
+**الوصف:** Claude Skill شامل لاستراتيجيات الاختبار وضمان الجودة مع Test Pyramid approach
+**الموقع:** `claude-skills/testing-qa-skill/`
+**النوع:** Production-grade testing skill مع comprehensive strategies
+
+**المكونات:**
+
+**SKILL.md (الملف الرئيسي):**
+- Testing Philosophy (Tests are documentation، Fail fast fail clear، Test pyramid approach)
+- Test Pyramid Approach (70% unit، 20% integration، 10% E2E)
+- Testing Framework (Requirements Analysis → Testing Strategy → Test Implementation → Coverage Analysis)
+- AAA Pattern (Arrange-Act-Assert) لجميع الـ tests
+- Test Organization Patterns (Test file structure، Naming conventions، Fixtures and mocks)
+
+**Testing Patterns:**
+
+**Unit Testing:** pytest مع AAA pattern، Test doubles (Mock، Stub، Fake، Spy)، Parameterized testing، Exception testing، Async function testing.
+
+**Integration Testing:** Database testing مع fixtures، API testing مع test client، External service testing مع mocking، Transaction rollback في tests.
+
+**End-to-End Testing:** Selenium/Playwright للـ UI testing، Full user workflows، Authentication flows، Error scenarios.
+
+**Test-Driven Development (TDD):** Red-Green-Refactor cycle، Writing tests before code، Incremental development، Refactoring with confidence.
+
+**Performance Testing:** Load testing، Stress testing، Profiling، Benchmark comparisons.
+
+**Test Coverage:** Line coverage، Branch coverage، Coverage reports، Coverage goals (>80% recommended).
+
+**الاستخدامات المثالية:**
+- بناء test suites شاملة
+- TDD workflow implementation
+- Integration testing strategies
+- Performance testing و profiling
+- Test coverage analysis
+- Mocking external dependencies
+- Async code testing
+- CI/CD testing integration
+
+**مهم:**
+- Test pyramid approach للكفاءة
+- AAA pattern للوضوح
+- Comprehensive test coverage
+- Fast feedback loops
+- Isolated unit tests
+- Realistic integration tests
+
+### Database Optimization Skill
+**الوصف:** Claude Skill متخصص في database performance optimization مع measurement-driven approach
+**الموقع:** `claude-skills/database-optimization-skill/`
+**النوع:** Production database optimization skill
+
+**المكونات:**
+
+**SKILL.md (الملف الرئيسي):**
+- Optimization Philosophy (Measure first optimize later، Query analysis با EXPLAIN، Index strategy، Connection pooling)
+- Performance Analysis Framework (Baseline Measurement → Bottleneck Identification → Optimization → Verification)
+- Query Optimization Patterns (N+1 queries، JOIN optimization، Index usage، Query caching)
+- Schema Design Patterns (Normalization vs denormalization، Partitioning strategies، Audit fields)
+- Database Monitoring (Slow query logs، Performance metrics، Connection pool monitoring)
+
+**Optimization Patterns:**
+
+**N+1 Query Problem:** Detection با profiling، Eager loading مع joinedload، Batch loading strategies، Subquery optimization.
+
+**Indexing Strategies:** Simple indexes، Composite indexes، Covering indexes، Partial indexes، Expression indexes، Index maintenance.
+
+**Query Optimization:** EXPLAIN ANALYZE analysis، JOIN order optimization، Subquery vs JOIN trade-offs، Query hints، Query plan caching.
+
+**Connection Pooling:** Pool size configuration، Connection lifecycle، Health checks، Monitoring pool usage، Handling connection leaks.
+
+**Schema Optimization:** Normalization levels (1NF → BCNF)، Denormalization للـ performance، Partitioning (range, hash, list)، Archiving strategies.
+
+**Caching Strategies:** Query result caching مع Redis، Cache invalidation patterns، Cache-aside pattern، Write-through caching.
+
+**Transaction Optimization:** Transaction isolation levels، Lock management، Deadlock prevention، Batch commits.
+
+**Database Monitoring:** Slow query log analysis، Performance schema queries، Connection monitoring، Query execution plans.
+
+**الاستخدامات المثالية:**
+- N+1 query detection والحل
+- Index optimization strategies
+- Query performance tuning
+- Schema design optimization
+- Connection pool management
+- Caching implementation
+- Transaction optimization
+- Performance monitoring setup
+
+**مهم:**
+- Always measure before optimizing
+- EXPLAIN ANALYZE للفهم
+- Index strategy is critical
+- Connection pooling is essential
+- Monitor production queries
+- Cache wisely with invalidation
+
+### DevOps & Deployment Skill
+**الوصف:** Claude Skill شامل لـ DevOps practices و CI/CD pipelines و infrastructure automation
+**الموقع:** `claude-skills/devops-deployment-skill/`
+**النوع:** Production DevOps و deployment strategies skill
+
+**المكونات:**
+
+**SKILL.md (الملف الرئيسي):**
+- DevOps Thinking Framework (Requirements Analysis → Infrastructure Analysis → Solution Design → Implementation Plan)
+- CI/CD Pipeline Patterns (GitHub Actions، GitLab CI، Jenkins)
+- Infrastructure as Code (Terraform، CloudFormation، Pulumi)
+- Deployment Strategies (Rolling، Blue-Green، Canary، Recreate)
+- Monitoring & Observability (Prometheus، Grafana، ELK stack)
+- Container Orchestration (Docker، Kubernetes)
+
+**DevOps Patterns:**
+
+**CI/CD Pipeline Design:** Multi-stage pipelines (test → security → build → deploy)، Parallel execution، Caching strategies، Environment-specific deployments، Automated rollback.
+
+**Deployment Strategies:**
+
+**Rolling Deployment:** Gradual pod replacement، Zero-downtime updates، Health check integration، Automatic rollback على failures.
+
+**Blue-Green Deployment:** Zero-downtime switching، Complete environment isolation، Instant rollback capability، Smoke testing قبل switch.
+
+**Canary Deployment:** Gradual traffic shift (10% → 50% → 100%)، Metrics monitoring، Automated rollback على degradation، Progressive delivery.
+
+**Infrastructure as Code:** Terraform modules للـ AWS/GCP/Azure، VPC و networking setup، RDS و database configuration، ElastiCache و caching، S3 storage، EKS/GKS cluster management.
+
+**Monitoring Stack:** Prometheus metrics collection، Grafana dashboards، Alert rules configuration، Application instrumentation، Request tracking، Error rate monitoring، Latency monitoring، Database performance tracking.
+
+**Python Instrumentation:** prometheus_client integration، Custom metrics decorators، Request middleware، Database query tracking، Cache hit/miss tracking.
+
+**Best Practices Checklists:**
+
+**CI/CD Checklist:** Version control setup، Protected branches، Code reviews، Automated linting، Testing gates، Security scanning، Build optimization، Deployment automation، Health checks، Automated rollback.
+
+**Infrastructure Checklist:** Multi-AZ deployment، Auto-scaling، Load balancer setup، Database replication، Disaster recovery plan، Network segmentation، Security groups، Encryption، Secrets rotation، Monitoring و alerting.
+
+**الاستخدامات المثالية:**
+- CI/CD pipeline setup
+- Infrastructure as Code implementation
+- Deployment strategy selection
+- Kubernetes cluster management
+- Monitoring و observability setup
+- Container orchestration
+- Cloud infrastructure design
+- Disaster recovery planning
+- Security automation (DevSecOps)
+
+**مهم:**
+- Start simple، evolve gradually
+- Automate everything possible
+- Monitor extensively
+- Test deployments in staging
+- Have rollback plans ready
+- Security from the start
+- Cost optimization awareness
+- Document infrastructure decisions
 
 ---
 
