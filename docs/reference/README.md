@@ -18,7 +18,8 @@ docs/reference/
 ├── go/                   # Go Code Samples
 │   ├── file-history-service.go
 │   ├── agent-tool.go
-│   └── agent-service.go
+│   ├── agent-service.go
+│   └── models.go
 │
 ├── workflows/            # GitHub Actions
 │   └── build.yml
@@ -171,6 +172,62 @@ cost := model.CostPer1MInCached/1e6*float64(usage.CacheCreationTokens) +
 ✅ تكامل مع providers مختلفة (OpenAI/Anthropic)
 ✅ معالجة tools بشكل ديناميكي
 ✅ تلخيص محادثات طويلة تلقائياً
+
+### Models Configuration (Anthropic)
+**الوصف:** تكوينات نماذج Claude بجميع إصداراتها مع معلومات التسعير والإمكانيات
+**الميزات:**
+- تسعير كامل لجميع نماذج Claude (Input/Output/Cached)
+- معلومات Context Window وأقصى Tokens
+- دعم Attachments و Reasoning capabilities
+- تكوينات موحدة لـ 7 نماذج Claude
+
+**المشروع الأصلي:** OpenCode AI
+**الملف:** `go/models.go`
+
+**النماذج المدعومة:**
+```go
+// Claude 3.5 Sonnet (المتوازن - الأكثر استخداماً)
+- Input:  $3.00 / 1M tokens
+- Output: $15.00 / 1M tokens
+- Context: 200K tokens
+- Max Output: 5K tokens
+
+// Claude 3 Haiku (الأسرع والأرخص)
+- Input:  $0.25 / 1M tokens
+- Output: $1.25 / 1M tokens
+- Context: 200K tokens
+
+// Claude 3.7 Sonnet (Extended reasoning)
+- CanReason: true
+- Max Output: 50K tokens
+
+// Claude 3.5 Haiku (متوازن وسريع)
+- Input:  $0.80 / 1M tokens
+- Output: $4.00 / 1M tokens
+
+// Claude 3 Opus (الأقوى - الأغلى)
+- Input:  $15.00 / 1M tokens
+- Output: $75.00 / 1M tokens
+
+// Claude 4 Sonnet (Latest with reasoning)
+- CanReason: true
+- API: "claude-sonnet-4-20250514"
+
+// Claude 4 Opus (Next-gen flagship)
+- API: "claude-opus-4-20250514"
+```
+
+**ميزات Prompt Caching:**
+```go
+CostPer1MInCached:   3.75   // تكلفة إنشاء Cache
+CostPer1MOutCached:  0.30   // تكلفة قراءة من Cache (خصم 90%)
+```
+
+**الاستخدامات المثالية:**
+✅ مرجع لتسعير نماذج Claude
+✅ حساب تكلفة المشاريع بناءً على استخدام Tokens
+✅ اختيار النموذج المناسب حسب الميزانية والمتطلبات
+✅ تنفيذ cost tracking في Agent services
 
 ---
 
