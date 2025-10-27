@@ -88,6 +88,34 @@ Your AWS IAM user/role needs the following permissions:
 }
 ```
 
+## Lambda Functions
+
+The `lambda/` directory contains AWS Lambda function handlers:
+
+- **`contextual_retrieval_handler.py`** - Processes document chunks and adds contextual information for improved retrieval accuracy using Claude
+
+See `lambda/README.md` for deployment instructions and usage details.
+
+## S3 Integration
+
+The `claude_bedrock` module also includes S3 utilities:
+
+```python
+from claude_bedrock import S3Adapter
+
+s3 = S3Adapter()
+
+# Read JSON from S3
+data = s3.read_from_s3('my-bucket', 'path/to/file.json')
+
+# Write JSON to S3
+s3.write_output_to_s3('my-bucket', 'output/file.json', {'key': 'value'})
+
+# Work with raw bytes
+bytes_data = s3.read_bytes_from_s3('my-bucket', 'image.png')
+s3.write_bytes_to_s3('my-bucket', 'output/image.png', bytes_data, 'image/png')
+```
+
 ## Other Scripts
 
 Additional utility scripts can be added to this directory as needed.
