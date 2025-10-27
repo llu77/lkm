@@ -155,7 +155,7 @@ export const sendPayrollEmail = action({
 
             <!-- Action Button -->
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.VITE_APP_URL || 'https://your-app-url.com'}/payroll"
+              <a href="${process.env.APP_URL || 'https://1868c429.lkm-3fu.pages.dev'}/payroll"
                  style="display: inline-block; background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%); color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 📄 عرض مسير الرواتب الكامل
               </a>
