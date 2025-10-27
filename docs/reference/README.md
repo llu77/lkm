@@ -31,7 +31,8 @@ docs/reference/
 │   ├── framework-meta.ts
 │   ├── vite-react-integration.mdx
 │   ├── project-structure.mdx
-│   └── working-memory.mdx
+│   ├── working-memory.mdx
+│   └── memory-processors.mdx
 │
 ├── workflows/            # GitHub Actions
 │   └── build.yml
@@ -775,6 +776,135 @@ After "I'm in CET timezone":
 ✅ Multi-thread user tracking
 
 **مهم جداً:** هذه الميزة أساسية لبناء agents ذكية تتذكر المستخدمين وتفضيلاتهم!
+
+### Memory Processors (⭐ Performance Optimization)
+**الوصف:** معالجات الذاكرة لتحويل وتصفية الرسائل قبل إرسالها للـ LLM
+**الملف:** `mastra-docs/memory-processors.mdx`
+**الأهمية:** 🎯 **مهم لإدارة context window وتحسين الأداء**
+
+**المفهوم الأساسي:**
+Memory Processors = فلاتر تعمل على الرسائل المسترجعة من الذاكرة قبل إرسالها للـ LLM
+- يعدّلون الرسائل (filter, trim, transform)
+- لا يؤثرون على رسالة المستخدم الجديدة
+- ينفّذون بالترتيب (pipeline pattern)
+
+**Built-in Processors:**
+
+1. **TokenLimiter** - منع تجاوز context window:
+   ```typescript
+   import { TokenLimiter } from "@mastra/memory/processors";
+
+   const memory = new Memory({
+     processors: [
+       new TokenLimiter(127000), // GPT-4o limit (~127k)
+     ],
+   });
+
+   // مع models أخرى
+   import cl100k_base from "js-tiktoken/ranks/cl100k_base";
+   new TokenLimiter({
+     limit: 16000,
+     encoding: cl100k_base, // For older OpenAI models
+   });
+   ```
+
+   - يستخدم `o200k_base` encoding افتراضياً (GPT-4o)
+   - يحذف أقدم الرسائل حتى يصل للحد المسموح
+   - يمنع errors من context window overflow
+
+2. **ToolCallFilter** - إزالة tool calls من الذاكرة:
+   ```typescript
+   import { ToolCallFilter } from "@mastra/memory/processors";
+
+   const memory = new Memory({
+     processors: [
+       // حذف جميع tool calls
+       new ToolCallFilter(),
+
+       // حذف tools محددة فقط
+       new ToolCallFilter({ exclude: ["generateImageTool"] }),
+     ],
+   });
+   ```
+
+   - يوفر tokens بإزالة tool interactions المطولة
+   - مفيد إذا كنت تريد Agent يعيد استدعاء tool دائماً
+   - يزيل النتائج السابقة من memory
+
+**Processor Chaining:**
+```typescript
+import { ToolCallFilter, TokenLimiter } from "@mastra/memory/processors";
+
+const memory = new Memory({
+  processors: [
+    // 1. Filter tools أولاً
+    new ToolCallFilter({ exclude: ["verboseDebugTool"] }),
+
+    // 2. Custom filtering (e.g., PII removal)
+    // new PIIFilter(),
+
+    // 3. TokenLimiter دائماً في النهاية! ⚠️
+    new TokenLimiter(127000),
+  ],
+});
+```
+
+**⚠️ مهم:** دائماً ضع `TokenLimiter` في النهاية لأدق حساب للـ tokens
+
+**Custom Processors:**
+```typescript
+import { MemoryProcessor } from "@mastra/core/memory";
+import { CoreMessage, MemoryProcessorOpts } from "@mastra/core";
+
+class ConversationOnlyFilter extends MemoryProcessor {
+  constructor() {
+    super({ name: "ConversationOnlyFilter" });
+  }
+
+  process(
+    messages: CoreMessage[],
+    _opts: MemoryProcessorOpts = {}
+  ): CoreMessage[] {
+    // إبقاء user و assistant messages فقط
+    return messages.filter(
+      (msg) => msg.role === "user" || msg.role === "assistant"
+    );
+  }
+}
+
+// Usage
+const memory = new Memory({
+  processors: [
+    new ConversationOnlyFilter(),
+    new TokenLimiter(127000),
+  ],
+});
+```
+
+**Best Practices:**
+- ✅ ضع `TokenLimiter` دائماً في النهاية
+- ✅ لا تعدّل `messages` array مباشرة (immutability)
+- ✅ استخدم processor name للـ debugging
+- ✅ تسلسل processors حسب الأولوية
+- ✅ Filter قبل Limit للدقة الأفضل
+
+**Use Cases:**
+- Context window management (منع errors)
+- Token optimization (تقليل التكلفة)
+- Tool call filtering (إزالة noise)
+- PII removal (privacy)
+- Role-based filtering (user/assistant only)
+- Conversation summarization
+- Message deduplication
+
+**الاستخدامات المثالية:**
+✅ تحسين استخدام tokens وتقليل التكلفة
+✅ منع context window overflow errors
+✅ تصفية tool calls المطولة أو غير المفيدة
+✅ إنشاء custom filtering logic للـ privacy/compliance
+✅ Pipeline معالجة متعدد المراحل
+
+**مهم:** الترتيب مهم! TokenLimiter يجب أن يكون أخيراً.
 
 ---
 
