@@ -27,6 +27,10 @@ docs/reference/
 │   ├── diagnostics-tool.go
 │   └── patch-tool.go
 │
+├── mastra-docs/          # Mastra Documentation
+│   ├── framework-meta.ts
+│   └── vite-react-integration.mdx
+│
 ├── workflows/            # GitHub Actions
 │   └── build.yml
 │
@@ -487,6 +491,90 @@ type PatchResponseMetadata struct {
 ✅ Safe file modifications مع permission control
 ✅ Version tracking لكل التعديلات
 ✅ Atomic operations مع rollback support
+
+---
+
+## 📚 **Mastra Documentation**
+
+### Framework Meta Configuration
+**الوصف:** Framework selection metadata لـ Mastra documentation
+**الملف:** `mastra-docs/framework-meta.ts`
+
+```typescript
+const meta = {
+  "vite-react": "With Vite/React",
+  "next-js": "With Next.js",
+  astro: "With Astro",
+  sveltekit: "With SvelteKit",
+};
+```
+
+**الاستخدام:** تحديد الـ frameworks المدعومة في Mastra docs
+
+### Vite/React Integration Guide
+**الوصف:** دليل كامل لدمج Mastra مع Vite/React مع React Router v7
+**الملف:** `mastra-docs/vite-react-integration.mdx`
+**التنسيق:** MDX (Markdown + JSX) مع Nextra components
+
+**المحتوى:**
+- تثبيت Mastra packages (mastra, @mastra/core, @mastra/libsql, @mastra/client-js)
+- طريقتين للـ integration:
+  * One-liner command مع defaults
+  * Interactive CLI للتخصيص
+- TypeScript configuration
+- Environment variables setup
+- Mastra Dev Server (port 4111)
+- MastraClient setup مع baseUrl
+- React Router v7 integration
+- Weather agent example
+
+**Key Code Examples:**
+```bash
+# Installation
+npm install mastra@latest @mastra/core@latest @mastra/libsql@latest @mastra/client-js@latest
+
+# One-liner init
+npx mastra@latest init --dir . --components agents,tools --example --llm openai
+
+# Dev server
+npm run dev:mastra
+```
+
+```typescript
+// MastraClient setup
+import { MastraClient } from "@mastra/client-js";
+
+export const mastraClient = new MastraClient({
+  baseUrl: import.meta.env.VITE_MASTRA_API_URL || "http://localhost:4111",
+});
+
+// Usage in React component
+const agent = mastraClient.getAgent("weatherAgent");
+const response = await agent.generate({
+  messages: [{ role: "user", content: `What's the weather like in ${city}?` }]
+});
+```
+
+**Project Structure:**
+```
+app/
+├── routes/
+│   ├── home.tsx
+│   └── test.tsx
+├── routes.ts
+lib/
+└── mastra.ts
+mastra/              # Mastra backend
+├── agents/
+├── tools/
+└── index.ts
+```
+
+**الاستخدامات المثالية:**
+✅ فهم Mastra architecture (client/server separation)
+✅ Integration مع Vite/React projects
+✅ Agent-based AI features في frontend apps
+✅ Monorepo setup pattern (frontend + Mastra backend)
 
 ---
 
