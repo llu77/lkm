@@ -30,7 +30,8 @@ docs/reference/
 ├── mastra-docs/          # Mastra Documentation
 │   ├── framework-meta.ts
 │   ├── vite-react-integration.mdx
-│   └── project-structure.mdx
+│   ├── project-structure.mdx
+│   └── working-memory.mdx
 │
 ├── workflows/            # GitHub Actions
 │   └── build.yml
@@ -616,6 +617,164 @@ Root files:
 ✅ Setup جديد لمشروع Mastra
 ✅ Best practices للـ folder structure
 ✅ Planning monorepo architecture
+
+### Working Memory (⭐ Critical Feature)
+**الوصف:** نظام الذاكرة العاملة في Mastra للحفاظ على معلومات المستخدم المستمرة
+**الملف:** `mastra-docs/working-memory.mdx`
+**الأهمية:** 🔥 **أساسي جداً لتطوير agents ذكية ومتذكرة**
+
+**المفهوم الأساسي:**
+Working memory = ذاكرة Agent النشطة، مثل دفتر الملاحظات المستمر
+- يحفظ معلومات المستخدم (الاسم، التفضيلات، الأهداف)
+- يستمر عبر المحادثات المختلفة
+- يتحدث بشكل تلقائي من خلال `updateWorkingMemory` tool
+
+**Memory Scopes:**
+
+1. **Resource-Scoped (Default)**:
+   ```typescript
+   // الذاكرة تستمر لنفس المستخدم عبر جميع المحادثات
+   const memory = new Memory({
+     options: {
+       workingMemory: {
+         enabled: true,
+         scope: 'resource',  // عبر كل threads للمستخدم
+       },
+     },
+   });
+
+   // يجب تمرير resourceId
+   await agent.generate("Hello!", {
+     threadId: "conv-123",
+     resourceId: "user-456"  // نفس المستخدم
+   });
+   ```
+
+2. **Thread-Scoped**:
+   ```typescript
+   // الذاكرة معزولة لكل محادثة
+   const memory = new Memory({
+     options: {
+       workingMemory: {
+         enabled: true,
+         scope: 'thread',  // معزول لكل thread
+       },
+     },
+   });
+   ```
+
+**Template vs Schema:**
+
+**Template (Markdown)** - Free-form text:
+```typescript
+const memory = new Memory({
+  options: {
+    workingMemory: {
+      enabled: true,
+      template: `# User Profile
+- Name:
+- Location:
+- Timezone:
+- Preferences:
+  - Communication Style:
+  - Project Goal:
+`,
+    },
+  },
+});
+```
+
+**Schema (Zod)** - Structured JSON:
+```typescript
+const userProfileSchema = z.object({
+  name: z.string().optional(),
+  location: z.string().optional(),
+  timezone: z.string().optional(),
+  preferences: z.object({
+    communicationStyle: z.string().optional(),
+    projectGoal: z.string().optional(),
+  }).optional(),
+});
+
+const memory = new Memory({
+  options: {
+    workingMemory: {
+      enabled: true,
+      schema: userProfileSchema,  // Type-safe!
+    },
+  },
+});
+```
+
+**Setting Initial Memory:**
+```typescript
+// عند إنشاء thread جديد
+const thread = await memory.createThread({
+  threadId: "thread-123",
+  resourceId: "user-456",
+  metadata: {
+    workingMemory: `# Patient Profile
+- Name: John Doe
+- Blood Type: O+
+- Allergies: Penicillin
+`
+  }
+});
+
+// Update مباشر
+await memory.updateWorkingMemory({
+  threadId: "thread-123",
+  resourceId: "user-456",
+  workingMemory: "Updated content..."
+});
+```
+
+**Template Design Best Practices:**
+- ✅ Short, focused labels (`## Personal Info`, `- Name:`)
+- ✅ Consistent casing (Title Case أو lowercase)
+- ✅ Simple placeholders (`[e.g., Formal]`, `[Date]`)
+- ✅ Abbreviate long values (`- Name: [First name]`)
+- ✅ Update rules في agent instructions
+
+**Storage Support:**
+- ✅ LibSQL (@mastra/libsql)
+- ✅ PostgreSQL (@mastra/pg)
+- ✅ Upstash (@mastra/upstash)
+
+**Use Cases:**
+- Personal assistants (user preferences)
+- Customer service (customer context)
+- Educational apps (student progress)
+- Medical apps (patient history)
+- Session state management
+
+**Example: Memory Evolution:**
+```markdown
+Initial:
+# User Profile
+- Name:
+- Location:
+
+After "My name is Sam from Berlin":
+# User Profile
+- Name: Sam
+- Location: Berlin
+
+After "I'm in CET timezone":
+# User Profile
+- Name: Sam
+- Location: Berlin
+- Timezone: CET
+```
+
+**الاستخدامات المثالية:**
+✅ Persistent user memory عبر sessions
+✅ Context maintenance في conversations طويلة
+✅ Personalization based on user preferences
+✅ Stateful agents مع ذاكرة متطورة
+✅ Multi-thread user tracking
+
+**مهم جداً:** هذه الميزة أساسية لبناء agents ذكية تتذكر المستخدمين وتفضيلاتهم!
 
 ---
 
