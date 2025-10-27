@@ -45,12 +45,18 @@ docs/reference/
 │
 ├── claude-skills/        # Claude Skills Documentation
 │   ├── authoring-best-practices.md
-│   └── advanced-programming-skill/
+│   ├── advanced-programming-skill/
+│   │   ├── SKILL.md
+│   │   ├── DEBUGGING_PATTERNS.md
+│   │   ├── ARCHITECTURE_PATTERNS.md
+│   │   ├── SECURITY_PATTERNS.md
+│   │   └── PERFORMANCE_PATTERNS.md
+│   ├── backend-architecture-skill/
+│   │   ├── SKILL.md
+│   │   └── AUTH_PATTERNS.md
+│   └── error-handling-skill/
 │       ├── SKILL.md
-│       ├── DEBUGGING_PATTERNS.md
-│       ├── ARCHITECTURE_PATTERNS.md
-│       ├── SECURITY_PATTERNS.md
-│       └── PERFORMANCE_PATTERNS.md
+│       └── GRACEFUL_DEGRADATION.md
 │
 ├── anthropic-api/        # Anthropic API Reference
 │   └── context-1m-beta.md
@@ -1306,6 +1312,164 @@ Phase 3 (24+ months): Extract Microservices selectively
 - Show your work
 - Iterate incrementally
 - Learn from bugs
+
+### Backend Architecture & API Design Skill
+**الوصف:** Claude Skill متخصص في تصميم وبناء backend systems مع تحليل منهجي وarchitectural thinking
+**الموقع:** `claude-skills/backend-architecture-skill/`
+**النوع:** Production-grade backend skill مع أنماط RESTful APIs
+
+**المكونات:**
+
+**SKILL.md (الملف الرئيسي):**
+- Thinking Protocol للـ Backend Tasks (Requirements Analysis → Architecture Analysis → Technology Selection → Implementation Plan)
+- API Design Principles (RESTful design, Request/Response patterns, Pagination)
+- Database Design Patterns (Schema design, Repository pattern, Indexes)
+- Service Layer Pattern مع Dependency Injection
+- Testing Backend Systems (unit, integration, load testing)
+- Decision Checklist شامل للـ backend features
+
+**Thinking Protocol Structure:**
+```
+<backend-requirements>
+- Functional requirements
+- Non-functional requirements (load, latency, availability)
+- Security requirements
+- Constraints
+</backend-requirements>
+
+<architecture-analysis>
+- System boundaries
+- Scalability considerations
+- Failure modes
+- Data model
+</architecture-analysis>
+
+<technology-selection>
+- Database choice (SQL vs NoSQL)
+- Caching strategy
+- Message queue (if needed)
+- API design (REST vs GraphQL)
+- Rationale for each
+</technology-selection>
+```
+
+**API Design:**
+
+RESTful resource-oriented endpoints مع HTTP methods صحيحة، Request validation باستخدام Pydantic، Response structures موحدة مع error handling، Pagination patterns (offset-based و cursor-based).
+
+**Database Patterns:**
+
+Schema design مع audit fields (created_at, updated_at, deleted_at)، Indexes للـ queries الشائعة، Repository pattern للـ data access، Soft delete support.
+
+**AUTH_PATTERNS.md:**
+أنماط Authentication & Authorization production-ready:
+
+**JWT Implementation:** كامل مع access tokens و refresh tokens، Token rotation، Token revocation باستخدام Redis، FastAPI integration مع dependencies.
+
+**RBAC (Role-Based Access Control):** Role-Permission mapping، Permission decorators، Authorization checks في endpoints.
+
+**ABAC (Attribute-Based Access Control):** Policy-based access control، AccessControlEngine للـ policy evaluation، Multi-policy support (Owner, Admin, TeamMember, Published).
+
+**API Key Authentication:** لـ service-to-service auth، API key generation و hashing، Rate limiting per key، FastAPI dependency للـ verification.
+
+**OAuth2 Integration:** Google OAuth2 flow example، Token handling، User creation from OAuth.
+
+**Best Practices:** Never store plain passwords، Use HTTPS، Rate limiting، Refresh token rotation، Appropriate expiration، Logging auth events، Account lockout، 2FA للـ sensitive operations.
+
+**الاستخدامات المثالية:**
+- تصميم RESTful APIs production-grade
+- Database schema design مع optimization
+- Authentication و authorization systems
+- Service layer architecture
+- Backend testing strategies
+- Technology selection مع trade-off analysis
+- Scalability planning
+
+**مهم:**
+- يجمع systematic analysis مع practical implementation
+- Production-tested patterns
+- Security-first approach
+- Testability built-in
+- Clear decision frameworks
+
+### Advanced Error Handling & Recovery Skill
+**الوصف:** Claude Skill متخصص في error handling شامل و fault tolerance مع recovery strategies
+**الموقع:** `claude-skills/error-handling-skill/`
+**النوع:** Resilient systems skill مع graceful degradation
+
+**المكونات:**
+
+**SKILL.md (الملف الرئيسي):**
+- Error Handling Philosophy (Errors WILL happen، Fail fast recover fast، Never silence errors، User-friendly outside detailed inside، Errors are data)
+- Error Analysis Framework (Error Taxonomy → Error Handling Strategy → Fault Tolerance Design)
+- Error Handling Patterns (Structured hierarchy، Retry with backoff، Circuit breaker، Recovery chain)
+- Error Classification (Transient vs Permanent vs Infrastructure vs Business vs Data errors)
+
+**Error Analysis Framework:**
+```
+<error-taxonomy>
+Transient Errors: Network timeouts, DB connection failures, Rate limiting
+Strategy: Retry with exponential backoff
+
+Permanent Errors: Invalid input, Unauthorized, Not found
+Strategy: Return clear error, don't retry
+
+Infrastructure Errors: Database down, Cache unavailable
+Strategy: Circuit breaker, fallback, graceful degradation
+
+Business Logic Errors: Insufficient balance, Out of stock
+Strategy: Domain-specific error, suggest remedy
+</error-taxonomy>
+
+<error-strategy>
+Detection: How do we detect? Early warnings? Prevention?
+Response: Retry? Fallback? Fail safely?
+Communication: User message? Logs? Alerts?
+Recovery: Auto-recover? Manual intervention? Prevention?
+</error-strategy>
+```
+
+**Error Handling Patterns:**
+
+**Structured Error Hierarchy:** AppError base class مع error_code و details و cause و traceback، Domain-specific errors (ValidationError, ResourceNotFoundError، BusinessRuleViolation، ExternalServiceError)، Structured error responses.
+
+**Retry with Exponential Backoff:** Decorator implementation مع configurable parameters، Jitter لمنع thundering herd، Selective retry على exceptions محددة، Logging لكل retry attempt.
+
+**Circuit Breaker:** Three states (CLOSED, OPEN, HALF_OPEN)، Failure threshold و recovery timeout، Auto-recovery testing، Thread-safe implementation.
+
+**Error Recovery Chain:** Multiple recovery strategies، Strategy pattern implementation، Fallback chain (Retry → Cache → Fallback value)، Context passing للـ recovery logic.
+
+**GRACEFUL_DEGRADATION.md:**
+أنماط graceful degradation و fallback strategies:
+
+**Feature Flags for Degradation:** FeatureState (ENABLED, DEGRADED, DISABLED)، Redis-based feature flags، Auto-degradation على error threshold، Primary → Secondary → Tertiary fallbacks.
+
+**Cascading Fallbacks:** FallbackChain implementation، Timeout per strategy، Comprehensive logging، AllFallbacksFailedError عند فشل كل شيء.
+
+**Circuit Breaker with Fallback:** Circuit breaker مدمج مع fallback function، State transitions automatic، Fallback triggered عند OPEN state، Recovery detection في HALF_OPEN.
+
+**Partial Response Pattern:** Aggregate data من multiple services، Parallel execution مع ThreadPoolExecutor، Tolerance للـ partial failures، Fallback data للـ failed services، User communication عن degraded state.
+
+**Degraded Mode Communication:** SystemHealth tracking (HEALTHY, DEGRADED, CRITICAL)، Component-level health status، Public health check endpoint، HTTP status codes appropriate.
+
+**Best Practices:** Always have fallback، Communicate degradation، Log everything، Monitor fallback usage، Auto-recover، Test degradation regularly، Prioritize features، Clear timeouts، Circuit breakers، Cache aggressively.
+
+**الاستخدامات المثالية:**
+- Building resilient systems
+- Implementing retry logic
+- Circuit breaker patterns
+- Graceful degradation
+- Partial failure handling
+- Error monitoring و analysis
+- Fault tolerance design
+- Recovery automation
+
+**مهم:**
+- Fail-safe design approach
+- User experience during failures
+- Automatic recovery when possible
+- Clear error communication
+- Production-tested resilience patterns
 
 ---
 
