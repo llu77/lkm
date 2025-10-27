@@ -49,6 +49,9 @@ docs/reference/
 ├── anthropic-api/        # Anthropic API Reference
 │   └── context-1m-beta.md
 │
+├── prompt-engineering/   # Prompt Engineering Techniques
+│   └── chapter-6-thinking-step-by-step.ipynb
+│
 ├── workflows/            # GitHub Actions
 │   └── build.yml
 │
@@ -1187,6 +1190,91 @@ response = client.beta.messages.create(
 ✅ Multi-document analysis والمقارنة
 ✅ Maintain very long conversation threads
 ✅ مشاريع تحتاج context كبير جداً
+
+---
+
+## 📚 **Prompt Engineering Techniques**
+
+### Chapter 6: Thinking Step by Step (Precognition)
+**الوصف:** تقنيات جعل Claude يفكر خطوة بخطوة لتحسين دقة الإجابات
+**الملف:** `prompt-engineering/chapter-6-thinking-step-by-step.ipynb`
+**النوع:** Jupyter Notebook تفاعلي مع أمثلة عملية
+
+**المفهوم الأساسي:**
+إعطاء Claude وقت للتفكير بصوت عالٍ قبل الإجابة يحسن الدقة بشكل كبير، خاصة في المهام المعقدة. التفكير يجب أن يكون ظاهر في الـ output، لا يمكن طلب التفكير ثم عرض الإجابة فقط.
+
+**التقنيات المشروحة:**
+
+**1. Thinking Out Loud:**
+```python
+PROMPT = """Is this review sentiment positive or negative?
+First, write the best arguments for each side in <positive-argument>
+and <negative-argument> XML tags, then answer.
+
+This movie blew my mind with its freshness and originality.
+In totally unrelated news, I have been living under a rock since 1900."""
+```
+
+Claude يحلل الحجج من الجانبين قبل اتخاذ القرار النهائي، مما يحسن فهم النصوص الساخرة والمعقدة.
+
+**2. Brainstorming Pattern:**
+```python
+PROMPT = """Name a famous movie starring an actor who was born in 1956.
+First brainstorm about some actors and their birth years in <brainstorm> tags,
+then give your answer."""
+```
+
+يطلب من Claude التفكير في معلومات ذات صلة قبل الإجابة، مما يقلل الأخطاء الواقعية.
+
+**3. Role Prompting Integration:**
+```python
+SYSTEM_PROMPT = "You are a savvy reader of movie reviews."
+```
+
+دمج role prompting مع thinking patterns يعزز فهم Claude للسياق.
+
+**Key Insights:**
+
+**Ordering Sensitivity:** Claude أحياناً يميل لاختيار الخيار الثاني من خيارين، ربما بسبب أنماط في training data. عند طلب تحليل positive vs negative، الترتيب يمكن أن يؤثر على النتيجة النهائية.
+
+**Thinking Must Be Visible:** لا يمكن طلب التفكير دون عرضه في output. العبارة "think but don't show your work" لا تعمل لأن التفكير الفعلي يحدث فقط عند الكتابة.
+
+**XML Tags for Structure:** استخدام XML tags مثل `<brainstorm>`, `<positive-argument>`, `<negative-argument>` يساعد في تنظيم التفكير واستخراج الأجزاء المختلفة برمجياً.
+
+**Exercises Included:**
+
+**Exercise 6.1 - Email Classification:** تصنيف الإيميلات إلى فئات محددة مع استخدام thinking patterns لتحسين الدقة. الفئات تشمل pre-sale questions, defective items, billing issues, other.
+
+**Exercise 6.2 - Output Formatting:** استخدام تقنيات formatting لجعل Claude يخرج التصنيف في tags محددة مثل `<answer>B</answer>` للمعالجة البرمجية.
+
+**Code Structure:**
+- Setup cell مع Anthropic client initialization
+- Helper function `get_completion()` مع دعم system prompts و prefill
+- Multiple examples تظهر improvement من التفكير
+- Grading system تلقائي باستخدام regex
+- Example Playground للتجربة الحرة
+
+**الاستخدامات المثالية:**
+- Sentiment analysis للنصوص المعقدة أو الساخرة
+- Factual questions التي تتطلب استرجاع معلومات دقيقة
+- Classification tasks مع فئات متعددة
+- Complex reasoning حيث الخطوات المتوسطة مهمة
+- Reducing hallucinations بجعل Claude يتحقق من معلوماته
+- Debugging Claude's mistakes بفهم مسار تفكيره
+
+**مهم:**
+- Temperature = 0.0 في الأمثلة للحصول على نتائج متسقة
+- XML tags أسلوب مفضل لتنظيم التفكير
+- System prompts تعزز فعالية thinking patterns
+- Prefill يمكن استخدامه لبدء الإجابة بشكل معين
+
+**When to Use Thinking:**
+- مهام معقدة تتطلب تحليل متعدد الخطوات
+- عندما Claude يعطي إجابات خاطئة مباشرة
+- Classification مع خيارات متعددة أو غامضة
+- فهم النصوص الساخرة أو المجازية
+- Questions تحتاج fact-checking
+- عندما تريد شفافية في reasoning process
 
 ---
 
