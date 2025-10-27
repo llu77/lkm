@@ -29,7 +29,8 @@ docs/reference/
 │
 ├── mastra-docs/          # Mastra Documentation
 │   ├── framework-meta.ts
-│   └── vite-react-integration.mdx
+│   ├── vite-react-integration.mdx
+│   └── project-structure.mdx
 │
 ├── workflows/            # GitHub Actions
 │   └── build.yml
@@ -575,6 +576,46 @@ mastra/              # Mastra backend
 ✅ Integration مع Vite/React projects
 ✅ Agent-based AI features في frontend apps
 ✅ Monorepo setup pattern (frontend + Mastra backend)
+
+### Project Structure Guide
+**الوصف:** دليل تنظيم ملفات ومجلدات Mastra projects مع best practices
+**الملف:** `mastra-docs/project-structure.mdx`
+**التنسيق:** MDX (Markdown + JSX) مع Nextra components
+
+**المحتوى:**
+- Default folder structure من `create mastra` command
+- شرح كل مجلد ووظيفته
+- Top-level files configuration
+- Flexibility في تنظيم الملفات (unopinionated framework)
+
+**Folder Structure:**
+```
+src/mastra/
+├── index.ts           # Entry point و Mastra configuration
+├── agents/            # Agent definitions (behavior, goals, tools)
+├── workflows/         # Multi-step workflows orchestration
+├── tools/             # Reusable tools للـ agents
+├── mcp/              # (Optional) Custom MCP servers
+├── scorers/          # (Optional) Agent performance evaluation
+└── public/           # (Optional) Static assets للـ build output
+
+Root files:
+├── .env.example      # Environment variables template
+├── package.json      # Dependencies و npm scripts
+└── tsconfig.json     # TypeScript configuration
+```
+
+**Key Concepts:**
+- **Unopinionated**: يمكن تنظيم الملفات بأي طريقة (حتى في ملف واحد!)
+- **Templates**: الملفات المُنشأة من CLI تعمل كـ templates للنسخ والتعديل
+- **Consistency**: المهم المحافظة على تنظيم ثابت للـ maintainability
+- **Colocate**: حرية في colocating files حسب احتياجات المشروع
+
+**الاستخدامات المثالية:**
+✅ فهم Mastra project organization
+✅ Setup جديد لمشروع Mastra
+✅ Best practices للـ folder structure
+✅ Planning monorepo architecture
 
 ---
 
