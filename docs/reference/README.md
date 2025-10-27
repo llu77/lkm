@@ -34,6 +34,7 @@ docs/reference/
 │   ├── working-memory.mdx
 │   ├── memory-processors.mdx
 │   ├── chunking-embedding.mdx
+│   ├── json-chunking.mdx
 │   ├── custom-llm-eval.mdx
 │   ├── hallucination-eval.mdx
 │   └── parallel-workflows.mdx
