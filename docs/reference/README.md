@@ -38,7 +38,8 @@ docs/reference/
 │   ├── custom-llm-eval.mdx
 │   ├── hallucination-eval.mdx
 │   ├── parallel-workflows.mdx
-│   └── agent-get-memory.mdx
+│   ├── agent-get-memory.mdx
+│   └── cloudflare-deployer.mdx
 │
 ├── claude-skills/        # Claude Skills Documentation
 │   └── authoring-best-practices.md
