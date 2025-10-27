@@ -16,7 +16,8 @@ docs/reference/
 │   └── error-handlers.ts
 │
 ├── go/                   # Go Code Samples
-│   └── file-history-service.go
+│   ├── file-history-service.go
+│   └── agent-tool.go
 │
 ├── workflows/            # GitHub Actions
 │   └── build.yml
@@ -83,6 +84,37 @@ docs/reference/
 **المشروع الأصلي:** OpenCode AI
 **الملف:** `go/file-history-service.go`
 
+### Agent Tool
+**الوصف:** نظام Agent متداخل مع دعم LSP وإدارة الجلسات
+**الميزات:**
+- Launch nested agents for complex tasks
+- Session management with cost tracking
+- LSP client integration (Glob, Grep, LS, View)
+- Stateless agent invocations
+- Concurrent agent execution support
+- Parent-child session cost aggregation
+
+**المشروع الأصلي:** OpenCode AI
+**الملف:** `go/agent-tool.go`
+
+**وصف الأداة:**
+```
+الأداة تسمح بإطلاق وكلاء فرعيين (sub-agents) لديهم صلاحية استخدام:
+- GlobTool: البحث عن الملفات بنمط معين
+- GrepTool: البحث عن نص داخل الملفات
+- LS: سرد محتويات المجلد
+- View: عرض محتوى ملف
+
+الاستخدامات المثالية:
+✅ البحث عن keyword غير محدد (مثل "config" أو "logger")
+✅ أسئلة مثل "which file does X?"
+✅ تشغيل عدة agents بشكل متوازي للأداء الأفضل
+
+القيود:
+❌ لا يمكن للـ agent استخدام Bash, Replace, Edit
+❌ لا يمكن تعديل الملفات (read-only)
+```
+
 ---
 
 ## ⚙️ **GitHub Actions Workflows**
@@ -104,7 +136,7 @@ docs/reference/
 ### للاستخدام اللاحق:
 1. **ZCF Agents**: يمكن استخدامها كـ system prompts في Claude
 2. **TypeScript Code**: يمكن دمجها في المشروع أو استخدامها كمرجع
-3. **Go Code**: مثال reference لـ versioning system
+3. **Go Code**: أمثلة reference لـ versioning system و agent architecture
 4. **Workflows**: يمكن تعديلها لتناسب المشاريع المختلفة
 
 ### الأكواد المرجعية:
