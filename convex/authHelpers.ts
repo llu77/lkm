@@ -15,7 +15,7 @@ export async function requireAuth(
       message: "Authentication required",
     });
   }
-  return identity.tokenIdentifier;
+  return identity.tokenIdentifier ?? identity.subject;
 }
 
 /**
@@ -31,10 +31,11 @@ export async function requireUser(ctx: QueryCtx | MutationCtx) {
     });
   }
 
+  const tokenId = identity.tokenIdentifier ?? identity.subject;
   const user = await ctx.db
     .query("users")
     .withIndex("by_token", (q) =>
-      q.eq("tokenIdentifier", identity.tokenIdentifier)
+      q.eq("tokenIdentifier", tokenId)
     )
     .unique();
 
@@ -57,10 +58,11 @@ export async function getOptionalUser(ctx: QueryCtx | MutationCtx) {
     return null;
   }
 
+  const tokenId = identity.tokenIdentifier ?? identity.subject;
   const user = await ctx.db
     .query("users")
     .withIndex("by_token", (q) =>
-      q.eq("tokenIdentifier", identity.tokenIdentifier)
+      q.eq("tokenIdentifier", tokenId)
     )
     .unique();
 

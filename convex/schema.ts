@@ -99,13 +99,14 @@ export default defineSchema({
     .index("by_type", ["type"]),
 
   users: defineTable({
-    tokenIdentifier: v.string(),
+    tokenIdentifier: v.optional(v.string()),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
-    username: v.string(),
+    username: v.optional(v.string()),
     bio: v.optional(v.string()),
     avatar: v.optional(v.string()),
     role: v.optional(v.string()), // "admin", "employee", "manager"
+    isAnonymous: v.optional(v.boolean()), // للمستخدمين المجهولين
     // Temporary fields for migration
     followerCount: v.optional(v.number()),
     followingCount: v.optional(v.number()),
