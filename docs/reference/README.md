@@ -46,6 +46,9 @@ docs/reference/
 ├── claude-skills/        # Claude Skills Documentation
 │   └── authoring-best-practices.md
 │
+├── anthropic-api/        # Anthropic API Reference
+│   └── context-1m-beta.md
+│
 ├── workflows/            # GitHub Actions
 │   └── build.yml
 │
@@ -1100,6 +1103,90 @@ await vectorStore.upsert({
 ✅ Building vector databases
 
 **مهم جداً:** هذا أساس أي RAG system - الفهم الصحيح للـ chunking والـ embeddings ضروري!
+
+---
+
+## 🤖 **Anthropic API Reference**
+
+### 1M Context Window (Beta)
+**الوصف:** Extended context window حتى 1 مليون token لمعالجة مستندات ضخمة
+**الملف:** `anthropic-api/context-1m-beta.md`
+**الحالة:** Beta Feature (تتطلب header خاص)
+
+**الميزات:**
+- Context window: 1,000,000 tokens (vs 200K standard)
+- Model: claude-sonnet-4-5
+- Beta header: `betas=["context-1m-2025-08-07"]`
+- Prompt caching: **ضروري جداً** للتوفير في التكلفة
+
+**API Usage:**
+```python
+from anthropic import Anthropic
+
+client = Anthropic()
+
+response = client.beta.messages.create(
+    model="claude-sonnet-4-5",
+    max_tokens=1024,
+    messages=[
+        {"role": "user", "content": "Process this large document..."}
+    ],
+    betas=["context-1m-2025-08-07"]  # Required!
+)
+```
+
+**Token Scale:**
+- 1M tokens ≈ 750,000 كلمة إنجليزية
+- 1M tokens ≈ 3,000+ صفحة نص
+- يمكن استيعاب codebase كامل متوسط/كبير
+
+**Use Cases:**
+✅ Codebase analysis (المشروع بأكمله)
+✅ Book/research paper analysis (كتب كاملة)
+✅ Legal document review (عقود طويلة)
+✅ Multi-document Q&A (عدة مستندات في context واحد)
+✅ Extended conversation history
+
+**⚠️ مهم جداً:**
+- يجب استخدام `betas=["context-1m-2025-08-07"]` في كل request
+- **استخدم Prompt Caching دائماً** - بدونه التكلفة عالية جداً
+- Cache creation توفر ~90% على القراءات المتكررة
+- استخدم `.beta.messages.create()` وليس `.messages.create()`
+
+**Prompt Caching Pattern:**
+```python
+response = client.beta.messages.create(
+    model="claude-sonnet-4-5",
+    max_tokens=1024,
+    system=[
+        {
+            "type": "text",
+            "text": "Large system prompt...",
+            "cache_control": {"type": "ephemeral"}  # Cache this!
+        }
+    ],
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "Very large document...",
+                    "cache_control": {"type": "ephemeral"}  # Cache this too!
+                }
+            ]
+        }
+    ],
+    betas=["context-1m-2025-08-07", "prompt-caching-2024-07-31"]
+)
+```
+
+**الاستخدامات المثالية:**
+✅ تحليل codebase كامل في سياق واحد
+✅ معالجة مستندات ضخمة (كتب، أبحاث، عقود)
+✅ Multi-document analysis والمقارنة
+✅ Maintain very long conversation threads
+✅ مشاريع تحتاج context كبير جداً
 
 ---
 
