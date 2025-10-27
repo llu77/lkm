@@ -39,6 +39,7 @@ docs/reference/
 │   ├── hallucination-eval.mdx
 │   ├── parallel-workflows.mdx
 │   ├── agent-get-memory.mdx
+│   ├── memory-query.mdx
 │   └── cloudflare-deployer.mdx
 │
 ├── claude-skills/        # Claude Skills Documentation
