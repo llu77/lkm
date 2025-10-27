@@ -22,6 +22,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
+          convex: ['convex', 'convex-helpers'],
         },
       },
     },
@@ -34,6 +35,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
+      "@/convex": path.resolve(__dirname, "./convex"),
       "@": path.resolve(__dirname, "./src"),
     },
   },
