@@ -32,7 +32,8 @@ docs/reference/
 │   ├── vite-react-integration.mdx
 │   ├── project-structure.mdx
 │   ├── working-memory.mdx
-│   └── memory-processors.mdx
+│   ├── memory-processors.mdx
+│   └── chunking-embedding.mdx
 │
 ├── workflows/            # GitHub Actions
 │   └── build.yml
@@ -905,6 +906,189 @@ const memory = new Memory({
 ✅ Pipeline معالجة متعدد المراحل
 
 **مهم:** الترتيب مهم! TokenLimiter يجب أن يكون أخيراً.
+
+### Chunking & Embedding (⭐ RAG Foundation)
+**الوصف:** دليل تقسيم وتضمين المستندات للـ RAG (Retrieval Augmented Generation)
+**الملف:** `mastra-docs/chunking-embedding.mdx`
+**الأهمية:** 🔥 **أساسي لبناء RAG systems وvector search**
+
+**المفهوم الأساسي:**
+Pipeline من خطوتين: تقسيم المستندات → توليد embeddings → تخزين في vector DB
+
+**Document Initialization:**
+```typescript
+import { MDocument } from "@mastra/rag";
+
+const docFromText = MDocument.fromText("Your text...");
+const docFromHTML = MDocument.fromHTML("<html>...</html>");
+const docFromMarkdown = MDocument.fromMarkdown("# Markdown...");
+const docFromJSON = MDocument.fromJSON(`{"key": "value"}`);
+```
+
+**Chunking Strategies (9 استراتيجيات):**
+
+1. **recursive** - Smart content-aware splitting:
+   ```typescript
+   const chunks = await doc.chunk({
+     strategy: "recursive",
+     maxSize: 512,
+     overlap: 50,
+     separators: ["\n"],
+     extract: { metadata: true }, // LLM-powered metadata extraction
+   });
+   ```
+
+2. **sentence** - Preserve sentence structure:
+   ```typescript
+   const chunks = await doc.chunk({
+     strategy: "sentence",
+     maxSize: 450,
+     minSize: 50,
+     overlap: 0,
+     sentenceEnders: ["."],
+     keepSeparator: true,
+   });
+   ```
+
+3. **semantic-markdown** - Preserve header relationships:
+   ```typescript
+   const chunks = await doc.chunk({
+     strategy: "semantic-markdown",
+     joinThreshold: 500,
+     modelName: "gpt-3.5-turbo",
+   });
+   ```
+
+4. **Other strategies**:
+   - `character` - Simple character-based
+   - `token` - Token-aware splitting
+   - `markdown` - Markdown structure-aware
+   - `html` - HTML structure-aware
+   - `json` - JSON structure-aware
+   - `latex` - LaTeX structure-aware
+
+**Embedding Generation:**
+
+**Method 1: Model Router (Recommended):**
+```typescript
+import { ModelRouterEmbeddingModel } from "@mastra/core";
+import { embedMany } from "ai";
+
+const embeddingModel = new ModelRouterEmbeddingModel(
+  "openai/text-embedding-3-small"
+);
+
+const { embeddings } = await embedMany({
+  model: embeddingModel,
+  values: chunks.map((chunk) => chunk.text),
+});
+```
+
+**Supported Models:**
+- **OpenAI**: text-embedding-3-small, text-embedding-3-large, text-embedding-ada-002
+- **Google**: gemini-embedding-001, text-embedding-004
+
+**Method 2: AI SDK Direct:**
+```typescript
+import { openai } from "@ai-sdk/openai";
+import { embedMany } from "ai";
+
+const { embeddings } = await embedMany({
+  model: openai.embedding("text-embedding-3-small"),
+  values: chunks.map((chunk) => chunk.text),
+});
+```
+
+**Dimension Configuration:**
+```typescript
+// OpenAI - reduce dimensions to save storage
+const { embeddings } = await embedMany({
+  model: openai.embedding("text-embedding-3-small", {
+    dimensions: 256, // Default: 1536
+  }),
+  values: chunks.map((chunk) => chunk.text),
+});
+
+// Google - truncate from end
+const { embeddings } = await embedMany({
+  model: google.textEmbeddingModel("text-embedding-004", {
+    outputDimensionality: 256,
+  }),
+  values: chunks.map((chunk) => chunk.text),
+});
+```
+
+**Complete Pipeline Example:**
+```typescript
+import { MDocument } from "@mastra/rag";
+import { openai } from "@ai-sdk/openai";
+import { embedMany } from "ai";
+
+// 1. Initialize document
+const doc = MDocument.fromText(`
+  Climate change poses significant challenges...
+`);
+
+// 2. Chunk document
+const chunks = await doc.chunk({
+  strategy: "recursive",
+  maxSize: 256,
+  overlap: 50,
+});
+
+// 3. Generate embeddings
+const { embeddings } = await embedMany({
+  model: openai.embedding("text-embedding-3-small"),
+  values: chunks.map((chunk) => chunk.text),
+});
+
+// 4. Store in vector database
+await vectorStore.upsert({
+  indexName: "embeddings",
+  vectors: embeddings,
+});
+```
+
+**Key Concepts:**
+
+- **Chunks**: Manageable text pieces optimized for LLM context
+- **Embeddings**: Vector representations للمعنى الدلالي
+- **Overlap**: تداخل بين chunks للحفاظ على السياق
+- **Dimensions**: حجم vector (trade-off بين accuracy و storage)
+- **Vector DB Compatibility**: يجب مطابقة dimensions في index
+
+**Chunking Strategy Selection:**
+- 📄 **Plain text**: `recursive` أو `sentence`
+- 📝 **Markdown**: `semantic-markdown` أو `markdown`
+- 🌐 **HTML**: `html`
+- 📊 **JSON**: `json`
+- 📐 **LaTeX**: `latex`
+- 🔤 **Simple split**: `character` أو `token`
+
+**Best Practices:**
+- ✅ اختر strategy حسب نوع المحتوى
+- ✅ استخدم overlap (50-100) للحفاظ على context
+- ✅ maxSize حسب model context window
+- ✅ Reduce dimensions للتوفير في storage
+- ✅ تأكد من vector DB index dimensions تطابق embedding dimensions
+- ⚠️ Metadata extraction يستخدم LLM (API key required)
+
+**Use Cases:**
+- RAG systems (document Q&A)
+- Semantic search
+- Knowledge base retrieval
+- Document similarity
+- Content recommendation
+- FAQ matching
+
+**الاستخدامات المثالية:**
+✅ بناء RAG systems لـ document Q&A
+✅ Semantic search في knowledge bases
+✅ Document similarity و clustering
+✅ Content retrieval optimization
+✅ Building vector databases
+
+**مهم جداً:** هذا أساس أي RAG system - الفهم الصحيح للـ chunking والـ embeddings ضروري!
 
 ---
 
