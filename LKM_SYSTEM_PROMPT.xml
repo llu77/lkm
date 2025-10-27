@@ -1,0 +1,1167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lkm_system_documentation>
+
+  <!-- ============================================ -->
+  <!-- SYSTEM OVERVIEW -->
+  <!-- ============================================ -->
+  <system_overview>
+    <name>LKM - نظام إدارة الفروع والموظفين</name>
+    <version>2.0.0</version>
+    <tech_stack>
+      <frontend>
+        <framework>React 19 + TypeScript</framework>
+        <styling>Tailwind CSS 4 + Radix UI</styling>
+        <routing>React Router DOM v7</routing>
+        <state_management>Convex Real-time (قيد الترحيل إلى Cloudflare)</state_management>
+      </frontend>
+      <backend>
+        <current>Convex (NoSQL + Real-time)</current>
+        <migrating_to>Cloudflare Workers + D1 (SQLite)</migrating_to>
+      </backend>
+      <deployment>
+        <target>Cloudflare Pages</target>
+        <status>In Migration</status>
+      </deployment>
+    </tech_stack>
+
+    <core_concepts>
+      <concept name="multi_branch">
+        <description>النظام يدير فرعين: لبن (1010) وطويق (2020)</description>
+        <isolation>كل فرع له بياناته المستقلة</isolation>
+      </concept>
+      <concept name="role_based">
+        <roles>
+          <role name="admin">إدارة كاملة</role>
+          <role name="manager">إدارة الفرع</role>
+          <role name="employee">عرض وإنشاء طلبات</role>
+        </roles>
+      </concept>
+      <concept name="real_time">
+        <description>تحديثات فورية عبر Convex subscriptions</description>
+      </concept>
+    </core_concepts>
+
+    <statistics>
+      <total_pages>17</total_pages>
+      <total_lines>8262</total_lines>
+      <components>50+</components>
+      <api_endpoints>33</api_endpoints>
+      <database_tables>17</database_tables>
+    </statistics>
+  </system_overview>
+
+  <!-- ============================================ -->
+  <!-- PAGES DETAILED ANALYSIS -->
+  <!-- ============================================ -->
+  <pages>
+
+    <!-- PAGE 1: Dashboard -->
+    <page id="1" path="/dashboard">
+      <name>لوحة التحكم الرئيسية</name>
+      <file>src/pages/dashboard/page.tsx</file>
+      <lines>377</lines>
+
+      <purpose>
+        عرض نظرة شاملة على أداء الفرع من خلال:
+        - الإحصائيات الرئيسية (إيرادات، مصروفات، صافي الربح)
+        - مقارنة مع الشهر السابق
+        - رسوم بيانية للأداء
+        - النشاطات الأخيرة
+        - الطلبات المعلقة
+      </purpose>
+
+      <components>
+        <component name="StatCard">
+          <purpose>عرض إحصائية واحدة مع النمو</purpose>
+          <props>
+            <prop name="title" type="string">عنوان الإحصائية</prop>
+            <prop name="value" type="number">القيمة</prop>
+            <prop name="growth" type="number">نسبة النمو</prop>
+            <prop name="icon" type="LucideIcon">أيقونة</prop>
+          </props>
+        </component>
+
+        <component name="RevenueExpenseChart">
+          <library>recharts</library>
+          <type>BarChart</type>
+          <data_source>api.dashboard.getChartData</data_source>
+          <displays>آخر 6 أشهر للإيرادات والمصروفات</displays>
+        </component>
+
+        <component name="RecentActivityTable">
+          <displays>آخر 5 إيرادات وآخر 5 مصروفات</displays>
+          <fields>التاريخ، المبلغ، الفئة</fields>
+        </component>
+      </components>
+
+      <data_flow>
+        <step num="1">المستخدم يفتح الصفحة</step>
+        <step num="2">useQuery يجلب 3 استعلامات متوازية:
+          - api.dashboard.getStats (الإحصائيات)
+          - api.dashboard.getChartData (بيانات الرسم)
+          - api.dashboard.getRecentActivity (النشاط الأخير)
+        </step>
+        <step num="3">عرض Skeleton أثناء التحميل</step>
+        <step num="4">عرض البيانات في Cards و Charts</step>
+        <step num="5">حساب النمو: ((current - previous) / previous) * 100</step>
+      </data_flow>
+
+      <api_calls>
+        <call>
+          <endpoint>api.dashboard.getStats</endpoint>
+          <type>query</type>
+          <returns>
+            totalRevenue, totalExpenses, netIncome,
+            revenueGrowth, expenseGrowth, netIncomeGrowth,
+            pendingProductOrdersCount, pendingEmployeeOrdersCount
+          </returns>
+        </call>
+        <call>
+          <endpoint>api.dashboard.getChartData</endpoint>
+          <type>query</type>
+          <returns>Array&lt;{month, revenue, expense}&gt;</returns>
+        </call>
+        <call>
+          <endpoint>api.dashboard.getRecentActivity</endpoint>
+          <type>query</type>
+          <returns>{recentRevenues[], recentExpenses[]}</returns>
+        </call>
+      </api_calls>
+
+      <business_logic>
+        <rule name="growth_calculation">
+          <formula>((current - previous) / previous) * 100</formula>
+          <display_color>
+            - أخضر إذا إيجابي
+            - أحمر إذا سلبي
+          </display_color>
+        </rule>
+
+        <rule name="currency_format">
+          <locale>ar-SA</locale>
+          <currency>SAR</currency>
+        </rule>
+
+        <rule name="date_format">
+          <library>date-fns</library>
+          <locale>ar</locale>
+          <format>dd/MM/yyyy</format>
+        </rule>
+      </business_logic>
+
+      <user_actions>
+        <action>مشاهدة الإحصائيات (read-only)</action>
+        <action>الانتقال للصفحات الأخرى عبر الروابط</action>
+      </user_actions>
+
+      <evaluation_criteria>
+        <criterion weight="0.3">
+          <name>دقة البيانات</name>
+          <check>الإحصائيات تطابق مجموع الإيرادات والمصروفات الفعلية</check>
+        </criterion>
+        <criterion weight="0.25">
+          <name>صحة حساب النمو</name>
+          <check>نسبة النمو المعروضة = ((current - previous) / previous) * 100</check>
+        </criterion>
+        <criterion weight="0.2">
+          <name>سرعة التحميل</name>
+          <check>البيانات تُحمّل في أقل من 2 ثانية</check>
+        </criterion>
+        <criterion weight="0.15">
+          <name>Real-time Updates</name>
+          <check>Dashboard يتحدث فوراً عند إضافة إيراد/مصروف جديد</check>
+        </criterion>
+        <criterion weight="0.1">
+          <name>UI/UX</name>
+          <check>الألوان والأيقونات واضحة ومفهومة</check>
+        </criterion>
+      </evaluation_criteria>
+    </page>
+
+    <!-- PAGE 2: Revenues -->
+    <page id="2" path="/revenues">
+      <name>إدارة الإيرادات</name>
+      <file>src/pages/revenues/page.tsx</file>
+      <lines>842</lines>
+
+      <purpose>
+        إدارة شاملة للإيرادات اليومية:
+        - إضافة إيراد يومي (كاش، شبكة، بدجت)
+        - توزيع الإيراد على الموظفين
+        - تحديد حالة المطابقة (matched/mismatched)
+        - عرض تقويم شهري
+        - تصدير PDF
+        - مراجعة وتعديل وحذف
+      </purpose>
+
+      <components>
+        <component name="MonthNavigator">
+          <purpose>التنقل بين الأشهر</purpose>
+          <controls>Previous Month / Next Month</controls>
+          <displays>الشهر والسنة الحالية</displays>
+        </component>
+
+        <component name="CalendarView">
+          <type>Grid 7x5</type>
+          <displays>أيام الشهر مع الإيرادات</displays>
+          <color_coding>
+            - أخضر: matched (كاش + شبكة = المجموع المدخل)
+            - أحمر: mismatched
+            - رمادي: لا يوجد إيراد
+          </color_coding>
+        </component>
+
+        <component name="AddRevenueDialog">
+          <fields>
+            <field name="date">التاريخ</field>
+            <field name="cash">كاش</field>
+            <field name="network">شبكة</field>
+            <field name="budget">بدجت</field>
+            <field name="total">المجموع (كاش + شبكة)</field>
+            <field name="employees[]">موظفو الإيراد</field>
+            <field name="mismatchReason">سبب عدم المطابقة (optional)</field>
+          </fields>
+          <validation>
+            <rule>التاريخ مطلوب</rule>
+            <rule>كاش وشبكة مطلوبان</rule>
+            <rule>total = cash + network</rule>
+            <rule>مجموع إيرادات الموظفين يجب أن يساوي total</rule>
+          </validation>
+        </component>
+
+        <component name="EmployeeRevenueInput">
+          <purpose>توزيع الإيراد على موظفي الفرع</purpose>
+          <employees>
+            <branch id="1010">عبدالحي جلال، محمود عمارة، علاء ناصر، السيد محمد، عمرو</branch>
+            <branch id="2020">محمد إسماعيل، محمد ناصر، فارس محمد</branch>
+          </employees>
+          <auto_sum>يحسب مجموع إيرادات الموظفين تلقائياً</auto_sum>
+        </component>
+
+        <component name="EditRevenueDialog">
+          <same_as>AddRevenueDialog</same_as>
+          <additional>يملأ البيانات السابقة للتعديل</additional>
+        </component>
+
+        <component name="DeleteConfirmation">
+          <type>AlertDialog</type>
+          <confirmation>تأكيد الحذف قبل التنفيذ</confirmation>
+        </component>
+
+        <component name="PDFExport">
+          <library>jspdf + jspdf-autotable</library>
+          <includes>
+            - اسم الفرع
+            - الشهر والسنة
+            - جدول الإيرادات اليومية
+            - المجاميع
+          </includes>
+        </component>
+
+        <component name="NotificationBanner">
+          <displays>تنبيهات AI-generated (optional)</displays>
+          <types>warning, info, success, error</types>
+        </component>
+      </components>
+
+      <workflow name="add_revenue">
+        <step num="1">المستخدم يختار اليوم من التقويم</step>
+        <step num="2">يضغط "+" لإضافة إيراد</step>
+        <step num="3">يملأ النموذج:
+          - التاريخ (auto-filled)
+          - كاش (مثلاً 5000)
+          - شبكة (مثلاً 3000)
+          - بدجت (optional)
+          - total يُحسب تلقائياً = 8000
+        </step>
+        <step num="4">توزيع على الموظفين:
+          - عبدالحي: 3000
+          - محمود: 2500
+          - علاء: 1500
+          - السيد: 1000
+          - المجموع = 8000 ✅
+        </step>
+        <step num="5">إذا كان المجموع مطابق:
+          - isMatched = true
+          - اللون أخضر
+        </step>
+        <step num="6">إذا لم يطابق:
+          - يطلب سبب عدم المطابقة
+          - isMatched = false
+          - اللون أحمر
+        </step>
+        <step num="7">حفظ عبر useMutation(api.revenues.create)</step>
+        <step num="8">التقويم يتحدث فوراً</step>
+        <step num="9">toast نجاح</step>
+      </workflow>
+
+      <workflow name="edit_revenue">
+        <step num="1">المستخدم يضغط على يوم فيه إيراد</step>
+        <step num="2">يظهر Dialog مع تفاصيل الإيراد</step>
+        <step num="3">يضغط "تعديل"</step>
+        <step num="4">يعدّل الحقول المطلوبة</step>
+        <step num="5">حفظ عبر useMutation(api.revenues.update)</step>
+        <step num="6">التحديث الفوري</step>
+      </workflow>
+
+      <workflow name="delete_revenue">
+        <step num="1">المستخدم يضغط "حذف" في Dialog</step>
+        <step num="2">AlertDialog للتأكيد</step>
+        <step num="3">عند التأكيد: useMutation(api.revenues.delete)</step>
+        <step num="4">اليوم يصبح رمادي (فارغ)</step>
+      </workflow>
+
+      <workflow name="export_pdf">
+        <step num="1">المستخدم يضغط "تصدير PDF"</step>
+        <step num="2">generateRevenuesPDF() يُستدعى</step>
+        <step num="3">إنشاء PDF مع:
+          - Header: اسم الفرع + الشهر
+          - Table: التاريخ | الكاش | الشبكة | البدجت | المجموع
+          - Footer: المجاميع الكلية
+        </step>
+        <step num="4">تحميل الملف</step>
+      </workflow>
+
+      <data_flow>
+        <query name="list">
+          <params>branchId, month, year</params>
+          <returns>Array of revenues for the month</returns>
+          <reactive>يتحدث تلقائياً عند أي تغيير</reactive>
+        </query>
+        <mutation name="create">
+          <params>date, cash, network, budget, employees[], branchId, branchName</params>
+          <validation>Backend يتحقق من صحة البيانات</validation>
+          <triggers>تحديث Dashboard, تحديث التقويم</triggers>
+        </mutation>
+        <mutation name="update">
+          <params>id, ...updated fields</params>
+        </mutation>
+        <mutation name="delete">
+          <params>id</params>
+        </mutation>
+      </data_flow>
+
+      <business_logic>
+        <rule name="matching_validation">
+          <condition>total === calculated_total</condition>
+          <calculated_total>cash + network</calculated_total>
+          <if_matched>isMatched = true, color = green</if_matched>
+          <if_mismatched>isMatched = false, color = red, reason required</if_mismatched>
+        </rule>
+
+        <rule name="employee_revenue_sum">
+          <condition>sum(employees[].revenue) === total</condition>
+          <error>إذا لم يتطابق: "مجموع إيرادات الموظفين يجب أن يساوي المجموع الكلي"</error>
+        </rule>
+
+        <rule name="bonus_eligibility">
+          <description>الإيرادات المطابقة فقط تُحسب في البونص</description>
+          <field>isApprovedForBonus</field>
+        </rule>
+
+        <rule name="branch_isolation">
+          <description>كل فرع يرى إيراداته فقط</description>
+          <filter>WHERE branchId = selected_branch</filter>
+        </rule>
+      </business_logic>
+
+      <evaluation_criteria>
+        <criterion weight="0.25">
+          <name>صحة حساب المطابقة</name>
+          <check>isMatched = (cash + network === total)</check>
+        </criterion>
+        <criterion weight="0.2">
+          <name>توزيع الموظفين</name>
+          <check>sum(employees[].revenue) === total</check>
+        </criterion>
+        <criterion weight="0.2">
+          <name>التحديث الفوري</name>
+          <check>التقويم يتحدث بدون refresh عند الإضافة/التعديل/الحذف</check>
+        </criterion>
+        <criterion weight="0.15">
+          <name>Validation</name>
+          <check>جميع الحقول المطلوبة موجودة قبل الحفظ</check>
+        </criterion>
+        <criterion weight="0.1">
+          <name>PDF Export</name>
+          <check>PDF يحتوي على كل البيانات الصحيحة</check>
+        </criterion>
+        <criterion weight="0.1">
+          <name>UX</name>
+          <check>التقويم سهل الاستخدام والألوان واضحة</check>
+        </criterion>
+      </evaluation_criteria>
+    </page>
+
+    <!-- PAGE 3: Expenses -->
+    <page id="3" path="/expenses">
+      <name>إدارة المصروفات</name>
+      <file>src/pages/expenses/page.tsx</file>
+      <lines>517</lines>
+
+      <purpose>
+        إدارة المصروفات اليومية:
+        - إضافة مصروف (العنوان، المبلغ، الفئة، التاريخ)
+        - تصنيف المصروفات
+        - عرض قائمة المصروفات
+        - تعديل وحذف
+        - تصدير PDF
+        - إحصائيات المصروفات
+      </purpose>
+
+      <components>
+        <component name="ExpenseForm">
+          <fields>
+            <field name="title">عنوان المصروف (مطلوب)</field>
+            <field name="amount">المبلغ (مطلوب)</field>
+            <field name="category">الفئة (مطلوب)</field>
+            <field name="description">الوصف (اختياري)</field>
+            <field name="date">التاريخ (مطلوب)</field>
+          </fields>
+          <categories>
+            - رواتب
+            - إيجار
+            - مرافق (كهرباء، ماء)
+            - صيانة
+            - مشتريات
+            - أخرى
+          </categories>
+        </component>
+
+        <component name="ExpensesList">
+          <type>Table</type>
+          <columns>التاريخ | العنوان | الفئة | المبلغ | الإجراءات</columns>
+          <sorting>حسب التاريخ (الأحدث أولاً)</sorting>
+          <pagination>اختياري</pagination>
+        </component>
+
+        <component name="ExpensesStats">
+          <displays>
+            - إجمالي المصروفات
+            - أكثر فئة مصروفات
+            - متوسط المصروف اليومي
+          </displays>
+        </component>
+
+        <component name="MonthFilter">
+          <purpose>فلترة حسب الشهر</purpose>
+        </component>
+      </components>
+
+      <workflow name="add_expense">
+        <step num="1">المستخدم يضغط "إضافة مصروف"</step>
+        <step num="2">يملأ النموذج</step>
+        <step num="3">Validation:
+          - العنوان لا يقل عن 3 أحرف
+          - المبلغ > 0
+          - الفئة مُختارة
+          - التاريخ صحيح
+        </step>
+        <step num="4">حفظ عبر useMutation(api.expenses.create)</step>
+        <step num="5">إضافة للقائمة فوراً</step>
+        <step num="6">تحديث الإحصائيات</step>
+      </workflow>
+
+      <data_flow>
+        <query name="list">
+          <params>branchId, month, year</params>
+          <returns>Array of expenses</returns>
+        </query>
+        <mutation name="create">
+          <params>title, amount, category, description, date, branchId, branchName</params>
+        </mutation>
+        <mutation name="update">
+          <params>id, ...fields</params>
+        </mutation>
+        <mutation name="delete">
+          <params>id</params>
+        </mutation>
+      </data_flow>
+
+      <business_logic>
+        <rule name="category_validation">
+          <categories>قائمة محددة مسبقاً</categories>
+          <extensible>يمكن إضافة فئات جديدة</extensible>
+        </rule>
+
+        <rule name="amount_validation">
+          <min>1</min>
+          <type>number</type>
+          <currency>SAR</currency>
+        </rule>
+
+        <rule name="date_validation">
+          <range>يمكن إضافة مصروفات لأي تاريخ</range>
+          <default>اليوم الحالي</default>
+        </rule>
+      </business_logic>
+
+      <evaluation_criteria>
+        <criterion weight="0.3">
+          <name>دقة البيانات</name>
+          <check>المصروفات المحفوظة تطابق المُدخلة</check>
+        </criterion>
+        <criterion weight="0.25">
+          <name>Validation</name>
+          <check>جميع الحقول المطلوبة مفحوصة</check>
+        </criterion>
+        <criterion weight="0.2">
+          <name>Categories</name>
+          <check>الفئات منطقية ومفيدة للتقارير</check>
+        </criterion>
+        <criterion weight="0.15">
+          <name>Real-time</name>
+          <check>القائمة تتحدث فوراً</check>
+        </criterion>
+        <criterion weight="0.1">
+          <name>UX</name>
+          <check>النموذج سهل الاستخدام</check>
+        </criterion>
+      </evaluation_criteria>
+    </page>
+
+    <!-- PAGE 4: Employees -->
+    <page id="4" path="/employees">
+      <name>إدارة الموظفين</name>
+      <file>src/pages/employees/page.tsx</file>
+      <lines>593</lines>
+
+      <purpose>
+        إدارة بيانات الموظفين:
+        - إضافة موظف جديد
+        - تعديل بيانات موظف
+        - تفعيل/تعطيل موظف
+        - عرض قائمة الموظفين
+        - إدارة الرواتب والبدلات
+      </purpose>
+
+      <components>
+        <component name="EmployeeForm">
+          <fields>
+            <field name="employeeName">الاسم (مطلوب)</field>
+            <field name="nationalId">رقم الهوية</field>
+            <field name="idExpiryDate">تاريخ انتهاء الهوية</field>
+            <field name="baseSalary">الراتب الأساسي (مطلوب)</field>
+            <field name="supervisorAllowance">بدل إشراف (400 للمشرفين)</field>
+            <field name="incentives">حوافز أخرى</field>
+            <field name="isActive">نشط؟</field>
+          </fields>
+        </component>
+
+        <component name="EmployeesTable">
+          <columns>الاسم | الهوية | الراتب | البدلات | الحوافز | الحالة | الإجراءات</columns>
+          <filters>
+            <filter>الكل</filter>
+            <filter>النشطون</filter>
+            <filter>المعطلون</filter>
+          </filters>
+        </component>
+
+        <component name="EmployeeDetails">
+          <displays>
+            - البيانات الشخصية
+            - تفاصيل الراتب
+            - السلف والخصومات
+            - سجل الإيرادات (إذا موظف إيراد)
+          </displays>
+        </component>
+      </components>
+
+      <workflow name="add_employee">
+        <step num="1">المستخدم يضغط "إضافة موظف"</step>
+        <step num="2">يملأ النموذج</step>
+        <step num="3">Validation:
+          - الاسم (3+ أحرف)
+          - الراتب > 0
+          - الهوية (10 رقم) optional
+        </step>
+        <step num="4">حفظ عبر useMutation(api.employees.add)</step>
+        <step num="5">إضافة للقائمة</step>
+      </workflow>
+
+      <business_logic>
+        <rule name="salary_calculation">
+          <total>baseSalary + supervisorAllowance + incentives</total>
+          <supervisor_allowance>400 SAR فقط للمشرفين</supervisor_allowance>
+        </rule>
+
+        <rule name="active_status">
+          <active>يظهر في القوائم ويحصل على راتب</active>
+          <inactive>مخفي من القوائم، لا راتب</inactive>
+        </rule>
+
+        <rule name="national_id">
+          <format>10 أرقام</format>
+          <unique>يجب أن يكون فريد</unique>
+          <optional>ليس مطلوباً</optional>
+        </rule>
+      </business_logic>
+
+      <evaluation_criteria>
+        <criterion weight="0.3">
+          <name>صحة البيانات</name>
+          <check>جميع الحقول محفوظة بشكل صحيح</check>
+        </criterion>
+        <criterion weight="0.25">
+          <name>حساب الراتب</name>
+          <check>الراتب الإجمالي = الأساسي + البدلات + الحوافز</check>
+        </criterion>
+        <criterion weight="0.2">
+          <name>Active/Inactive</name>
+          <check>الموظفون المعطلون لا يظهرون في حسابات الرواتب</check>
+        </criterion>
+        <criterion weight="0.15">
+          <name>Validation</name>
+          <check>رقم الهوية صحيح (10 أرقام)</check>
+        </criterion>
+        <criterion weight="0.1">
+          <name>UX</name>
+          <check>النموذج واضح وسهل</check>
+        </criterion>
+      </evaluation_criteria>
+    </page>
+
+    <!-- PAGE 5: Payroll -->
+    <page id="5" path="/payroll">
+      <name>كشف الرواتب</name>
+      <file>src/pages/payroll/page.tsx</file>
+      <lines>430</lines>
+
+      <purpose>
+        توليد وإدارة كشوف الرواتب الشهرية:
+        - توليد كشف راتب لشهر معين
+        - حساب الراتب الصافي = (الأساسي + البدلات + الحوافز) - السلف - الخصومات
+        - عرض سجل كشوف الرواتب السابقة
+        - تصدير PDF
+        - إرسال بالبريد الإلكتروني
+      </purpose>
+
+      <components>
+        <component name="GeneratePayrollDialog">
+          <inputs>
+            <input>الشهر (1-12)</input>
+            <input>السنة</input>
+            <input>اسم المشرف (optional)</input>
+          </inputs>
+          <button>توليد كشف الرواتب</button>
+        </component>
+
+        <component name="PayrollRecordTable">
+          <displays>سجل كشوف الرواتب السابقة</displays>
+          <columns>الشهر | السنة | عدد الموظفين | الإجمالي | الإجراءات</columns>
+        </component>
+
+        <component name="PayrollDetails">
+          <table>
+            <columns>الموظف | الهوية | الأساسي | البدلات | الحوافز | السلف | الخصومات | الصافي</columns>
+          </table>
+          <summary>
+            - إجمالي الرواتب الصافية
+            - إجمالي السلف
+            - إجمالي الخصومات
+          </summary>
+        </component>
+
+        <component name="PDFExport">
+          <format>كشف رواتب رسمي</format>
+          <includes>
+            - اسم الفرع والمشرف
+            - الشهر والسنة
+            - جدول الموظفين والرواتب
+            - المجاميع
+            - التوقيعات
+          </includes>
+        </component>
+
+        <component name="EmailSend">
+          <recipient>المشرف (من إعدادات الفرع)</recipient>
+          <subject>كشف رواتب [الفرع] - [الشهر]/[السنة]</subject>
+          <attachment>PDF</attachment>
+        </component>
+      </components>
+
+      <workflow name="generate_payroll">
+        <step num="1">المستخدم يختار الشهر والسنة</step>
+        <step num="2">يضغط "توليد كشف الرواتب"</step>
+        <step num="3">Backend يجلب:
+          - جميع الموظفين النشطين في الفرع
+          - السلف لهذا الشهر
+          - الخصومات لهذا الشهر
+        </step>
+        <step num="4">لكل موظف:
+          netSalary = baseSalary + supervisorAllowance + incentives - totalAdvances - totalDeductions
+        </step>
+        <step num="5">حفظ PayrollRecord</step>
+        <step num="6">عرض التفاصيل</step>
+        <step num="7">المستخدم يمكنه:
+          - تصدير PDF
+          - إرسال بالبريد
+          - طباعة
+        </step>
+      </workflow>
+
+      <business_logic>
+        <rule name="net_salary_calculation">
+          <formula>
+            netSalary =
+              baseSalary
+              + supervisorAllowance
+              + incentives
+              - sum(advances[month])
+              - sum(deductions[month])
+          </formula>
+          <validation>netSalary must be >= 0</validation>
+        </rule>
+
+        <rule name="active_employees_only">
+          <description>فقط الموظفون النشطون يُدرجون في الكشف</description>
+          <filter>WHERE isActive = true</filter>
+        </rule>
+
+        <rule name="monthly_scope">
+          <description>السلف والخصومات تُحسب للشهر المحدد فقط</description>
+          <filter>WHERE year = ? AND month = ?</filter>
+        </rule>
+
+        <rule name="duplicate_prevention">
+          <description>لا يمكن توليد كشفين لنفس الفرع والشهر</description>
+          <check>قبل التوليد: تحقق من وجود record سابق</check>
+        </rule>
+      </business_logic>
+
+      <evaluation_criteria>
+        <criterion weight="0.35">
+          <name>دقة حساب الراتب الصافي</name>
+          <check>netSalary = (baseSalary + allowances + incentives) - (advances + deductions)</check>
+        </criterion>
+        <criterion weight="0.25">
+          <name>نطاق البيانات الصحيح</name>
+          <check>السلف والخصومات من الشهر المحدد فقط</check>
+        </criterion>
+        <criterion weight="0.2">
+          <name>الموظفون النشطون فقط</name>
+          <check>فقط isActive = true في الكشف</check>
+        </criterion>
+        <criterion weight="0.1">
+          <name>PDF Export</name>
+          <check>الكشف يحتوي على كل البيانات</check>
+        </criterion>
+        <criterion weight="0.1">
+          <name>منع التكرار</name>
+          <check>لا يمكن توليد كشفين لنفس الشهر</check>
+        </criterion>
+      </evaluation_criteria>
+    </page>
+
+    <!-- PAGE 6: Bonus -->
+    <page id="6" path="/bonus">
+      <name>إدارة البونص</name>
+      <file>src/pages/bonus/page.tsx</file>
+      <lines>364</lines>
+
+      <purpose>
+        حساب واعتماد البونص الأسبوعي للموظفين:
+        - حساب البونص حسب الإيرادات المطابقة فقط
+        - تقسيم الشهر إلى أسابيع (5 أسابيع أو 4 + أيام متبقية)
+        - اعتماد البونص في اليوم الأول من الأسبوع فقط
+        - عرض سجل البونصات المعتمدة
+      </purpose>
+
+      <components>
+        <component name="CurrentWeekBonus">
+          <displays>
+            - الأسبوع الحالي (التاريخ)
+            - البونص لكل موظف
+            - إجمالي البونص
+            - حالة الاعتماد
+          </displays>
+          <bonus_calculation>
+            <for_each_employee>
+              totalRevenue = sum(matched revenues where employee in employees[])
+              bonusAmount = totalRevenue * bonus_percentage
+            </for_each_employee>
+          </bonus_calculation>
+        </component>
+
+        <component name="ApproveButton">
+          <enabled_only>اليوم الأول من الأسبوع</enabled_only>
+          <action>اعتماد البونص وحفظه في bonusRecords</action>
+        </component>
+
+        <component name="BonusRecordsHistory">
+          <displays>جميع البونصات المعتمدة سابقاً</displays>
+          <grouping>حسب الشهر والأسبوع</grouping>
+        </component>
+      </components>
+
+      <workflow name="approve_bonus">
+        <step num="1">المستخدم يفتح صفحة البونص</step>
+        <step num="2">النظام يحسب:
+          - الأسبوع الحالي (startDate, endDate)
+          - البونص لكل موظف من الإيرادات المطابقة
+        </step>
+        <step num="3">إذا كان اليوم الأول من الأسبوع:
+          - زر "اعتماد" يظهر
+        </step>
+        <step num="4">المستخدم يضغط "اعتماد"</step>
+        <step num="5">حفظ BonusRecord مع:
+          - employeeBonuses[]
+          - revenueSnapshot (الإيرادات المستخدمة)
+          - totalBonusPaid
+          - approvedBy, approvedAt
+        </step>
+        <step num="6">toast نجاح</step>
+        <step num="7">الإيرادات المعتمدة تُعلّم isApprovedForBonus = true</step>
+      </workflow>
+
+      <business_logic>
+        <rule name="week_division">
+          <description>الشهر يُقسم إلى أسابيع</description>
+          <week_start>السبت</week_start>
+          <weeks_per_month>
+            - 4 أسابيع كاملة (7 أيام لكل)
+            - أسبوع 5 للأيام المتبقية (1-6 أيام)
+          </weeks_per_month>
+        </rule>
+
+        <rule name="matched_revenues_only">
+          <description>فقط الإيرادات المطابقة (isMatched = true) تُحسب</description>
+          <filter>WHERE isMatched = true AND isApprovedForBonus = false</filter>
+        </rule>
+
+        <rule name="approval_timing">
+          <allowed>اليوم الأول من الأسبوع (السبت)</allowed>
+          <blocked>أي يوم آخر</blocked>
+          <reason>لضمان حساب البونص بعد انتهاء الأسبوع</reason>
+        </rule>
+
+        <rule name="employee_eligibility">
+          <condition>totalRevenue > 0</condition>
+          <bonus_rate>نسبة محددة (مثلاً 10%)</bonus_rate>
+        </rule>
+
+        <rule name="duplicate_prevention">
+          <check>لا يمكن اعتماد بونص مرتين لنفس الأسبوع</check>
+        </rule>
+      </business_logic>
+
+      <evaluation_criteria>
+        <criterion weight="0.3">
+          <name>صحة حساب البونص</name>
+          <check>bonusAmount = sum(matched_revenues) * bonus_percentage</check>
+        </criterion>
+        <criterion weight="0.25">
+          <name>الإيرادات المطابقة فقط</name>
+          <check>فقط isMatched = true تُحسب</check>
+        </criterion>
+        <criterion weight="0.2">
+          <name>توقيت الاعتماد</name>
+          <check>الزر مفعّل فقط في اليوم الأول</check>
+        </criterion>
+        <criterion weight="0.15">
+          <name>تقسيم الأسابيع</name>
+          <check>الشهر مقسّم صحيح إلى 4 أو 5 أسابيع</check>
+        </criterion>
+        <criterion weight="0.1">
+          <name>منع التكرار</name>
+          <check>لا اعتماد مرتين لنفس الأسبوع</check>
+        </criterion>
+      </evaluation_criteria>
+    </page>
+
+    <!-- Continuing with remaining pages... -->
+
+    <page id="7" path="/advances-deductions">
+      <name>السلف والخصومات</name>
+      <lines>803</lines>
+      <purpose>إدارة السلف والخصومات الشهرية للموظفين</purpose>
+    </page>
+
+    <page id="8" path="/employee-requests">
+      <name>طلبات الموظفين</name>
+      <lines>400</lines>
+      <purpose>الموظفون يقدمون طلبات (سلفة، إجازة، استئذان، إلخ)</purpose>
+    </page>
+
+    <page id="9" path="/manage-requests">
+      <name>إدارة الطلبات</name>
+      <lines>574</lines>
+      <purpose>المدراء يراجعون ويوافقون/يرفضون الطلبات</purpose>
+    </page>
+
+    <page id="10" path="/product-orders">
+      <name>طلبات المنتجات</name>
+      <lines>626</lines>
+      <purpose>طلب منتجات للفرع مع حفظ مسودات</purpose>
+    </page>
+
+    <page id="11" path="/backups">
+      <name>النسخ الاحتياطية</name>
+      <lines>276</lines>
+      <purpose>نسخ احتياطي تلقائي ويدوي للبيانات</purpose>
+    </page>
+
+    <page id="12" path="/ai-assistant">
+      <name>المساعد الذكي</name>
+      <lines>569</lines>
+      <purpose>مساعد AI يحلل البيانات ويقدم توصيات</purpose>
+    </page>
+
+    <page id="13" path="/system-support">
+      <name>الدعم الفني</name>
+      <lines>1548</lines>
+      <purpose>صفحة شاملة للدعم الفني والإعدادات المتقدمة</purpose>
+    </page>
+
+  </pages>
+
+  <!-- ============================================ -->
+  <!-- GLOBAL WORKFLOWS -->
+  <!-- ============================================ -->
+  <global_workflows>
+
+    <workflow name="branch_selection">
+      <trigger>أول زيارة للمستخدم</trigger>
+      <steps>
+        <step num="1">عرض BranchSelector</step>
+        <step num="2">المستخدم يختار لبن (1010) أو طويق (2020)</step>
+        <step num="3">حفظ في localStorage</step>
+        <step num="4">إعادة توجيه للصفحة المطلوبة</step>
+      </steps>
+      <persistence>الاختيار يُحفظ في localStorage</persistence>
+    </workflow>
+
+    <workflow name="real_time_updates">
+      <description>كل البيانات تتحدث فوراً بدون refresh</description>
+      <mechanism>Convex subscriptions</mechanism>
+      <example>
+        - إضافة إيراد → Dashboard يتحدث فوراً
+        - اعتماد طلب → صفحة الطلبات تتحدث
+        - توليد كشف راتب → قائمة الكشوف تتحدث
+      </example>
+    </workflow>
+
+    <workflow name="authentication">
+      <current>Anonymous auth (بدون تسجيل دخول)</current>
+      <components>
+        <Authenticated>محتوى للمستخدمين المسجلين</Authenticated>
+        <Unauthenticated>شاشة تسجيل دخول</Unauthenticated>
+        <AuthLoading>Skeleton أثناء التحقق</AuthLoading>
+      </components>
+      <future>قد يتم إزالتها في Cloudflare migration</future>
+    </workflow>
+
+  </global_workflows>
+
+  <!-- ============================================ -->
+  <!-- DATA MODEL -->
+  <!-- ============================================ -->
+  <data_model>
+
+    <table name="users">
+      <purpose>بيانات المستخدمين</purpose>
+      <fields>id, name, email, role, isAnonymous</fields>
+    </table>
+
+    <table name="branches">
+      <purpose>معلومات الفروع</purpose>
+      <fields>branchId (1010, 2020), branchName, supervisorEmail, isActive</fields>
+    </table>
+
+    <table name="revenues">
+      <purpose>الإيرادات اليومية</purpose>
+      <fields>date, cash, network, budget, total, employees[], isMatched, branchId</fields>
+      <indexes>by_date, by_branch</indexes>
+    </table>
+
+    <table name="expenses">
+      <purpose>المصروفات</purpose>
+      <fields>title, amount, category, date, branchId</fields>
+      <indexes>by_date, by_branch</indexes>
+    </table>
+
+    <table name="employees">
+      <purpose>بيانات الموظفين</purpose>
+      <fields>employeeName, nationalId, baseSalary, supervisorAllowance, incentives, isActive, branchId</fields>
+      <indexes>by_branch, by_name, by_branch_and_active</indexes>
+    </table>
+
+    <table name="advances">
+      <purpose>سلف الموظفين</purpose>
+      <fields>employeeId, amount, month, year, branchId</fields>
+      <indexes>by_employee, by_month_year, by_employee_month</indexes>
+    </table>
+
+    <table name="deductions">
+      <purpose>خصومات الموظفين</purpose>
+      <fields>employeeId, amount, reason, month, year, branchId</fields>
+      <indexes>by_employee, by_month_year, by_employee_month</indexes>
+    </table>
+
+    <table name="payrollRecords">
+      <purpose>كشوف الرواتب</purpose>
+      <fields>month, year, employees[], totalNetSalary, branchId</fields>
+      <indexes>by_branch_month</indexes>
+    </table>
+
+    <table name="bonusRecords">
+      <purpose>سجل البونصات المعتمدة</purpose>
+      <fields>weekNumber, weekLabel, employeeBonuses[], totalBonusPaid, revenueSnapshot[], branchId</fields>
+      <indexes>by_branch_and_date</indexes>
+    </table>
+
+    <table name="employeeRequests">
+      <purpose>طلبات الموظفين</purpose>
+      <fields>requestType, status, requestDate, details..., branchId</fields>
+      <types>سلفة، إجازة، استئذان، صرف متأخرات، اعتراض، استقالة</types>
+    </table>
+
+    <table name="productOrders">
+      <purpose>طلبات المنتجات</purpose>
+      <fields>products[], grandTotal, status, isDraft, branchId</fields>
+    </table>
+
+    <table name="backups">
+      <purpose>النسخ الاحتياطية</purpose>
+      <fields>date, type, dataSnapshot, revenues[], expenses[], ...</fields>
+    </table>
+
+    <table name="notifications">
+      <purpose>الإشعارات الذكية</purpose>
+      <fields>type, severity, title, message, aiGenerated, branchId</fields>
+    </table>
+
+  </data_model>
+
+  <!-- ============================================ -->
+  <!-- EVALUATION FRAMEWORK -->
+  <!-- ============================================ -->
+  <evaluation_framework>
+
+    <evaluation_type>Internal Self-Evaluation</evaluation_type>
+
+    <categories>
+
+      <category name="Data Accuracy" weight="0.30">
+        <description>دقة البيانات المحفوظة والمُحسوبة</description>
+        <tests>
+          <test>حساب الراتب الصافي = (الأساسي + البدلات + الحوافز) - (السلف + الخصومات)</test>
+          <test>البونص = sum(matched revenues) * percentage</test>
+          <test>total revenue = cash + network</test>
+          <test>مجموع إيرادات الموظفين = total revenue</test>
+        </tests>
+      </category>
+
+      <category name="Business Logic" weight="0.25">
+        <description>تطبيق قواعد العمل بشكل صحيح</description>
+        <tests>
+          <test>الإيرادات المطابقة فقط تُحسب في البونص</test>
+          <test>البونص يُعتمد فقط في اليوم الأول من الأسبوع</test>
+          <test>الموظفون النشطون فقط في كشف الرواتب</test>
+          <test>كل فرع يرى بياناته فقط</test>
+        </tests>
+      </category>
+
+      <category name="Real-time Updates" weight="0.20">
+        <description>التحديثات الفورية بدون refresh</description>
+        <tests>
+          <test>إضافة إيراد → Dashboard يتحدث فوراً</test>
+          <test>حذف مصروف → القائمة تتحدث</test>
+          <test>اعتماد بونص → السجل يتحدث</test>
+        </tests>
+      </category>
+
+      <category name="Validation" weight="0.15">
+        <description>التحقق من صحة المدخلات</description>
+        <tests>
+          <test>جميع الحقول المطلوبة موجودة</test>
+          <test>الأرقام > 0 حيث مطلوب</test>
+          <test>التواريخ صحيحة</test>
+          <test>رقم الهوية 10 أرقام</test>
+        </tests>
+      </category>
+
+      <category name="UX/Performance" weight="0.10">
+        <description>تجربة المستخدم والأداء</description>
+        <tests>
+          <test>التحميل < 2 ثانية</test>
+          <test>النماذج واضحة وسهلة</test>
+          <test>الألوان والأيقونات مفهومة</test>
+          <test>التنقل سلس</test>
+        </tests>
+      </category>
+
+    </categories>
+
+    <evaluation_steps>
+      <step num="1">
+        <action>Run automated tests on each page</action>
+        <verify>Data calculations are correct</verify>
+      </step>
+      <step num="2">
+        <action>Test business logic rules</action>
+        <verify>Rules are applied consistently</verify>
+      </step>
+      <step num="3">
+        <action>Test real-time updates</action>
+        <verify>UI updates without refresh</verify>
+      </step>
+      <step num="4">
+        <action>Test validation</action>
+        <verify>Invalid inputs are rejected</verify>
+      </step>
+      <step num="5">
+        <action>Test cross-page workflows</action>
+        <verify>Data flows correctly between pages</verify>
+      </step>
+      <step num="6">
+        <action>Generate evaluation report</action>
+        <format>
+          - Overall score (0-100)
+          - Category scores
+          - Failed tests
+          - Recommendations
+        </format>
+      </step>
+    </evaluation_steps>
+
+    <scoring>
+      <scale>0-100</scale>
+      <grade_A>90-100 (Excellent)</grade_A>
+      <grade_B>80-89 (Good)</grade_B>
+      <grade_C>70-79 (Acceptable)</grade_C>
+      <grade_D>60-69 (Needs Improvement)</grade_D>
+      <grade_F>0-59 (Failed)</grade_F>
+    </scoring>
+
+  </evaluation_framework>
+
+  <!-- ============================================ -->
+  <!-- MIGRATION NOTES -->
+  <!-- ============================================ -->
+  <migration_status>
+    <from>Convex (NoSQL + Real-time)</from>
+    <to>Cloudflare Workers + D1 (SQLite)</to>
+    <reason>
+      - إزالة الروابط الخارجية
+      - تبسيط المصادقة
+      - سهولة النشر على Cloudflare Pages
+      - لا تعقيدات dependencies
+    </reason>
+    <progress>
+      <completed>
+        - ✅ SQL Schema (17 جدول)
+        - ✅ Cloudflare Workers API (23 endpoints)
+        - ✅ Convex Adapter (محول شفاف)
+        - ✅ Documentation كاملة
+      </completed>
+      <remaining>
+        - ⏳ إنشاء D1 database
+        - ⏳ تحديث Frontend imports
+        - ⏳ الاختبار
+        - ⏳ النشر
+      </remaining>
+    </progress>
+  </migration_status>
+
+</lkm_system_documentation>
