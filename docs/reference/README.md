@@ -34,7 +34,9 @@ docs/reference/
 │   ├── working-memory.mdx
 │   ├── memory-processors.mdx
 │   ├── chunking-embedding.mdx
-│   └── custom-llm-eval.mdx
+│   ├── custom-llm-eval.mdx
+│   ├── hallucination-eval.mdx
+│   └── parallel-workflows.mdx
 │
 ├── claude-skills/        # Claude Skills Documentation
 │   └── authoring-best-practices.md
