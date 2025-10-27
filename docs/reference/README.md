@@ -33,7 +33,11 @@ docs/reference/
 │   ├── project-structure.mdx
 │   ├── working-memory.mdx
 │   ├── memory-processors.mdx
-│   └── chunking-embedding.mdx
+│   ├── chunking-embedding.mdx
+│   └── custom-llm-eval.mdx
+│
+├── claude-skills/        # Claude Skills Documentation
+│   └── authoring-best-practices.md
 │
 ├── workflows/            # GitHub Actions
 │   └── build.yml
