@@ -17,7 +17,8 @@ docs/reference/
 │
 ├── go/                   # Go Code Samples
 │   ├── file-history-service.go
-│   └── agent-tool.go
+│   ├── agent-tool.go
+│   └── agent-service.go
 │
 ├── workflows/            # GitHub Actions
 │   └── build.yml
@@ -114,6 +115,62 @@ docs/reference/
 ❌ لا يمكن للـ agent استخدام Bash, Replace, Edit
 ❌ لا يمكن تعديل الملفات (read-only)
 ```
+
+### Agent Service
+**الوصف:** خدمة Agent كاملة مع streaming ومعالجة tools وتلخيص محادثات
+**الميزات:**
+- Event-driven streaming architecture
+- Multi-provider support (OpenAI, Anthropic, Local)
+- Session management with cost tracking
+- Tool execution with permission handling
+- Conversation summarization
+- Title generation
+- Cancellation support
+- Token usage tracking and cost calculation
+
+**المشروع الأصلي:** OpenCode AI
+**الملف:** `go/agent-service.go`
+
+**Key Interface:**
+```go
+type Service interface {
+    pubsub.Suscriber[AgentEvent]
+    Model() models.Model
+    Run(ctx context.Context, sessionID string, content string,
+        attachments ...message.Attachment) (<-chan AgentEvent, error)
+    Cancel(sessionID string)
+    IsSessionBusy(sessionID string) bool
+    IsBusy() bool
+    Update(agentName config.AgentName, modelID models.ModelID) (models.Model, error)
+    Summarize(ctx context.Context, sessionID string) error
+}
+
+type AgentEvent struct {
+    Type    AgentEventType
+    Message message.Message
+    Error   error
+}
+```
+
+**Event Types:**
+- `AgentEventTypeError`: خطأ أثناء المعالجة
+- `AgentEventTypeResponse`: رد من الـ LLM
+- `AgentEventTypeSummarize`: تلخيص المحادثة
+
+**حساب التكلفة:**
+```go
+cost := model.CostPer1MInCached/1e6*float64(usage.CacheCreationTokens) +
+    model.CostPer1MOutCached/1e6*float64(usage.CacheReadTokens) +
+    model.CostPer1MIn/1e6*float64(usage.InputTokens) +
+    model.CostPer1MOut/1e6*float64(usage.OutputTokens)
+```
+
+**الاستخدامات المثالية:**
+✅ إنشاء agent services مع دعم streaming
+✅ إدارة جلسات متعددة مع تتبع التكلفة
+✅ تكامل مع providers مختلفة (OpenAI/Anthropic)
+✅ معالجة tools بشكل ديناميكي
+✅ تلخيص محادثات طويلة تلقائياً
 
 ---
 
