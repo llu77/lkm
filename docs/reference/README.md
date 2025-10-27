@@ -50,7 +50,8 @@ docs/reference/
 │   └── context-1m-beta.md
 │
 ├── prompt-engineering/   # Prompt Engineering Techniques
-│   └── chapter-6-thinking-step-by-step.ipynb
+│   ├── chapter-6-thinking-step-by-step.ipynb
+│   └── multi-turn-conversations.md
 │
 ├── workflows/            # GitHub Actions
 │   └── build.yml
@@ -1275,6 +1276,181 @@ SYSTEM_PROMPT = "You are a savvy reader of movie reviews."
 - فهم النصوص الساخرة أو المجازية
 - Questions تحتاج fact-checking
 - عندما تريد شفافية في reasoning process
+
+### Multi-turn Conversations
+**الوصف:** تقنيات إدارة المحادثات متعددة الأدوار مع Claude للحفاظ على السياق
+**الملف:** `prompt-engineering/multi-turn-conversations.md`
+**النوع:** دليل شامل مع أمثلة Python عملية
+
+**المفهوم الأساسي:**
+المحادثات متعددة الأدوار تسمح لـ Claude بالحفاظ على السياق عبر عدة exchanges بتمرير تاريخ المحادثة الكامل في messages array. كل turn يتضمن رسائل المستخدم والردود السابقة من Claude.
+
+**Message Array Structure:**
+```python
+messages = [
+    {"role": "user", "content": "Initial question"},
+    {"role": "assistant", "content": "Claude's response"},
+    {"role": "user", "content": "Follow-up question"},
+    {"role": "assistant", "content": "Second response"},
+    {"role": "user", "content": "Refinement request"}
+]
+```
+
+**Key Patterns:**
+
+**1. Iterative Refinement:**
+```python
+# Turn 1: Generate initial output
+messages = [{"role": "user", "content": "Write ten words ending in 'ab'"}]
+first_response = get_completion(messages)
+
+# Turn 2: Refine with guard clause
+messages.extend([
+    {"role": "assistant", "content": first_response},
+    {"role": "user", "content": "Find replacements for non-real words. If all are real, return original list."}
+])
+```
+
+Guard clauses تمنع التعديلات غير الضرورية عندما يكون output صحيح بالفعل.
+
+**2. Hardcoded Responses for Testing:**
+```python
+first_response = """Here are 10 words that end with 'ab':
+1. Cab
+2. Dab
+3. Grab..."""
+
+messages = [
+    {"role": "user", "content": prompt},
+    {"role": "assistant", "content": first_response},
+    {"role": "user", "content": refinement}
+]
+```
+
+يضمن سيناريوهات testing متسقة بتثبيت response معين.
+
+**3. Prefill Continuation:**
+```python
+# First turn with prefill
+messages = [
+    {"role": "user", "content": "Extract names from text"},
+    {"role": "assistant", "content": prefill}
+]
+first_response = get_completion(messages)
+
+# Second turn - concatenate prefill with response
+messages = [
+    {"role": "user", "content": "Extract names from text"},
+    {"role": "assistant", "content": prefill + "\n" + first_response},
+    {"role": "user", "content": "Alphabetize the list"}
+]
+```
+
+**4. Multi-step Data Processing:**
+```python
+# Pipeline pattern
+"Extract dates..." → "Convert to ISO..." → "Sort chronologically..."
+```
+
+**ConversationManager Class:**
+```python
+class ConversationManager:
+    def __init__(self, system_prompt=""):
+        self.messages = []
+        self.system_prompt = system_prompt
+
+    def add_user_message(self, content):
+        self.messages.append({"role": "user", "content": content})
+
+    def get_response(self):
+        response = get_completion(self.messages, self.system_prompt)
+        self.messages.append({"role": "assistant", "content": response})
+        return response
+
+    def reset(self):
+        self.messages = []
+```
+
+**Best Practices:**
+
+**Always include full conversation history** في messages array لكل API call حتى لو كانت المحادثة طويلة.
+
+**Alternate roles properly** - لا يمكن وجود رسالتين متتاليتين بنفس الـ role. يجب تبديل user/assistant/user.
+
+**Use guard clauses** في follow-up prompts لتفادي تعديلات غير مرغوبة عندما يكون output صحيح.
+
+**Monitor token usage** - المحادثات الطويلة تستهلك tokens بسرعة، استخدم context pruning عند الحاجة.
+
+**Be specific in follow-ups** - تجنب "make it better" واستخدم تعليمات واضحة مثل "add error handling" أو "use more descriptive variables".
+
+**Token Management:**
+```python
+total_tokens = 0
+for turn in conversation:
+    total_tokens += count_tokens(messages) + count_tokens(response)
+    if total_tokens > limit:
+        messages = prune_messages(messages)  # Remove oldest turns
+```
+
+**Use Cases:**
+
+**Iterative refinement** لتحسين outputs تدريجياً عبر عدة turns.
+
+**Data extraction pipelines** مثل extract → format → sort → filter.
+
+**Creative collaboration** مع تعديلات متعددة على نصوص إبداعية.
+
+**Classification and correction** حيث يصنف Claude ثم يصحح أخطاءه.
+
+**Conversational applications** مثل chatbots و virtual assistants.
+
+**Debugging workflows** حيث يشرح Claude خطواته ثم يصححها.
+
+**When to Avoid:**
+
+Simple one-shot queries لا تحتاج multi-turn overhead.
+
+Independent batch processing حيث كل query مستقل.
+
+Token budget constraints عند قيود صارمة على عدد الـ tokens.
+
+Real-time applications حيث latency مهم جداً.
+
+**Error Handling:**
+```python
+try:
+    response = get_completion(messages)
+    messages.append({"role": "assistant", "content": response})
+except anthropic.APIError as e:
+    # Handle retry logic or conversation reset
+    pass
+```
+
+**Common Pitfalls:**
+
+Forgetting to include previous turns في messages array.
+
+Consecutive messages بنفس الـ role.
+
+Not concatenating prefill مع responses في multi-turn.
+
+Vague follow-up instructions مثل "improve this" بدون تحديد.
+
+Ignoring token accumulation في محادثات طويلة.
+
+**الاستخدامات المثالية:**
+- بناء chatbots تفاعلية مع ذاكرة سياق
+- Iterative code refinement مع تحسينات متعددة
+- Data processing pipelines متعددة المراحل
+- Creative writing collaboration مع تعديلات تدريجية
+- Debugging و troubleshooting workflows
+- Complex tasks تتطلب خطوات متعددة
+
+**مهم:**
+- كل API call يجب أن يحتوي تاريخ المحادثة الكامل
+- الترتيب مهم: user ثم assistant ثم user...
+- Prefill يجب concatenation مع response في الـ turn التالي
+- استخدم explicit instructions وليس vague requests
 
 ---
 
