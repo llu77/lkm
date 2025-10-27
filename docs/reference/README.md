@@ -37,7 +37,8 @@ docs/reference/
 │   ├── json-chunking.mdx
 │   ├── custom-llm-eval.mdx
 │   ├── hallucination-eval.mdx
-│   └── parallel-workflows.mdx
+│   ├── parallel-workflows.mdx
+│   └── agent-get-memory.mdx
 │
 ├── claude-skills/        # Claude Skills Documentation
 │   └── authoring-best-practices.md

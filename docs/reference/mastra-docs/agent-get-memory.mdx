@@ -1,0 +1,45 @@
+---
+title: "Reference: Agent.getMemory() | Agents | Mastra Docs"
+description: Documentation for the `Agent.getMemory()` method in Mastra agents, which retrieves the memory system associated with the agent.
+---
+
+# Agent.getMemory()
+
+The `.getMemory()` method retrieves the memory system associated with an agent. This method is used to access the agent's memory capabilities for storing and retrieving information across conversations.
+
+## Usage example
+
+```typescript
+await agent.getMemory();
+```
+
+## Parameters
+
+| Parameter | Type | Optional | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `options` | `{ runtimeContext?: RuntimeContext }` | Yes | `{}` | Optional configuration object containing runtime context. |
+
+## Returns
+
+| Name | Type | Description |
+|------|------|-------------|
+| `memory` | `Promise<MastraMemory \| undefined>` | A promise that resolves to the memory system configured for the agent, or undefined if no memory system is configured. |
+
+## Extended usage example
+
+```typescript
+await agent.getMemory({
+  runtimeContext: new RuntimeContext()
+});
+```
+
+## Options parameters
+
+| Parameter | Type | Optional | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `runtimeContext` | `RuntimeContext` | Yes | `new RuntimeContext()` | Runtime context for dependency injection and contextual information. |
+
+## Related
+
+- Agent memory
+- Runtime Context
