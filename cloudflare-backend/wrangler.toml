@@ -1,0 +1,22 @@
+name = "lkm-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-27"
+
+# Cloudflare D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "lkm-database"
+database_id = "" # سيتم إضافته بعد إنشاء D1
+
+# Environment Variables
+[vars]
+ENVIRONMENT = "production"
+
+# CORS Origins
+[vars]
+ALLOWED_ORIGINS = "http://localhost:5173,https://*.pages.dev"
+
+# Development settings
+[env.development]
+[env.development.vars]
+ENVIRONMENT = "development"
