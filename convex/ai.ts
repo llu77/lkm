@@ -116,6 +116,15 @@ interface PatternAnalysisResult {
 // ============================================================================
 
 /**
+ * Sandbox configuration interface
+ */
+interface SandboxConfig {
+  httpProxyPort?: number;
+  socksProxyPort?: number;
+  dangerouslyDisableSandbox?: boolean;
+}
+
+/**
  * Configuration constants for AI agents
  */
 const AI_CONFIG = {
@@ -125,7 +134,11 @@ const AI_CONFIG = {
   RETRY_DELAY: 1000,
   RATE_LIMIT_PER_MINUTE: 10,
   FALLBACK_MODEL: "claude-3-5-sonnet-20241022",
-  PREMIUM_MODEL: "claude-3-5-sonnet-20241022"
+  PREMIUM_MODEL: "claude-3-5-sonnet-20241022",
+  SANDBOX: {
+    httpProxyPort: 8080,
+    socksProxyPort: 8081,
+  } as SandboxConfig
 } as const;
 
 /**
@@ -169,10 +182,29 @@ class EnhancedAnthropicClient {
   private client: Anthropic;
   private apiKey: string;
   private rateLimiter: RateLimiter;
+  private sandboxConfig?: SandboxConfig;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, sandboxConfig?: SandboxConfig) {
     this.apiKey = apiKey;
-    this.client = new Anthropic({ apiKey });
+    this.sandboxConfig = sandboxConfig;
+
+    // Initialize Anthropic client with sandbox configuration
+    const clientOptions: any = { apiKey };
+
+    // Add sandbox configuration if provided
+    if (sandboxConfig) {
+      if (sandboxConfig.dangerouslyDisableSandbox !== undefined) {
+        clientOptions.dangerouslyDisableSandbox = sandboxConfig.dangerouslyDisableSandbox;
+      }
+      if (sandboxConfig.httpProxyPort || sandboxConfig.socksProxyPort) {
+        clientOptions.sandbox = {
+          ...(sandboxConfig.httpProxyPort && { httpProxyPort: sandboxConfig.httpProxyPort }),
+          ...(sandboxConfig.socksProxyPort && { socksProxyPort: sandboxConfig.socksProxyPort })
+        };
+      }
+    }
+
+    this.client = new Anthropic(clientOptions);
     this.rateLimiter = new RateLimiter();
   }
 
@@ -337,7 +369,7 @@ export const validateRevenueData = action({
         throw new Error("ANTHROPIC_API_KEY not configured");
       }
 
-      const anthropic = new EnhancedAnthropicClient(apiKey);
+      const anthropic = new EnhancedAnthropicClient(apiKey, AI_CONFIG.SANDBOX);
 
       // Enhanced statistical analysis
       const stats = calculateRevenueStatistics(revenue, historicalData);
@@ -600,7 +632,7 @@ export const generateSmartContent = action({
         throw new Error("ANTHROPIC_API_KEY not configured");
       }
 
-      const anthropic = new EnhancedAnthropicClient(apiKey);
+      const anthropic = new EnhancedAnthropicClient(apiKey, AI_CONFIG.SANDBOX);
 
       // Build context-aware prompt
       const prompt = buildContentPrompt(contentType, context);
@@ -809,7 +841,7 @@ export const sendSmartEmail = action({
         throw new Error("ANTHROPIC_API_KEY not configured");
       }
 
-      const anthropic = new EnhancedAnthropicClient(apiKey);
+      const anthropic = new EnhancedAnthropicClient(apiKey, AI_CONFIG.SANDBOX);
 
       // Generate email content with context
       const emailPrompt = `أنت Email Writer Agent متخصص في كتابة إيميلات احترافية وفعالة.
@@ -921,7 +953,7 @@ export const analyzeRevenuePatterns = action({
         throw new Error("ANTHROPIC_API_KEY not configured");
       }
 
-      const anthropic = new EnhancedAnthropicClient(apiKey);
+      const anthropic = new EnhancedAnthropicClient(apiKey, AI_CONFIG.SANDBOX);
 
       // Get recent revenues with enhanced filtering
       const daysBack = options?.daysBack || 30;
