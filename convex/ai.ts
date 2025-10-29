@@ -135,6 +135,20 @@ const AI_CONFIG = {
   RATE_LIMIT_PER_MINUTE: 10,
   FALLBACK_MODEL: "claude-3-5-sonnet-20241022",
   PREMIUM_MODEL: "claude-3-5-sonnet-20241022",
+  /**
+   * Sandbox configuration for secure code execution
+   *
+   * The Anthropic sandbox runtime provides isolated execution environment
+   * for AI-generated code. Configure proxy ports to enable communication
+   * between the Anthropic SDK and the sandbox runtime.
+   *
+   * To start the sandbox runtime:
+   *   npm run sandbox          # For bash commands
+   *   npm run sandbox:node     # For Node.js execution
+   *
+   * Or directly:
+   *   npx @anthropic-ai/sandbox-runtime <command>
+   */
   SANDBOX: {
     httpProxyPort: 8080,
     socksProxyPort: 8081,
