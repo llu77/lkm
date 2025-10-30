@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { requireAdmin } from '@/lib/session';
+import { requireAuthWithPermissions, requirePermission, logAudit, getClientIP } from '@/lib/permissions';
 import {
   triggerProductOrderApproved,
   triggerProductOrderRejected,
@@ -7,10 +7,21 @@ import {
 } from '@/lib/email-triggers';
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  // Check admin authentication
-  const authResult = await requireAdmin(locals.runtime.env.SESSIONS, request);
+  // Check authentication with permissions
+  const authResult = await requireAuthWithPermissions(
+    locals.runtime.env.SESSIONS,
+    locals.runtime.env.DB,
+    request
+  );
+
   if (authResult instanceof Response) {
     return authResult;
+  }
+
+  // Check permission to manage orders
+  const permError = requirePermission(authResult, 'canManageOrders');
+  if (permError) {
+    return permError;
   }
 
   try {
@@ -116,6 +127,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
       console.error('Email trigger error:', emailError);
       // Don't fail the request if email fails
     }
+
+    // Log audit
+    await logAudit(
+      locals.runtime.env.DB,
+      authResult,
+      'update',
+      'product_order',
+      orderId,
+      { oldStatus: currentStatus, newStatus },
+      getClientIP(request),
+      request.headers.get('User-Agent') || undefined
+    );
 
     return new Response(
       JSON.stringify({

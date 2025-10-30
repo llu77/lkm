@@ -1,13 +1,24 @@
 import type { APIRoute } from 'astro';
-import { requireAdmin } from '@/lib/session';
+import { requireAuthWithPermissions, requirePermission, logAudit, getClientIP } from '@/lib/permissions';
 import { employeeRequestQueries } from '@/lib/db';
 import { triggerEmployeeRequestResponded } from '@/lib/email-triggers';
 
 export const PUT: APIRoute = async ({ request, locals }) => {
-  // Check admin authentication
-  const authResult = await requireAdmin(locals.runtime.env.SESSIONS, request);
+  // Check authentication with permissions
+  const authResult = await requireAuthWithPermissions(
+    locals.runtime.env.SESSIONS,
+    locals.runtime.env.DB,
+    request
+  );
+
   if (authResult instanceof Response) {
     return authResult;
+  }
+
+  // Check permission to approve requests
+  const permError = requirePermission(authResult, 'canApproveRequests');
+  if (permError) {
+    return permError;
   }
 
   try {
@@ -73,6 +84,18 @@ export const PUT: APIRoute = async ({ request, locals }) => {
     } catch (emailError) {
       console.error('Email trigger error:', emailError);
     }
+
+    // Log audit
+    await logAudit(
+      locals.runtime.env.DB,
+      authResult,
+      'update',
+      'employee_request',
+      id,
+      { status, adminResponse },
+      getClientIP(request),
+      request.headers.get('User-Agent') || undefined
+    );
 
     return new Response(
       JSON.stringify({

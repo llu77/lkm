@@ -1,19 +1,43 @@
 import type { APIRoute } from 'astro';
-import { requireAuth } from '@/lib/session';
+import { requireAuthWithPermissions, requirePermission, validateBranchAccess } from '@/lib/permissions';
 
 export const GET: APIRoute = async ({ request, locals }) => {
-  // Check authentication
-  const authResult = await requireAuth(locals.runtime.env.SESSIONS, request);
+  // Check authentication with permissions
+  const authResult = await requireAuthWithPermissions(
+    locals.runtime.env.SESSIONS,
+    locals.runtime.env.DB,
+    request
+  );
+
   if (authResult instanceof Response) {
     return authResult;
   }
 
+  // Check permission to manage orders
+  const permError = requirePermission(authResult, 'canManageOrders');
+  if (permError) {
+    return permError;
+  }
+
   try {
     const url = new URL(request.url);
-    const branchId = url.searchParams.get('branchId');
+    let branchId = url.searchParams.get('branchId');
     const status = url.searchParams.get('status');
     const employeeName = url.searchParams.get('employeeName');
     const isDraft = url.searchParams.get('isDraft');
+
+    // If no branchId provided, use user's branch
+    if (!branchId) {
+      branchId = authResult.permissions.branchId;
+    }
+
+    // Validate branch access if branchId is specified
+    if (branchId) {
+      const branchError = validateBranchAccess(authResult, branchId);
+      if (branchError) {
+        return branchError;
+      }
+    }
 
     let query = `
       SELECT *

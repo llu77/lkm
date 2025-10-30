@@ -1,11 +1,22 @@
 import type { APIRoute } from 'astro';
-import { requireAuth } from '@/lib/session';
+import { requireAuthWithPermissions, requirePermission } from '@/lib/permissions';
 
 export const GET: APIRoute = async ({ request, locals }) => {
-  // Check authentication
-  const authResult = await requireAuth(locals.runtime.env.SESSIONS, request);
+  // Check authentication with permissions
+  const authResult = await requireAuthWithPermissions(
+    locals.runtime.env.SESSIONS,
+    locals.runtime.env.DB,
+    request
+  );
+
   if (authResult instanceof Response) {
     return authResult;
+  }
+
+  // Check permission to view reports (needed to view deductions)
+  const permError = requirePermission(authResult, 'canViewReports');
+  if (permError) {
+    return permError;
   }
 
   try {

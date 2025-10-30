@@ -1,11 +1,22 @@
 import type { APIRoute } from 'astro';
-import { requireAdmin } from '@/lib/session';
+import { requireAuthWithPermissions, requirePermission, validateBranchAccess } from '@/lib/permissions';
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  // Check admin authentication
-  const authResult = await requireAdmin(locals.runtime.env.SESSIONS, request);
+  // Check authentication with permissions
+  const authResult = await requireAuthWithPermissions(
+    locals.runtime.env.SESSIONS,
+    locals.runtime.env.DB,
+    request
+  );
+
   if (authResult instanceof Response) {
     return authResult;
+  }
+
+  // Check permission to generate payroll
+  const permError = requirePermission(authResult, 'canGeneratePayroll');
+  if (permError) {
+    return permError;
   }
 
   try {
@@ -20,6 +31,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
           headers: { 'Content-Type': 'application/json' }
         }
       );
+    }
+
+    // Validate branch access
+    const branchError = validateBranchAccess(authResult, branchId);
+    if (branchError) {
+      return branchError;
     }
 
     // Get all active employees

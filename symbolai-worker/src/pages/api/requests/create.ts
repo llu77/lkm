@@ -1,16 +1,25 @@
 import type { APIRoute } from 'astro';
-import { requireAuth } from '@/lib/session';
+import { requireAuthWithPermissions, requirePermission, validateBranchAccess, logAudit, getClientIP } from '@/lib/permissions';
 import { employeeRequestQueries, generateId, notificationQueries } from '@/lib/db';
 import { triggerEmployeeRequestCreated } from '@/lib/email-triggers';
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  // Check authentication
-  const authResult = await requireAuth(locals.runtime.env.SESSIONS, request);
+  // Check authentication with permissions
+  const authResult = await requireAuthWithPermissions(
+    locals.runtime.env.SESSIONS,
+    locals.runtime.env.DB,
+    request
+  );
+
   if (authResult instanceof Response) {
     return authResult;
   }
 
-  const session = authResult;
+  // Check permission to submit requests
+  const permError = requirePermission(authResult, 'canSubmitRequests');
+  if (permError) {
+    return permError;
+  }
 
   try {
     const {
@@ -42,6 +51,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
           headers: { 'Content-Type': 'application/json' }
         }
       );
+    }
+
+    // Validate branch access
+    const branchError = validateBranchAccess(authResult, branchId);
+    if (branchError) {
+      return branchError;
     }
 
     // Validate request type
@@ -134,7 +149,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       nationalId,
       requestType,
       requestDate,
-      userId: session.userId,
+      userId: authResult.userId,
       advanceAmount: advanceAmount ? parseFloat(advanceAmount) : undefined,
       vacationDate,
       duesAmount: duesAmount ? parseFloat(duesAmount) : undefined,
@@ -189,12 +204,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
         requestDate,
         requestDetails,
         branchId,
-        userId: session.userId
+        userId: authResult.userId
       });
     } catch (emailError) {
       // Log error but don't fail the request
       console.error('Email trigger error:', emailError);
     }
+
+    // Log audit
+    await logAudit(
+      locals.runtime.env.DB,
+      authResult,
+      'create',
+      'employee_request',
+      requestId,
+      { branchId, employeeName, requestType, nationalId },
+      getClientIP(request),
+      request.headers.get('User-Agent') || undefined
+    );
 
     return new Response(
       JSON.stringify({

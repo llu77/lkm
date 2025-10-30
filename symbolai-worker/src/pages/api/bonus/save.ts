@@ -1,15 +1,24 @@
 import type { APIRoute } from 'astro';
-import { requireAdmin } from '@/lib/session';
+import { requireAuthWithPermissions, requirePermission, validateBranchAccess, logAudit, getClientIP } from '@/lib/permissions';
 import { bonusQueries, generateId } from '@/lib/db';
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  // Check admin authentication
-  const authResult = await requireAdmin(locals.runtime.env.SESSIONS, request);
+  // Check authentication with permissions
+  const authResult = await requireAuthWithPermissions(
+    locals.runtime.env.SESSIONS,
+    locals.runtime.env.DB,
+    request
+  );
+
   if (authResult instanceof Response) {
     return authResult;
   }
 
-  const session = authResult;
+  // Check permission to manage bonus
+  const permError = requirePermission(authResult, 'canManageBonus');
+  if (permError) {
+    return permError;
+  }
 
   try {
     const {
@@ -34,6 +43,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
+    // Validate branch access
+    const branchError = validateBranchAccess(authResult, branchId);
+    if (branchError) {
+      return branchError;
+    }
+
     const bonusId = generateId();
 
     await bonusQueries.create(locals.runtime.env.DB, {
@@ -52,9 +67,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
       await bonusQueries.approve(
         locals.runtime.env.DB,
         bonusId,
-        session.username
+        authResult.permissions.username
       );
     }
+
+    // Log audit
+    await logAudit(
+      locals.runtime.env.DB,
+      authResult,
+      'create',
+      'bonus_record',
+      bonusId,
+      { branchId, weekNumber, month, year, totalBonusPaid, approved },
+      getClientIP(request),
+      request.headers.get('User-Agent') || undefined
+    );
 
     return new Response(
       JSON.stringify({

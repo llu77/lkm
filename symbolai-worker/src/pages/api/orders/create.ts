@@ -1,13 +1,24 @@
 import type { APIRoute } from 'astro';
-import { requireAuth } from '@/lib/session';
+import { requireAuthWithPermissions, requirePermission, validateBranchAccess, logAudit, getClientIP } from '@/lib/permissions';
 import { generateId } from '@/lib/db';
 import { triggerProductOrderPending } from '@/lib/email-triggers';
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  // Check authentication
-  const authResult = await requireAuth(locals.runtime.env.SESSIONS, request);
+  // Check authentication with permissions
+  const authResult = await requireAuthWithPermissions(
+    locals.runtime.env.SESSIONS,
+    locals.runtime.env.DB,
+    request
+  );
+
   if (authResult instanceof Response) {
     return authResult;
+  }
+
+  // Check permission to manage orders
+  const permError = requirePermission(authResult, 'canManageOrders');
+  if (permError) {
+    return permError;
   }
 
   try {
@@ -28,6 +39,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
           headers: { 'Content-Type': 'application/json' }
         }
       );
+    }
+
+    // Validate branch access
+    const branchError = validateBranchAccess(authResult, branchId);
+    if (branchError) {
+      return branchError;
     }
 
     // Validate each product
@@ -95,6 +112,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
         console.error('Email trigger error:', emailError);
       }
     }
+
+    // Log audit
+    await logAudit(
+      locals.runtime.env.DB,
+      authResult,
+      'create',
+      'product_order',
+      orderId,
+      { branchId, employeeName, grandTotal, status, isDraft },
+      getClientIP(request),
+      request.headers.get('User-Agent') || undefined
+    );
 
     return new Response(
       JSON.stringify({

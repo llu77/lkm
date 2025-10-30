@@ -1,12 +1,23 @@
 import type { APIRoute } from 'astro';
-import { requireAdmin } from '@/lib/session';
+import { requireAuthWithPermissions, requirePermission, logAudit, getClientIP } from '@/lib/permissions';
 import { generateId } from '@/lib/db';
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  // Check admin authentication
-  const authResult = await requireAdmin(locals.runtime.env.SESSIONS, request);
+  // Check authentication with permissions
+  const authResult = await requireAuthWithPermissions(
+    locals.runtime.env.SESSIONS,
+    locals.runtime.env.DB,
+    request
+  );
+
   if (authResult instanceof Response) {
     return authResult;
+  }
+
+  // Check permission to manage employees (needed for deductions)
+  const permError = requirePermission(authResult, 'canManageEmployees');
+  if (permError) {
+    return permError;
   }
 
   try {
@@ -59,7 +70,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Create deduction record
     const deductionId = generateId();
-    const { username } = authResult;
+    const { username } = authResult.permissions;
 
     // Combine deductionType with reason if both exist
     const fullReason = deductionType
@@ -80,6 +91,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
       fullReason,
       username || 'admin'
     ).run();
+
+    // Log audit
+    await logAudit(
+      locals.runtime.env.DB,
+      authResult,
+      'create',
+      'deduction',
+      deductionId,
+      { employeeId, amount: parsedAmount, month, year, deductionType },
+      getClientIP(request),
+      request.headers.get('User-Agent') || undefined
+    );
 
     return new Response(
       JSON.stringify({
