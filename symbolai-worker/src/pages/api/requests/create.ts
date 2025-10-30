@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { requireAuth } from '@/lib/session';
 import { employeeRequestQueries, generateId, notificationQueries } from '@/lib/db';
+import { triggerEmployeeRequestCreated } from '@/lib/email-triggers';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   // Check authentication
@@ -155,6 +156,45 @@ export const POST: APIRoute = async ({ request, locals }) => {
       actionRequired: true,
       relatedEntity: requestId
     });
+
+    // Send email notification
+    try {
+      // Build request details based on type
+      let requestDetails = '';
+      switch (requestType) {
+        case 'سلفة':
+          requestDetails = `مبلغ السلفة: ${advanceAmount} ج.م${reason ? `\nالسبب: ${reason}` : ''}`;
+          break;
+        case 'إجازة':
+          requestDetails = `من ${vacationStart} إلى ${vacationEnd}${reason ? `\nالسبب: ${reason}` : ''}`;
+          break;
+        case 'صرف متأخرات':
+          requestDetails = `مبلغ المتأخرات: ${duesAmount} ج.م`;
+          break;
+        case 'استئذان':
+          requestDetails = `التاريخ: ${permissionDate} في ${permissionTime}${reason ? `\nالسبب: ${reason}` : ''}`;
+          break;
+        case 'مخالفة':
+          requestDetails = `التاريخ: ${violationDate}\nالوصف: ${violationDescription}`;
+          break;
+        case 'استقالة':
+          requestDetails = `تاريخ الاستقالة: ${resignationDate}\nالسبب: ${resignationReason}`;
+          break;
+      }
+
+      await triggerEmployeeRequestCreated(locals.runtime.env, {
+        requestId,
+        employeeName,
+        requestType,
+        requestDate,
+        requestDetails,
+        branchId,
+        userId: session.userId
+      });
+    } catch (emailError) {
+      // Log error but don't fail the request
+      console.error('Email trigger error:', emailError);
+    }
 
     return new Response(
       JSON.stringify({

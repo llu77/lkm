@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { requireAdmin } from '@/lib/session';
 import { employeeRequestQueries } from '@/lib/db';
+import { triggerEmployeeRequestResponded } from '@/lib/email-triggers';
 
 export const PUT: APIRoute = async ({ request, locals }) => {
   // Check admin authentication
@@ -33,6 +34,23 @@ export const PUT: APIRoute = async ({ request, locals }) => {
       );
     }
 
+    // Get request details before updating
+    const requestDetails = await locals.runtime.env.DB.prepare(`
+      SELECT employee_name, request_type, user_id
+      FROM employee_requests
+      WHERE id = ?
+    `).bind(id).first();
+
+    if (!requestDetails) {
+      return new Response(
+        JSON.stringify({ error: 'الطلب غير موجود' }),
+        {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Update request with response
     await employeeRequestQueries.respond(
       locals.runtime.env.DB,
@@ -41,10 +59,20 @@ export const PUT: APIRoute = async ({ request, locals }) => {
       adminResponse
     );
 
-    // TODO: Send email to employee
-    // This will be implemented in the Email module
-    // For now, just log it
-    console.log(`Email should be sent for request ${id}: ${status}`);
+    // Send email to employee
+    try {
+      await triggerEmployeeRequestResponded(locals.runtime.env, {
+        requestId: id,
+        employeeName: requestDetails.employee_name as string,
+        requestType: requestDetails.request_type as string,
+        status,
+        adminResponse,
+        responseDate: new Date().toLocaleDateString('ar-EG'),
+        userId: requestDetails.user_id as string
+      });
+    } catch (emailError) {
+      console.error('Email trigger error:', emailError);
+    }
 
     return new Response(
       JSON.stringify({
