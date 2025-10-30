@@ -1,24 +1,68 @@
-# Email System Database Migrations
+# Database Migrations
 
-This directory contains SQL migrations for the SymbolAI email system.
+This directory contains SQL migrations for the SymbolAI Worker system, including Email, RBAC, and seed data.
+
+## Migration Files
+
+| File | Description | Tables Created |
+|------|-------------|----------------|
+| `001_create_email_tables.sql` | Email system tables | email_logs, email_settings |
+| `002_create_branches_and_roles.sql` | RBAC system tables | branches, roles, users_new, audit_logs |
+| `003_seed_branches_and_users_hashed.sql` | Seed data (test data) | Populates branches, users, employees |
 
 ## Setup Instructions
 
-### 1. Apply Database Migration
+### 1. Apply Database Migrations (In Order)
 
 **For local development:**
 ```bash
 cd symbolai-worker
+
+# Migration 1: Email System
 wrangler d1 execute DB --local --file=./migrations/001_create_email_tables.sql
+
+# Migration 2: RBAC System
+wrangler d1 execute DB --local --file=./migrations/002_create_branches_and_roles.sql
+
+# Migration 3: Seed Data (Optional - for testing only)
+wrangler d1 execute DB --local --file=./migrations/003_seed_branches_and_users_hashed.sql
 ```
 
 **For production:**
 ```bash
 cd symbolai-worker
+
+# Migration 1: Email System
 wrangler d1 execute DB --remote --file=./migrations/001_create_email_tables.sql
+
+# Migration 2: RBAC System
+wrangler d1 execute DB --remote --file=./migrations/002_create_branches_and_roles.sql
+
+# Migration 3: Seed Data (DO NOT use in production - test data only)
+# Skip this migration in production or create your own with secure credentials
 ```
 
-### 2. Configure Resend API
+### 2. Configure RBAC System
+
+The RBAC (Role-Based Access Control) system is automatically set up with Migration 2.
+
+**Default Roles Created:**
+- `role_admin` - Full system access, all permissions
+- `role_supervisor` - Branch manager, can manage their branch only
+- `role_partner` - Read-only access to view branch statistics
+- `role_employee` - Limited access to submit and view own requests/bonus
+
+**Test Data:** See `SEED_DATA.md` for information about test credentials.
+
+**Create Admin User:**
+Use the `/api/users/create` endpoint or create manually:
+```sql
+-- Replace password_hash with SHA-256 hash of your password
+INSERT INTO users_new (id, username, password, email, full_name, role_id, is_active)
+VALUES ('admin_user', 'admin', 'your_sha256_hash', 'admin@symbolai.net', 'System Admin', 'role_admin', 1);
+```
+
+### 3. Configure Resend API
 
 1. Sign up at [Resend](https://resend.com)
 2. Get your API key from the dashboard
@@ -33,7 +77,7 @@ Or use secrets for production:
 wrangler secret put RESEND_API_KEY
 ```
 
-### 3. Setup Resend Webhook
+### 4. Setup Resend Webhook
 
 1. Go to Resend Dashboard → Webhooks
 2. Add endpoint: `https://symbolai.net/api/webhooks/resend`
@@ -48,7 +92,7 @@ wrangler secret put RESEND_API_KEY
 RESEND_WEBHOOK_SECRET = "whsec_xxxxxxxxxxxxx"
 ```
 
-### 4. Configure Email Queue
+### 5. Configure Email Queue
 
 Create the email queue in Cloudflare:
 
@@ -69,7 +113,7 @@ max_batch_timeout = 30
 max_retries = 3
 ```
 
-### 5. Setup Cron Triggers
+### 6. Setup Cron Triggers
 
 Cron triggers are configured in `wrangler.toml` for:
 - Daily backup emails (2 AM)
@@ -79,7 +123,7 @@ Cron triggers are configured in `wrangler.toml` for:
 
 No additional setup needed.
 
-### 6. Configure KV Namespace for Rate Limiting
+### 7. Configure KV Namespace for Rate Limiting
 
 Create KV namespace for rate limit counters:
 
@@ -94,7 +138,7 @@ binding = "EMAIL_RATE_LIMITS"
 id = "your-kv-namespace-id"
 ```
 
-### 7. Update Email Settings
+### 8. Update Email Settings
 
 After deployment, visit `/email-settings` in the app to configure:
 - Sender email and name
