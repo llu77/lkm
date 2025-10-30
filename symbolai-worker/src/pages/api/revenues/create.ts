@@ -1,16 +1,25 @@
 import type { APIRoute } from 'astro';
-import { requireAuth } from '@/lib/session';
-import { revenueQueries, generateId, notificationQueries } from '@/lib/db';
+import { requireAuthWithPermissions, requirePermission, validateBranchAccess, logAudit, getClientIP } from '@/lib/permissions';
+import { generateId } from '@/lib/db';
 import { triggerRevenueMismatch } from '@/lib/email-triggers';
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  // Check authentication
-  const authResult = await requireAuth(locals.runtime.env.SESSIONS, request);
+  // Check authentication with permissions
+  const authResult = await requireAuthWithPermissions(
+    locals.runtime.env.SESSIONS,
+    locals.runtime.env.DB,
+    request
+  );
+
   if (authResult instanceof Response) {
     return authResult;
   }
 
-  const session = authResult;
+  // Check permission to add revenue
+  const permError = requirePermission(authResult, 'canAddRevenue');
+  if (permError) {
+    return permError;
+  }
 
   try {
     const {
@@ -34,18 +43,27 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
+    // Validate branch access
+    const branchError = validateBranchAccess(authResult, branchId);
+    if (branchError) {
+      return branchError;
+    }
+
     // Create revenue record
     const revenueId = generateId();
-    await revenueQueries.create(locals.runtime.env.DB, {
-      id: revenueId,
+    await locals.runtime.env.DB.prepare(`
+      INSERT INTO revenues (id, branch_id, date, cash, network, budget, total, employees)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      revenueId,
       branchId,
       date,
-      cash: cash || 0,
-      network: network || 0,
-      budget: budget || 0,
+      cash || 0,
+      network || 0,
+      budget || 0,
       total,
-      employees: employees ? JSON.stringify(employees) : undefined
-    });
+      employees ? JSON.stringify(employees) : null
+    ).run();
 
     // Check if amounts match
     const calculatedTotal = (cash || 0) + (network || 0) + (budget || 0);
@@ -53,16 +71,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Create notification if mismatched
     if (!isMatched) {
-      await notificationQueries.create(locals.runtime.env.DB, {
-        id: generateId(),
+      const notifId = generateId();
+      await locals.runtime.env.DB.prepare(`
+        INSERT INTO notifications (id, branch_id, type, severity, title, message, action_required, related_entity)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        notifId,
         branchId,
-        type: 'revenue_mismatch',
-        severity: 'high',
-        title: 'تحذير: إيراد غير متطابق',
-        message: `الإيراد بتاريخ ${date} غير متطابق. المجموع المدخل: ${total} ج.م، المحسوب: ${calculatedTotal} ج.م`,
-        actionRequired: true,
-        relatedEntity: revenueId
-      });
+        'revenue_mismatch',
+        'high',
+        'تحذير: إيراد غير متطابق',
+        `الإيراد بتاريخ ${date} غير متطابق. المجموع المدخل: ${total} ج.م، المحسوب: ${calculatedTotal} ج.م`,
+        1,
+        revenueId
+      ).run();
 
       // Send email alert for revenue mismatch
       try {
@@ -76,13 +98,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
           network: network || 0,
           budget: budget || 0,
           branchId,
-          userId: session.userId
+          userId: authResult.userId
         });
       } catch (emailError) {
         console.error('Email trigger error:', emailError);
         // Don't fail the request if email fails
       }
     }
+
+    // Log audit
+    await logAudit(
+      locals.runtime.env.DB,
+      authResult,
+      'create',
+      'revenue',
+      revenueId,
+      { branchId, date, total, cash, network, budget },
+      getClientIP(request),
+      request.headers.get('User-Agent') || undefined
+    );
 
     return new Response(
       JSON.stringify({

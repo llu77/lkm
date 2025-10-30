@@ -1,14 +1,25 @@
 import type { APIRoute } from 'astro';
-import { requireAuth } from '@/lib/session';
-import { expenseQueries, generateId } from '@/lib/db';
+import { requireAuthWithPermissions, requirePermission, validateBranchAccess, logAudit, getClientIP } from '@/lib/permissions';
+import { generateId } from '@/lib/db';
 import { categorizeExpense } from '@/lib/ai';
 import { triggerLargeExpense } from '@/lib/email-triggers';
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  // Check authentication
-  const authResult = await requireAuth(locals.runtime.env.SESSIONS, request);
+  // Check authentication with permissions
+  const authResult = await requireAuthWithPermissions(
+    locals.runtime.env.SESSIONS,
+    locals.runtime.env.DB,
+    request
+  );
+
   if (authResult instanceof Response) {
     return authResult;
+  }
+
+  // Check permission to add expense
+  const permError = requirePermission(authResult, 'canAddExpense');
+  if (permError) {
+    return permError;
   }
 
   try {
@@ -31,6 +42,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
           headers: { 'Content-Type': 'application/json' }
         }
       );
+    }
+
+    // Validate branch access
+    const branchError = validateBranchAccess(authResult, branchId);
+    if (branchError) {
+      return branchError;
     }
 
     let finalCategory = category;
@@ -58,15 +75,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Create expense record
     const expenseId = generateId();
     const parsedAmount = parseFloat(amount);
-    await expenseQueries.create(locals.runtime.env.DB, {
-      id: expenseId,
+    await locals.runtime.env.DB.prepare(`
+      INSERT INTO expenses (id, branch_id, title, amount, category, description, date)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      expenseId,
       branchId,
       title,
-      amount: parsedAmount,
-      category: finalCategory,
-      description,
+      parsedAmount,
+      finalCategory,
+      description || null,
       date
-    });
+    ).run();
 
     // Send email alert for large expenses (> 1000 ج.م)
     if (parsedAmount > 1000) {
@@ -86,6 +106,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
         // Don't fail the request if email fails
       }
     }
+
+    // Log audit
+    await logAudit(
+      locals.runtime.env.DB,
+      authResult,
+      'create',
+      'expense',
+      expenseId,
+      { branchId, title, amount: parsedAmount, category: finalCategory },
+      getClientIP(request),
+      request.headers.get('User-Agent') || undefined
+    );
 
     return new Response(
       JSON.stringify({
