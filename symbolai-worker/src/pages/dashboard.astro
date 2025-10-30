@@ -11,9 +11,28 @@ if (!cookieHeader?.includes('session=')) {
 
 <MainLayout title="لوحة التحكم - SymbolAI">
   <div class="space-y-8">
-    <div>
-      <h1 class="text-3xl font-bold">لوحة التحكم</h1>
-      <p class="text-muted-foreground mt-2">نظرة عامة على الأداء المالي</p>
+    <!-- Header with user info and branch selector -->
+    <div class="flex justify-between items-start">
+      <div>
+        <h1 class="text-3xl font-bold">لوحة التحكم</h1>
+        <p class="text-muted-foreground mt-2">نظرة عامة على الأداء المالي</p>
+      </div>
+      <div class="flex gap-4 items-center">
+        <!-- User info -->
+        <div class="text-left">
+          <div id="user-role-badge" class="mb-1"></div>
+          <div class="text-sm text-muted-foreground" id="user-branch-info"></div>
+        </div>
+        <!-- Branch selector (only for admins) -->
+        <div id="branch-selector-container" class="hidden">
+          <select
+            id="branch-selector"
+            class="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+          >
+            <option value="">جميع الفروع</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <!-- KPI Cards -->
@@ -112,6 +131,8 @@ if (!cookieHeader?.includes('session=')) {
   </div>
 
   <script>
+    import '/public/js/permissions.js';
+
     interface Stats {
       totalRevenue: number;
       totalExpenses: number;
@@ -143,10 +164,51 @@ if (!cookieHeader?.includes('session=')) {
       }).format(amount);
     }
 
+    // Load branches for selector
+    async function loadBranches() {
+      try {
+        const response = await fetch('/api/branches/list');
+        const data = await response.json();
+
+        if (data.success && data.branches) {
+          const branchSelector = document.getElementById('branch-selector') as HTMLSelectElement;
+          data.branches.forEach((branch: any) => {
+            const option = document.createElement('option');
+            option.value = branch.id;
+            option.textContent = branch.name_ar || branch.name;
+            branchSelector.appendChild(option);
+          });
+
+          // Set selected branch from URL or permissions
+          const urlParams = new URLSearchParams(window.location.search);
+          const branchIdFromUrl = urlParams.get('branchId');
+          if (branchIdFromUrl) {
+            branchSelector.value = branchIdFromUrl;
+            window.PermissionsManager.setSelectedBranchId(branchIdFromUrl);
+          } else {
+            const selectedBranch = window.PermissionsManager.getSelectedBranchId();
+            if (selectedBranch) {
+              branchSelector.value = selectedBranch;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading branches:', error);
+      }
+    }
+
     // Fetch dashboard stats
     async function loadDashboard() {
       try {
-        const response = await fetch('/api/dashboard/stats');
+        // Get selected branch
+        const branchSelector = document.getElementById('branch-selector') as HTMLSelectElement;
+        const selectedBranch = branchSelector?.value || window.PermissionsManager.getSelectedBranchId();
+
+        const url = selectedBranch
+          ? `/api/dashboard/stats?branchId=${selectedBranch}`
+          : '/api/dashboard/stats';
+
+        const response = await fetch(url);
         const data = await response.json();
 
         if (!data.success) {
@@ -273,7 +335,40 @@ if (!cookieHeader?.includes('session=')) {
       `).join('');
     }
 
-    // Load dashboard on page load
-    loadDashboard();
+    // Initialize permissions and load dashboard
+    document.addEventListener('permissionsLoaded', async () => {
+      // Show branch selector only for admins with canViewAllBranches
+      if (window.PermissionsManager.has('canViewAllBranches')) {
+        const branchSelectorContainer = document.getElementById('branch-selector-container');
+        if (branchSelectorContainer) {
+          branchSelectorContainer.classList.remove('hidden');
+          await loadBranches();
+        }
+      }
+
+      // Load dashboard data
+      loadDashboard();
+    });
+
+    // Handle branch selection change
+    const branchSelector = document.getElementById('branch-selector');
+    if (branchSelector) {
+      branchSelector.addEventListener('change', (e) => {
+        const target = e.target as HTMLSelectElement;
+        const branchId = target.value;
+
+        if (branchId) {
+          window.PermissionsManager.setSelectedBranchId(branchId);
+        }
+
+        // Reload dashboard with new branch
+        loadDashboard();
+      });
+    }
+
+    // Listen for branch change events
+    window.addEventListener('branchChanged', () => {
+      loadDashboard();
+    });
   </script>
 </MainLayout>
