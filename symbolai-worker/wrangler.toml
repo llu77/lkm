@@ -1,0 +1,42 @@
+name = "symbolai-worker"
+compatibility_date = "2025-01-15"
+main = "./dist/_worker.js"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Database Binding
+[[d1_databases]]
+binding = "DB"
+database_name = "symbolai-financial-db"
+database_id = "3897ede2-ffc0-4fe8-8217-f9607c89bef2"
+
+# KV Namespace for Sessions
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "your_kv_namespace_id_here"
+
+# R2 Bucket for Payroll PDFs
+[[r2_buckets]]
+binding = "PAYROLL_PDFS"
+bucket_name = "symbolai-payrolls"
+
+# Workflows Binding
+[[workflows]]
+binding = "WORKFLOWS"
+name = "symbolai-workflows"
+class_name = "FinancialWorkflow"
+
+# Environment Variables / Secrets
+[vars]
+ENVIRONMENT = "production"
+
+# Secrets (set using: wrangler secret put SECRET_NAME)
+# ANTHROPIC_API_KEY
+# RESEND_API_KEY
+# ZAPIER_WEBHOOK_URL
+# SESSION_SECRET
+
+# Routes configuration
+routes = [
+  { pattern = "symbolai.net/*", zone_name = "symbolai.net" },
+  { pattern = "*.symbolai.net/*", zone_name = "symbolai.net" }
+]
