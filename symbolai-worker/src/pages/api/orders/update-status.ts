@@ -1,5 +1,10 @@
 import type { APIRoute } from 'astro';
 import { requireAdmin } from '@/lib/session';
+import {
+  triggerProductOrderApproved,
+  triggerProductOrderRejected,
+  triggerProductOrderCompleted
+} from '@/lib/email-triggers';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   // Check admin authentication
@@ -86,6 +91,31 @@ export const POST: APIRoute = async ({ request, locals }) => {
       updateTime,
       orderId
     ).run();
+
+    // Send email notifications based on status change
+    try {
+      const products = JSON.parse(order.products as string);
+      const orderData = {
+        orderId: order.id,
+        employeeName: order.employee_name,
+        orderDate: new Date(order.created_at).toLocaleDateString('ar-EG'),
+        products,
+        grandTotal: order.grand_total,
+        branchId: order.branch_id,
+        userId: order.user_id
+      };
+
+      if (newStatus === 'approved') {
+        await triggerProductOrderApproved(locals.runtime.env, orderData);
+      } else if (newStatus === 'rejected') {
+        await triggerProductOrderRejected(locals.runtime.env, orderData);
+      } else if (newStatus === 'completed') {
+        await triggerProductOrderCompleted(locals.runtime.env, orderData);
+      }
+    } catch (emailError) {
+      console.error('Email trigger error:', emailError);
+      // Don't fail the request if email fails
+    }
 
     return new Response(
       JSON.stringify({

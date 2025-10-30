@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { requireAuth } from '@/lib/session';
 import { expenseQueries, generateId } from '@/lib/db';
 import { categorizeExpense } from '@/lib/ai';
+import { triggerLargeExpense } from '@/lib/email-triggers';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   // Check authentication
@@ -56,15 +57,35 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Create expense record
     const expenseId = generateId();
+    const parsedAmount = parseFloat(amount);
     await expenseQueries.create(locals.runtime.env.DB, {
       id: expenseId,
       branchId,
       title,
-      amount: parseFloat(amount),
+      amount: parsedAmount,
       category: finalCategory,
       description,
       date
     });
+
+    // Send email alert for large expenses (> 1000 ج.م)
+    if (parsedAmount > 1000) {
+      try {
+        await triggerLargeExpense(locals.runtime.env, {
+          expenseId,
+          title,
+          amount: parsedAmount,
+          category: finalCategory,
+          description: description || '',
+          date,
+          branchId,
+          userId: authResult.userId
+        });
+      } catch (emailError) {
+        console.error('Email trigger error:', emailError);
+        // Don't fail the request if email fails
+      }
+    }
 
     return new Response(
       JSON.stringify({

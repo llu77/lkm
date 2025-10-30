@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { requireAuth } from '@/lib/session';
 import { generateId } from '@/lib/db';
+import { triggerProductOrderPending } from '@/lib/email-triggers';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   // Check authentication
@@ -77,6 +78,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
       isDraft ? 1 : 0,
       notes || ''
     ).run();
+
+    // Send email notification for pending orders (not drafts)
+    if (status === 'pending') {
+      try {
+        await triggerProductOrderPending(locals.runtime.env, {
+          orderId,
+          employeeName,
+          orderDate: new Date().toLocaleDateString('ar-EG'),
+          products,
+          grandTotal,
+          branchId,
+          userId: authResult.userId
+        });
+      } catch (emailError) {
+        console.error('Email trigger error:', emailError);
+      }
+    }
 
     return new Response(
       JSON.stringify({

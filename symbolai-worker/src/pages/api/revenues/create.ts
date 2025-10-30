@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { requireAuth } from '@/lib/session';
 import { revenueQueries, generateId, notificationQueries } from '@/lib/db';
+import { triggerRevenueMismatch } from '@/lib/email-triggers';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   // Check authentication
@@ -62,6 +63,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
         actionRequired: true,
         relatedEntity: revenueId
       });
+
+      // Send email alert for revenue mismatch
+      try {
+        await triggerRevenueMismatch(locals.runtime.env, {
+          revenueId,
+          date,
+          enteredTotal: total,
+          calculatedTotal,
+          difference: total - calculatedTotal,
+          cash: cash || 0,
+          network: network || 0,
+          budget: budget || 0,
+          branchId,
+          userId: session.userId
+        });
+      } catch (emailError) {
+        console.error('Email trigger error:', emailError);
+        // Don't fail the request if email fails
+      }
     }
 
     return new Response(
