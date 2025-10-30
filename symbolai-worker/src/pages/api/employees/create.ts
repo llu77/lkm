@@ -1,12 +1,23 @@
 import type { APIRoute } from 'astro';
-import { requireAdmin } from '@/lib/session';
-import { employeeQueries, generateId } from '@/lib/db';
+import { requireAuthWithPermissions, requirePermission, validateBranchAccess, logAudit, getClientIP } from '@/lib/permissions';
+import { generateId } from '@/lib/db';
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  // Check admin authentication
-  const authResult = await requireAdmin(locals.runtime.env.SESSIONS, request);
+  // Check authentication with permissions
+  const authResult = await requireAuthWithPermissions(
+    locals.runtime.env.SESSIONS,
+    locals.runtime.env.DB,
+    request
+  );
+
   if (authResult instanceof Response) {
     return authResult;
+  }
+
+  // Check permission to manage employees
+  const permError = requirePermission(authResult, 'canManageEmployees');
+  if (permError) {
+    return permError;
   }
 
   try {
@@ -30,17 +41,42 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
+    // Validate branch access
+    const branchError = validateBranchAccess(authResult, branchId);
+    if (branchError) {
+      return branchError;
+    }
+
     // Create employee record
     const employeeId = generateId();
-    await employeeQueries.create(locals.runtime.env.DB, {
-      id: employeeId,
+    const parsedBaseSalary = parseFloat(baseSalary);
+    const parsedSupervisorAllowance = parseFloat(supervisorAllowance) || 0;
+    const parsedIncentives = parseFloat(incentives) || 0;
+
+    await locals.runtime.env.DB.prepare(`
+      INSERT INTO employees (id, branch_id, employee_name, national_id, base_salary, supervisor_allowance, incentives, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+    `).bind(
+      employeeId,
       branchId,
       employeeName,
-      nationalId,
-      baseSalary: parseFloat(baseSalary),
-      supervisorAllowance: parseFloat(supervisorAllowance) || 0,
-      incentives: parseFloat(incentives) || 0
-    });
+      nationalId || null,
+      parsedBaseSalary,
+      parsedSupervisorAllowance,
+      parsedIncentives
+    ).run();
+
+    // Log audit
+    await logAudit(
+      locals.runtime.env.DB,
+      authResult,
+      'create',
+      'employee',
+      employeeId,
+      { branchId, employeeName, baseSalary: parsedBaseSalary },
+      getClientIP(request),
+      request.headers.get('User-Agent') || undefined
+    );
 
     return new Response(
       JSON.stringify({
