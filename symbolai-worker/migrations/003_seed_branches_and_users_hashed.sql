@@ -36,6 +36,14 @@ VALUES ('user_employee_1010_1', 'emp_laban_ahmad', '63e993352d8919a3a468a9d842a9
 INSERT INTO users_new (id, username, password, email, full_name, phone, role_id, branch_id, is_active)
 VALUES ('user_employee_1010_2', 'emp_laban_omar', '63e993352d8919a3a468a9d842a9f5e0ace2ecf6476fb2327bc78b20701dd2fe', 'omar.hassan@symbolai.net', 'عمر حسن - موظف فرع لبن', '+966501234572', 'role_employee', 'branch_1010', 1);
 
+-- User: emp_laban_fatima (Password: emp1010)
+INSERT INTO users_new (id, username, password, email, full_name, phone, role_id, branch_id, is_active)
+VALUES ('user_employee_1010_3', 'emp_laban_fatima', '63e993352d8919a3a468a9d842a9f5e0ace2ecf6476fb2327bc78b20701dd2fe', 'fatima.ahmed@symbolai.net', 'فاطمة أحمد - موظف فرع لبن', '+966501234575', 'role_employee', 'branch_1010', 1);
+
+-- User: emp_laban_noura (Password: emp1010)
+INSERT INTO users_new (id, username, password, email, full_name, phone, role_id, branch_id, is_active)
+VALUES ('user_employee_1010_4', 'emp_laban_noura', '63e993352d8919a3a468a9d842a9f5e0ace2ecf6476fb2327bc78b20701dd2fe', 'noura.khalid@symbolai.net', 'نورة خالد - موظف فرع لبن', '+966501234576', 'role_employee', 'branch_1010', 1);
+
 -- User: emp_tuwaiq_khalid (Password: emp2020)
 INSERT INTO users_new (id, username, password, email, full_name, phone, role_id, branch_id, is_active)
 VALUES ('user_employee_2020_1', 'emp_tuwaiq_khalid', '96a4512a6d4fa640978b18cbefee117457504eb134147ffa8af3d86ad4aaf625', 'khalid.salem@symbolai.net', 'خالد سالم - موظف فرع طويق', '+966501234573', 'role_employee', 'branch_2020', 1);
@@ -59,22 +67,10 @@ INSERT INTO employees (id, branch_id, employee_name, national_id, base_salary, s
 VALUES ('emp_rec_1010_4', 'branch_1010', 'نورة خالد محمد', '1234567893', 4200, 0, 250, 1);
 
 INSERT INTO employees (id, branch_id, employee_name, national_id, base_salary, supervisor_allowance, incentives, is_active)
-VALUES ('emp_rec_1010_5', 'branch_1010', 'سارة عبدالرحمن علي', '1234567894', 3800, 0, 150, 1);
-
-INSERT INTO employees (id, branch_id, employee_name, national_id, base_salary, supervisor_allowance, incentives, is_active)
 VALUES ('emp_rec_2020_1', 'branch_2020', 'خالد سالم عبدالله', '2234567890', 5200, 0, 600, 1);
 
 INSERT INTO employees (id, branch_id, employee_name, national_id, base_salary, supervisor_allowance, incentives, is_active)
 VALUES ('emp_rec_2020_2', 'branch_2020', 'يوسف فهد أحمد', '2234567891', 4800, 0, 400, 1);
-
-INSERT INTO employees (id, branch_id, employee_name, national_id, base_salary, supervisor_allowance, incentives, is_active)
-VALUES ('emp_rec_2020_3', 'branch_2020', 'ريم محمد خالد', '2234567892', 4100, 0, 220, 1);
-
-INSERT INTO employees (id, branch_id, employee_name, national_id, base_salary, supervisor_allowance, incentives, is_active)
-VALUES ('emp_rec_2020_4', 'branch_2020', 'مها ناصر علي', '2234567893', 4300, 0, 270, 1);
-
-INSERT INTO employees (id, branch_id, employee_name, national_id, base_salary, supervisor_allowance, incentives, is_active)
-VALUES ('emp_rec_2020_5', 'branch_2020', 'هند عبدالعزيز سعد', '2234567894', 3900, 0, 180, 1);
 
 
 -- =========================================
@@ -83,13 +79,17 @@ VALUES ('emp_rec_2020_5', 'branch_2020', 'هند عبدالعزيز سعد', '22
 -- Branches: 2 (Laban - 1010, Tuwaiq - 2020)
 -- Supervisors: 2 (1 per branch)
 -- Partners: 2 (1 per branch)
--- Employee Users: 4 (2 per branch)
--- Employee Records: 10 (5 per branch)
+-- Employee Users: 6 total (4 Laban + 2 Tuwaiq)
+-- Employee Records: 6 total (4 Laban + 2 Tuwaiq)
+--
+-- Branch Totals:
+-- Laban: 1 Supervisor + 4 Employees = 5 people
+-- Tuwaiq: 1 Supervisor + 2 Employees = 3 people
 --
 -- Login Credentials:
 -- Supervisor Laban: supervisor_laban / laban1010
 -- Supervisor Tuwaiq: supervisor_tuwaiq / tuwaiq2020
 -- Partner Laban: partner_laban / partner1010
 -- Partner Tuwaiq: partner_tuwaiq / partner2020
--- Employee Laban: emp_laban_ahmad / emp1010
--- Employee Tuwaiq: emp_tuwaiq_khalid / emp2020
+-- Employees Laban: emp_laban_ahmad, emp_laban_omar, emp_laban_fatima, emp_laban_noura / emp1010
+-- Employees Tuwaiq: emp_tuwaiq_khalid, emp_tuwaiq_youssef / emp2020

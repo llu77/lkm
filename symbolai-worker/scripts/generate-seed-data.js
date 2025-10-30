@@ -73,7 +73,7 @@ const users = [
     role_id: 'role_partner',
     branch_id: 'branch_2020'
   },
-  // Employees
+  // Employees - Laban Branch (4 employees)
   {
     id: 'user_employee_1010_1',
     username: 'emp_laban_ahmad',
@@ -94,6 +94,27 @@ const users = [
     role_id: 'role_employee',
     branch_id: 'branch_1010'
   },
+  {
+    id: 'user_employee_1010_3',
+    username: 'emp_laban_fatima',
+    password: 'emp1010',
+    email: 'fatima.ahmed@symbolai.net',
+    full_name: 'فاطمة أحمد - موظف فرع لبن',
+    phone: '+966501234575',
+    role_id: 'role_employee',
+    branch_id: 'branch_1010'
+  },
+  {
+    id: 'user_employee_1010_4',
+    username: 'emp_laban_noura',
+    password: 'emp1010',
+    email: 'noura.khalid@symbolai.net',
+    full_name: 'نورة خالد - موظف فرع لبن',
+    phone: '+966501234576',
+    role_id: 'role_employee',
+    branch_id: 'branch_1010'
+  },
+  // Employees - Tuwaiq Branch (2 employees)
   {
     id: 'user_employee_2020_1',
     username: 'emp_tuwaiq_khalid',
@@ -117,18 +138,14 @@ const users = [
 ];
 
 const employees = [
-  // Laban Branch Employees
+  // Laban Branch Employees (4 employees)
   { id: 'emp_rec_1010_1', branch_id: 'branch_1010', name: 'أحمد علي محمد', national_id: '1234567890', base_salary: 5000, supervisor_allowance: 0, incentives: 500 },
   { id: 'emp_rec_1010_2', branch_id: 'branch_1010', name: 'عمر حسن عبدالله', national_id: '1234567891', base_salary: 4500, supervisor_allowance: 0, incentives: 300 },
   { id: 'emp_rec_1010_3', branch_id: 'branch_1010', name: 'فاطمة أحمد سعيد', national_id: '1234567892', base_salary: 4000, supervisor_allowance: 0, incentives: 200 },
   { id: 'emp_rec_1010_4', branch_id: 'branch_1010', name: 'نورة خالد محمد', national_id: '1234567893', base_salary: 4200, supervisor_allowance: 0, incentives: 250 },
-  { id: 'emp_rec_1010_5', branch_id: 'branch_1010', name: 'سارة عبدالرحمن علي', national_id: '1234567894', base_salary: 3800, supervisor_allowance: 0, incentives: 150 },
-  // Tuwaiq Branch Employees
+  // Tuwaiq Branch Employees (2 employees)
   { id: 'emp_rec_2020_1', branch_id: 'branch_2020', name: 'خالد سالم عبدالله', national_id: '2234567890', base_salary: 5200, supervisor_allowance: 0, incentives: 600 },
-  { id: 'emp_rec_2020_2', branch_id: 'branch_2020', name: 'يوسف فهد أحمد', national_id: '2234567891', base_salary: 4800, supervisor_allowance: 0, incentives: 400 },
-  { id: 'emp_rec_2020_3', branch_id: 'branch_2020', name: 'ريم محمد خالد', national_id: '2234567892', base_salary: 4100, supervisor_allowance: 0, incentives: 220 },
-  { id: 'emp_rec_2020_4', branch_id: 'branch_2020', name: 'مها ناصر علي', national_id: '2234567893', base_salary: 4300, supervisor_allowance: 0, incentives: 270 },
-  { id: 'emp_rec_2020_5', branch_id: 'branch_2020', name: 'هند عبدالعزيز سعد', national_id: '2234567894', base_salary: 3900, supervisor_allowance: 0, incentives: 180 }
+  { id: 'emp_rec_2020_2', branch_id: 'branch_2020', name: 'يوسف فهد أحمد', national_id: '2234567891', base_salary: 4800, supervisor_allowance: 0, incentives: 400 }
 ];
 
 // Generate SQL
@@ -166,13 +183,17 @@ console.log('-- =========================================');
 console.log('-- Branches: 2 (Laban - 1010, Tuwaiq - 2020)');
 console.log('-- Supervisors: 2 (1 per branch)');
 console.log('-- Partners: 2 (1 per branch)');
-console.log('-- Employee Users: 4 (2 per branch)');
-console.log('-- Employee Records: 10 (5 per branch)');
+console.log('-- Employee Users: 6 total (4 Laban + 2 Tuwaiq)');
+console.log('-- Employee Records: 6 total (4 Laban + 2 Tuwaiq)');
+console.log('--');
+console.log('-- Branch Totals:');
+console.log('-- Laban: 1 Supervisor + 4 Employees = 5 people');
+console.log('-- Tuwaiq: 1 Supervisor + 2 Employees = 3 people');
 console.log('--');
 console.log('-- Login Credentials:');
 console.log('-- Supervisor Laban: supervisor_laban / laban1010');
 console.log('-- Supervisor Tuwaiq: supervisor_tuwaiq / tuwaiq2020');
 console.log('-- Partner Laban: partner_laban / partner1010');
 console.log('-- Partner Tuwaiq: partner_tuwaiq / partner2020');
-console.log('-- Employee Laban: emp_laban_ahmad / emp1010');
-console.log('-- Employee Tuwaiq: emp_tuwaiq_khalid / emp2020');
+console.log('-- Employees Laban: emp_laban_ahmad, emp_laban_omar, emp_laban_fatima, emp_laban_noura / emp1010');
+console.log('-- Employees Tuwaiq: emp_tuwaiq_khalid, emp_tuwaiq_youssef / emp2020');

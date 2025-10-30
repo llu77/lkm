@@ -14,12 +14,12 @@ This migration populates the database with initial test data for development and
 
 ### Branches (2)
 
-| ID | Name (EN) | Name (AR) | Location | Manager |
-|---|---|---|---|---|
-| branch_1010 | Laban Branch | فرع لبن | Riyadh - Laban District | محمد أحمد |
-| branch_2020 | Tuwaiq Branch | فرع طويق | Riyadh - Tuwaiq District | عبدالله خالد |
+| ID | Name (EN) | Name (AR) | Location | Manager | Team Size |
+|---|---|---|---|---|---|
+| branch_1010 | Laban Branch | فرع لبن | Riyadh - Laban District | محمد أحمد | 1 Supervisor + 4 Employees = 5 |
+| branch_2020 | Tuwaiq Branch | فرع طويق | Riyadh - Tuwaiq District | عبدالله خالد | 1 Supervisor + 2 Employees = 3 |
 
-### Users (8 total)
+### Users (10 total: 2 Supervisors + 2 Partners + 6 Employees)
 
 #### Supervisors (2)
 
@@ -39,42 +39,47 @@ This migration populates the database with initial test data for development and
 
 **Permissions**: Read-only access to view reports for their assigned branch only.
 
-#### Employees (4)
+#### Employees (6 total: 4 Laban + 2 Tuwaiq)
+
+#### Laban Branch Employees (4)
 
 | Username | Password | Branch | Role | Full Name |
 |---|---|---|---|---|
 | emp_laban_ahmad | emp1010 | branch_1010 | Employee | أحمد علي - موظف فرع لبن |
 | emp_laban_omar | emp1010 | branch_1010 | Employee | عمر حسن - موظف فرع لبن |
+| emp_laban_fatima | emp1010 | branch_1010 | Employee | فاطمة أحمد - موظف فرع لبن |
+| emp_laban_noura | emp1010 | branch_1010 | Employee | نورة خالد - موظف فرع لبن |
+
+#### Tuwaiq Branch Employees (2)
+
+| Username | Password | Branch | Role | Full Name |
+|---|---|---|---|---|
 | emp_tuwaiq_khalid | emp2020 | branch_2020 | Employee | خالد سالم - موظف فرع طويق |
 | emp_tuwaiq_youssef | emp2020 | branch_2020 | Employee | يوسف فهد - موظف فرع طويق |
 
 **Permissions**: Can submit requests, view their own requests, view their own bonus.
 
-### Employee Records (10 total)
+### Employee Records (6 total: 4 Laban + 2 Tuwaiq)
 
-#### Laban Branch Employees (5)
+#### Laban Branch Employees (4)
 
-| ID | Name | National ID | Base Salary | Supervisor Allowance | Incentives |
-|---|---|---|---|---|---|
-| emp_rec_1010_1 | أحمد علي محمد | 1234567890 | 5000 | 0 | 500 |
-| emp_rec_1010_2 | عمر حسن عبدالله | 1234567891 | 4500 | 0 | 300 |
-| emp_rec_1010_3 | فاطمة أحمد سعيد | 1234567892 | 4000 | 0 | 200 |
-| emp_rec_1010_4 | نورة خالد محمد | 1234567893 | 4200 | 0 | 250 |
-| emp_rec_1010_5 | سارة عبدالرحمن علي | 1234567894 | 3800 | 0 | 150 |
+| ID | Name | National ID | Base Salary | Supervisor Allowance | Incentives | Total |
+|---|---|---|---|---|---|---|
+| emp_rec_1010_1 | أحمد علي محمد | 1234567890 | 5000 | 0 | 500 | 5500 |
+| emp_rec_1010_2 | عمر حسن عبدالله | 1234567891 | 4500 | 0 | 300 | 4800 |
+| emp_rec_1010_3 | فاطمة أحمد سعيد | 1234567892 | 4000 | 0 | 200 | 4200 |
+| emp_rec_1010_4 | نورة خالد محمد | 1234567893 | 4200 | 0 | 250 | 4450 |
 
-**Total Salaries**: 21,400 SAR
+**Total Salaries**: 18,950 SAR
 
-#### Tuwaiq Branch Employees (5)
+#### Tuwaiq Branch Employees (2)
 
-| ID | Name | National ID | Base Salary | Supervisor Allowance | Incentives |
-|---|---|---|---|---|---|
-| emp_rec_2020_1 | خالد سالم عبدالله | 2234567890 | 5200 | 0 | 600 |
-| emp_rec_2020_2 | يوسف فهد أحمد | 2234567891 | 4800 | 0 | 400 |
-| emp_rec_2020_3 | ريم محمد خالد | 2234567892 | 4100 | 0 | 220 |
-| emp_rec_2020_4 | مها ناصر علي | 2234567893 | 4300 | 0 | 270 |
-| emp_rec_2020_5 | هند عبدالعزيز سعد | 2234567894 | 3900 | 0 | 180 |
+| ID | Name | National ID | Base Salary | Supervisor Allowance | Incentives | Total |
+|---|---|---|---|---|---|---|
+| emp_rec_2020_1 | خالد سالم عبدالله | 2234567890 | 5200 | 0 | 600 | 5800 |
+| emp_rec_2020_2 | يوسف فهد أحمد | 2234567891 | 4800 | 0 | 400 | 5200 |
 
-**Total Salaries**: 22,470 SAR
+**Total Salaries**: 11,000 SAR
 
 ## How to Apply Seed Data
 
