@@ -5,6 +5,7 @@
 ### 1. Environment Variables
 - [ ] إنشاء ملف `.env.local` من `.env.example`
 - [ ] تعيين `VITE_CONVEX_URL` الخاص بك
+- [ ] **تشغيل `./setup-convex-env.sh`** لإعداد متغيرات Convex (راجع [CONVEX_SETUP.md](./CONVEX_SETUP.md))
 - [ ] (اختياري) تعيين `PDFCO_API_KEY` إذا أردت استخدام PDF.co
 - [ ] (اختياري) تعيين `RESEND_API_KEY` لإرسال البريد
 - [ ] **تغيير كلمات المرور الافتراضية** في الـ `.env.local`
